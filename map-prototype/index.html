@@ -83,6 +83,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optPrefetch"> Ön yükleme</label></div>
     <div class="row"><span class="lab">POI (sade)</span>
       <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
+    <div class="row"><span class="lab">Tile kaynağı</span>
+      <span class="seg" id="tileSeg"><button data-tiles="ofm">OpenFreeMap</button><button data-tiles="maptiler">MapTiler</button></span></div>
     <p class="note" id="cfgNote"></p>
     <div class="stats">
       <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
@@ -133,7 +135,11 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   lite: false,         // "Sade stil": fewer style layers
   poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
   cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
-  prefetch: false };   // zoom-out prefetch: when the map rests, download the coarser levels a zoom-out will need
+  prefetch: false,     // zoom-out prefetch: when the map rests, download the coarser levels a zoom-out will need
+  tiles: "ofm" };      // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
+// MapTiler key for the prototype, restricted to raw.githack.com in the MapTiler account. Map keys are public by
+// design (every tile URL carries them); the origin restriction is what protects it.
+const MAPTILER_KEY = "MAPTILER_KEY_REMOVED";
 const WK = { def: 0, now: 0, on: 4 };
 const LAYER_INFO = { all: 0, used: 0 };
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
@@ -234,6 +240,10 @@ async function fetchStyleJSON() {
 }
 async function buildBaseStyle() {
   const [s] = await Promise.all([fetchStyleJSON(), loadCountries()]);
+  // Same layer definitions either way; only the vector tiles come from the chosen host. (The style, fonts and
+  // icons still come from OpenFreeMap in this test.)
+  if (OPT.tiles === "maptiler") for (const src of Object.values(s.sources))
+    if (src.type === "vector" && src.url) src.url = `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${MAPTILER_KEY}`;
   const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   for (const l of s.layers) {
     const id = l.id, p = (l.paint = l.paint || {});
@@ -728,7 +738,7 @@ async function zoomOutTest() {
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
 function cfgLabel() {
-  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? " · ön yükleme" : ""}`;
+  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? " · ön yükleme" : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}`;
 }
 function addRow(name, r) {
   let t = $("#report table");
@@ -770,16 +780,19 @@ function reloadWithOptions() {
   q.set("poi", OPT.poi);
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   if (OPT.prefetch) q.set("prefetch", "1"); else q.delete("prefetch");
+  if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
 }
 $("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
+document.querySelectorAll("#tileSeg button").forEach(b => b.onclick = () => { if (OPT.tiles !== b.dataset.tiles) { OPT.tiles = b.dataset.tiles; reloadWithOptions(); } });
 $("#optPrefetch").onchange = e => { OPT.prefetch = e.target.checked; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); };
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
   $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
   document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
+  document.querySelectorAll("#tileSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tiles === OPT.tiles)));
   $("#cfgNote").textContent = `Şu an: ${cfgLabel()} (normal stilde ${LAYER_INFO.all}). Worker ve stil değişince sayfa yeniden yüklenir.`;
 }
 $("#copyReport").onclick = async () => {
@@ -799,6 +812,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   OPT.lite = q.get("lite") === "1";
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   OPT.prefetch = q.get("prefetch") === "1"; $("#optPrefetch").checked = OPT.prefetch;
+  if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
   // worker pool must be sized before the first map is created
   const getWC = () => typeof maplibregl.getWorkerCount === "function" ? maplibregl.getWorkerCount() : maplibregl.workerCount;
