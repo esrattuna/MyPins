@@ -62,18 +62,18 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
 @media (max-width:600px){#info{left:12px;right:12px;width:auto}#dev{width:calc(100% - 20px)}#dev .body{max-height:46vh;overflow:auto;overscroll-behavior:contain}}
 </style>
 </head>
-<body class="anim">
+<body>
 <div id="stage"><div id="map" aria-label="Harita"></div><div id="off" hidden>Harita kapatıldı (ekrandan çıkıldı).<br>Kaynaklar temizlendi. “Ekrana geri dön” ile yeniden aç.</div></div>
 
 <section id="dev">
   <header id="devHead"><h1>Harita prototipi</h1><span class="hstat" id="hStat"></span><span id="devMin">▾</span></header>
   <div class="body">
     <div class="row"><span class="lab">Nokta</span>
-      <span class="seg" id="counts"><button data-n="20">20</button><button data-n="100">100</button><button data-n="500">500</button></span></div>
+      <span class="seg" id="counts"><button data-n="20">20</button><button data-n="50">50</button><button data-n="100">100</button><button data-n="500">500</button></span></div>
     <div class="row"><span class="lab">Seçenek</span>
-      <label class="tog"><input type="checkbox" id="optAnim" checked> Animasyon</label>
+      <label class="tog"><input type="checkbox" id="optAnim"> Animasyon</label>
       <label class="tog"><input type="checkbox" id="optCluster"> Clustering</label>
-      <label class="tog"><input type="checkbox" id="optPhoto"> Fotoğraflı pin</label></div>
+      <label class="tog"><input type="checkbox" id="optPhoto" checked> Fotoğraflı pin</label></div>
     <div class="stats">
       <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
       <div class="stat"><b id="sP95">–</b><span>kare p95 (ms)</span></div>
@@ -114,7 +114,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
      photo markers to compare costs. Photo icons are loaded only when visible (styleimagemissing). */
 const $ = s => document.querySelector(s);
 const T0 = performance.now();
-const OPT = { n: 100, anim: true, cluster: false, photo: false };
+const OPT = { n: 50, anim: false, cluster: false, photo: true };   // first phone test: 50 pins, photos on, animations off
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
   ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
 let map = null, styleJSON = null, BASE = [], PHOTOS = [], photoUrl = new Map();
@@ -439,7 +439,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
 (async () => {
   // URL options for repeatable phone tests, e.g. ?n=500&photo=1&anim=0&auto=1
   const q = new URLSearchParams(location.search);
-  if ([20, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
+  if ([20, 50, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   document.body.classList.toggle("anim", OPT.anim);
   await loadData();

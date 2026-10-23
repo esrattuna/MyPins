@@ -8,7 +8,7 @@ Ana menüdeki etkileşimli haritanın akıcılığını ölçmek için bağıms�
 - Pinler tek bir GeoJSON kaynağı olarak GPU'da çizilir (DOM işaretçisi yok). Clustering ve fotoğraflı pin isteğe bağlı, maliyetleri karşılaştırmak için.
 
 ## Test kontrolleri
-- 20 / 100 / 500 nokta, animasyon aç/kapa, clustering, fotoğraflı pin.
+- 20 / 50 / 100 / 500 nokta, animasyon aç/kapa, clustering, fotoğraflı pin. Varsayılan: 50 nokta, fotoğraflı pin açık, animasyon kapalı, otomatik senaryo kapalı (`?auto=1` ile açılır).
 - Geliştirme paneli: FPS, kare süresi p95, takılma (>34 ms) sayısı, uzun görevler, görünen pin ve yüklü tile sayısı, kare süresi grafiği.
 - "Senaryoları çalıştır": sürükleme, yakınlaştırma, kıta ölçeğinde zoom, nokta seçimi ve ekrandan çıkıp geri dönme senaryolarını tekrarlanabilir şekilde ölçer.
 
