@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MyPins</title>
+<meta name="description" content="MyPins: gezdiğin yerleri, yemek yediğin adresleri ve notlarını kendi haritanda topla, arkadaşlarının haritalarını gez.">
+<meta property="og:title" content="MyPins">
+<meta property="og:description" content="Gezdiğin yerler ve lokal adresler, kendi haritanda.">
+<meta name="theme-color" content="#7fcfd0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}html,body{height:100%}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="map" id="map">
+    <svg id="svg" role="img" data-i18n-aria="mapLabel" aria-label="Akdeniz ve Avrupa haritası"></svg>
+    <div class="brand"><h1 id="brandName">MyPins</h1><p id="brandSub">Seyir notları · yerler · sofralar</p><button type="button" class="about-btn" id="aboutBtn" data-i18n="about" hidden>Hakkında</button></div>
+    <div class="topbar"><div class="lang" role="group" aria-label="Dil / Language"><button type="button" data-lang="tr">TR</button><button type="button" data-lang="en">EN</button></div><div class="acct" id="acct"></div></div>
+    <div class="controls" hidden>
+      <button type="button" id="zin" hidden aria-hidden="true" tabindex="-1">+</button>
+      <button type="button" id="zout" hidden aria-hidden="true" tabindex="-1">−</button>
+      <button type="button" id="zhome" data-i18n-aria="zoomHome" aria-label="Tüm haritayı göster">⌂</button>
+    </div>
+    <div class="coord-readout" id="readout">—</div>
+    <div class="pick-banner" id="pickBanner" hidden><span data-i18n="pickHint">Haritada notun yerine dokun</span><button type="button" id="pickCancel" data-i18n="cancel">Vazgeç</button></div>
+  </div>
+  <aside class="panel" id="panel" aria-label="Defter">
+    <button class="handle" id="handle" type="button" data-i18n-aria="sheet" aria-label="Paneli büyüt veya küçült"><span></span></button>
+    <div class="panel-scroll" id="panelBody"></div>
+  </aside>
+</div>
+<div class="lightbox" id="lightbox" hidden>
+  <img id="lbImg" alt="">
+  <button class="lb-btn lb-close" id="lbClose" type="button" data-i18n-aria="close" aria-label="Kapat">✕</button>
+  <button class="lb-btn lb-prev" id="lbPrev" type="button" data-i18n-aria="prev" aria-label="Önceki">‹</button>
+  <button class="lb-btn lb-next" id="lbNext" type="button" data-i18n-aria="next" aria-label="Sonraki">›</button>
+</div>
+<div class="intro" id="intro" hidden>
+  <div class="intro-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <button type="button" class="intro-x" id="introX" data-i18n-aria="close" aria-label="Kapat">✕</button>
+    <div class="intro-body" id="introBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="geo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
