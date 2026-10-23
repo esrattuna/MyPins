@@ -82,6 +82,9 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <div class="stat"><b id="sPins">–</b><span>görünen pin</span></div>
       <div class="stat"><b id="sTiles">–</b><span>yüklü tile</span></div>
       <div class="stat"><b id="sLong">0</b><span>uzun görev</span></div>
+      <div class="stat"><b id="sNet">–</b><span>tile indirme (ms)</span></div>
+      <div class="stat"><b id="sReady">–</b><span>tile hazır (ms)</span></div>
+      <div class="stat"><b id="sPend">–</b><span>bekleyen / en çok</span></div>
     </div>
     <canvas id="spark" width="600" height="72" aria-label="Kare süresi grafiği"></canvas>
     <div class="row">
@@ -256,7 +259,9 @@ async function createMap() {
   map.on("styleimagemissing", onMissing);
   map.on("idle", updateCounts);
   map.on("click", onMapTap);
-  cleanups.push(() => { map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
+  map.on("dataloading", onTileStart); map.on("data", onTileDone);
+  cleanups.push(() => { map.off("dataloading", onTileStart); map.off("data", onTileDone); TT.pending.clear();
+    map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
 }
 const pendingImg = new Set();
 let lastCam = null;   // camera survives leaving and returning, like a real screen
@@ -431,7 +436,29 @@ function summarize(arr) {
   return { fps: 1000 / (sum / arr.length), p95: s[Math.floor(s.length * .95)] || s[s.length - 1], max: s[s.length - 1], jank: arr.filter(x => x > 34).length };
 }
 const cls = (v, g, w) => v <= g ? "good" : v <= w ? "warn" : "bad";
+/* ---------- tile timing: where does the zoom-out wait come from? ----------
+   "indirme" = network time of each vector tile (Resource Timing; ~0-5 ms means it came from the browser cache).
+   "hazır"   = from MapLibre asking for the tile until it is parsed and drawable (network + worker parsing + queue).
+   If "hazır" is close to "indirme", the wait is the network; if it is much larger, it is processing on the phone. */
+const TT = { net: [], ready: [], pending: new Map(), maxPend: 0, cached: 0, total: 0 };
+const isVectorTile = e => e.tile && e.sourceId && map.getSource(e.sourceId) && map.getSource(e.sourceId).type === "vector";
+function onTileStart(e) { if (!isVectorTile(e)) return; const k = e.tile.tileID.key; if (!TT.pending.has(k)) TT.pending.set(k, performance.now()); TT.maxPend = Math.max(TT.maxPend, TT.pending.size); }
+function onTileDone(e) {
+  if (!isVectorTile(e)) return; const k = e.tile.tileID.key, t0 = TT.pending.get(k); if (t0 === undefined) return;
+  TT.pending.delete(k); TT.ready.push(performance.now() - t0); if (TT.ready.length > 60) TT.ready.shift();
+}
+let resObs = null;
+try {
+  resObs = new PerformanceObserver(l => { for (const r of l.getEntries()) if (/\.pbf(\?|$)/.test(r.name) && !/fonts|glyph/.test(r.name)) {
+    TT.total++; if (r.duration < 8) TT.cached++; TT.net.push(r.duration); if (TT.net.length > 60) TT.net.shift(); } });
+  resObs.observe({ type: "resource", buffered: false });
+} catch (e) {}
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
 function paintStats() {
+  const n = avg(TT.net), rd = avg(TT.ready);
+  $("#sNet").textContent = TT.net.length ? Math.round(n) : "–"; $("#sNet").className = TT.net.length ? cls(n, 150, 400) : "";
+  $("#sReady").textContent = TT.ready.length ? Math.round(rd) : "–"; $("#sReady").className = TT.ready.length ? cls(rd, 250, 600) : "";
+  $("#sPend").textContent = `${TT.pending.size} / ${TT.maxPend}`;
   const r = summarize(recent(60));
   const fps = Math.round(r.fps), p95 = Math.round(r.p95);
   $("#sFps").textContent = fps || "–"; $("#sFps").className = fps >= 55 ? "good" : fps >= 40 ? "warn" : "bad";
@@ -534,11 +561,12 @@ $("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins()
 $("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
 $("#runAll").onclick = () => map && runAll();
 $("#copyReport").onclick = async () => {
-  const t = $("#report table"); if (!t) return;
-  const txt = [navigator.userAgent, `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, ...[...t.rows].map(r => [...r.cells].map(c => c.textContent).join("\t"))].join("\n");
+  const t = $("#report table") || { rows: [] };
+  const tiles = `tile: indirme ort ${Math.round(avg(TT.net))} ms, hazır ort ${Math.round(avg(TT.ready))} ms, en çok bekleyen ${TT.maxPend}, önbellekten ${TT.cached}/${TT.total}`;
+  const txt = [navigator.userAgent, `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, `FPS ${$("#sFps").textContent}, takılma ${stats.jank}`, tiles, ...[...t.rows].map(r => [...r.cells].map(c => c.textContent).join("\t"))].join("\n");
   try { await navigator.clipboard.writeText(txt); $("#copyReport").textContent = "Kopyalandı"; } catch (e) { prompt("Sonuçlar:", txt); }
 };
-$("#resetStats").onclick = () => { stats.jank = 0; stats.longTasks = 0; stats.count = 0; $("#report").innerHTML = ""; };
+$("#resetStats").onclick = () => { stats.jank = 0; stats.longTasks = 0; stats.count = 0; $("#report").innerHTML = ""; TT.net = []; TT.ready = []; TT.maxPend = TT.pending.size; TT.cached = 0; TT.total = 0; };
 $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").textContent = $("#dev").classList.contains("min") ? "▸" : "▾"; };
 
 (async () => {
