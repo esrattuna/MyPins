@@ -130,7 +130,7 @@ const T0 = performance.now();
 const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true,      // first phone test: 50 pins, photos on, animations off
   workers: 0,          // 0 = MapLibre default; otherwise tile worker count (set before the first map, so changing it reloads the page)
   lite: false,         // "Sade stil": fewer style layers
-  poi: "street",       // POI behaviour inside the lite style: off | street | select (provisional until Esra picks)
+  poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
   cold: false };       // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
 const WK = { def: 0, now: 0, on: 4 };
 const LAYER_INFO = { all: 0, used: 0 };
