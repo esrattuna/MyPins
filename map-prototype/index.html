@@ -78,7 +78,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optSmooth" checked> Yumuşak detay</label></div>
     <div class="row"><span class="lab">Hız ayarı</span>
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
-      <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label></div>
+      <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
+      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label></div>
     <div class="row"><span class="lab">POI (sade)</span>
       <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
     <p class="note" id="cfgNote"></p>
@@ -129,7 +130,8 @@ const T0 = performance.now();
 const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true,      // first phone test: 50 pins, photos on, animations off
   workers: 0,          // 0 = MapLibre default; otherwise tile worker count (set before the first map, so changing it reloads the page)
   lite: false,         // "Sade stil": fewer style layers
-  poi: "street" };     // POI behaviour inside the lite style: off | street | select (provisional until Esra picks)
+  poi: "street",       // POI behaviour inside the lite style: off | street | select (provisional until Esra picks)
+  cold: false };       // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
 const WK = { def: 0, now: 0, on: 4 };
 const LAYER_INFO = { all: 0, used: 0 };
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
@@ -599,10 +601,30 @@ async function runAll() {
    Reports tiles requested, average "ready" time, max queue, and how long the map needed to fill in after the last
    pinch ended ("doluş"). */
 const PINCHES = [[13, 700], [10.5, 700], [8, 800]];
+// "Soğuk" runs start each time in a city this phone has not loaded yet (far apart so z8 tiles do not overlap),
+// so tiles come from the internet, like a first visit. The position is remembered across reloads.
+const COLD_CITIES = [["Lyon", 4.835, 45.764], ["Kraków", 19.945, 50.065], ["Porto", -8.611, 41.149], ["Napoli", 14.268, 40.852],
+  ["Gdańsk", 18.646, 54.352], ["Sevilla", -5.984, 37.389], ["Zagreb", 15.98, 45.815], ["Bordeaux", -0.579, 44.838],
+  ["Palermo", 13.361, 38.116], ["Praha", 14.42, 50.088], ["Valencia", -0.376, 39.47], ["Thessaloniki", 22.944, 40.64],
+  ["Nantes", -1.554, 47.218], ["Bari", 16.871, 41.117], ["Wrocław", 17.038, 51.108], ["Málaga", -4.421, 36.721]];
+function nextColdCity() {
+  let i = 0;
+  try { i = (+localStorage.getItem("mp-cold-i") || 0) % COLD_CITIES.length; localStorage.setItem("mp-cold-i", String(i + 1)); } catch (e) { i = Math.floor(Math.random() * COLD_CITIES.length); }
+  return COLD_CITIES[i];
+}
+// drop the tiles the map keeps in memory, otherwise a second run on the same page requests nothing
+function clearTileMemory() {
+  try {
+    const caches = (map.style && (map.style.sourceCaches || map.style.tileManagers)) || {};
+    for (const [id, sc] of Object.entries(caches)) { const s = map.getSource(id); if (s && s.type === "vector" && sc.clearTiles) sc.clearTiles(); }
+  } catch (e) { console.warn(e); }
+}
 async function zoomOutTest() {
   if (!map) return;
   $("#runZoomOut").disabled = true; $("#runAll").disabled = true; closeInfo();
-  map.jumpTo({ center: [2.1734, 41.3851], zoom: 16 });
+  clearTileMemory();
+  const city = OPT.cold ? nextColdCity() : ["Barcelona", 2.1734, 41.3851];
+  map.jumpTo({ center: [city[1], city[2]], zoom: 16 });
   await idle(); await wait(600);
   TT.pending.clear();                      // at idle anything still listed was cancelled earlier
   TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
@@ -617,7 +639,7 @@ async function zoomOutTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round;
-  addRow(`Uzaklaşma 16→13→10,5→8 [${cfgLabel()}] — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Uzaklaşma 16→13→10,5→8, ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
@@ -662,10 +684,12 @@ function reloadWithOptions() {
   q.set("n", OPT.n); for (const k of ["anim", "cluster", "photo", "smooth", "lite"]) q.set(k, OPT[k] ? "1" : "0");
   if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
   q.set("poi", OPT.poi);
+  if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   location.search = q.toString();
 }
 $("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
+$("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
   $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
@@ -687,6 +711,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   if ([20, 50, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   OPT.lite = q.get("lite") === "1";
+  OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
   // worker pool must be sized before the first map is created
   const getWC = () => typeof maplibregl.getWorkerCount === "function" ? maplibregl.getWorkerCount() : maplibregl.workerCount;
