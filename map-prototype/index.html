@@ -79,7 +79,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">Hız ayarı</span>
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
       <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
-      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label></div>
+      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
+      <label class="tog"><input type="checkbox" id="optPrefetch"> Ön yükleme</label></div>
     <div class="row"><span class="lab">POI (sade)</span>
       <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
     <p class="note" id="cfgNote"></p>
@@ -131,7 +132,8 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   workers: 0,          // 0 = MapLibre default; otherwise tile worker count (set before the first map, so changing it reloads the page)
   lite: false,         // "Sade stil": fewer style layers
   poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
-  cold: false };       // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
+  cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
+  prefetch: false };   // zoom-out prefetch: when the map rests, download the coarser levels a zoom-out will need
 const WK = { def: 0, now: 0, on: 4 };
 const LAYER_INFO = { all: 0, used: 0 };
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
@@ -342,10 +344,11 @@ async function createMap() {
   };
   map.on("styleimagemissing", onMissing);
   map.on("idle", updateCounts);
+  map.on("idle", onIdlePrefetch);
   map.on("click", onMapTap);
   map.on("dataloading", onTileStart); map.on("data", onTileDone);
   cleanups.push(() => { map.off("dataloading", onTileStart); map.off("data", onTileDone); TT.pending.clear();
-    map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
+    map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.off("idle", onIdlePrefetch); clearTimeout(PF.timer); map.remove(); map = null; pendingImg.clear(); });
 }
 const pendingImg = new Set();
 let lastCam = null;   // camera survives leaving and returning, like a real screen
@@ -473,6 +476,35 @@ function applySmooth() {
   if (!map) return;
   for (const r of RAMPS) map.setPaintProperty(r.id, r.prop, OPT.smooth ? r.ramp : r.orig);
   if ("_fadeDuration" in map) map._fadeDuration = OPT.anim || OPT.smooth ? 300 : 0;
+}
+/* ---------- zoom-out prefetch ----------
+   Measured on iPhone: from cache a tile is ready in ~50 ms, from the internet ~200-260 ms, and on a cold zoom-out
+   about half the requested tiles were cancelled before they arrived (the blank squares). So when the map rests,
+   download the tiles of every coarser level down to 8 levels up, for the visible area, into the browser cache.
+   A later zoom-out then finds them there. Capped at 80 tiles per rest; the same tile is never fetched twice. */
+const PF = { done: new Set(), timer: 0, running: null, tiles: 0, bytes: 0 };
+function onIdlePrefetch() { clearTimeout(PF.timer); if (OPT.prefetch) PF.timer = setTimeout(prefetchZoomOut, 300); }
+async function prefetchZoomOut() {
+  if (!OPT.prefetch || !map) return;
+  if (PF.running) return PF.running;
+  const tpl = await tileTemplate(); if (!tpl || !map) return;
+  const z = Math.floor(map.getZoom()); if (z < 6) return;
+  const c = map.getCenter(), rect = map.getContainer().getBoundingClientRect();
+  const hx = rect.width / 2 / 512 + 0.5, hy = rect.height / 2 / 512 + 0.5, urls = [];
+  for (let tz = Math.min(TILE_MAX, z - 1); tz >= Math.max(3, z - 8); tz--) {
+    const n = 2 ** tz, x = (c.lng + 180) / 360 * n, lr = c.lat * Math.PI / 180;
+    const y = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
+    for (let ty = Math.floor(y - hy); ty <= Math.floor(y + hy); ty++) for (let tx = Math.floor(x - hx); tx <= Math.floor(x + hx); tx++) {
+      if (ty < 0 || ty >= n) continue;
+      const u = tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty);
+      if (!PF.done.has(u)) urls.push(u);
+    }
+  }
+  const batch = urls.slice(0, 80); batch.forEach(u => PF.done.add(u));
+  PF.running = Promise.all(batch.map(u => fetch(u, { mode: "cors", credentials: "same-origin" })
+    .then(r => r.arrayBuffer()).then(b => { PF.tiles++; PF.bytes += b.byteLength; }).catch(() => {})))
+    .then(() => { PF.running = null; });
+  return PF.running;
 }
 let TILE_TPL = null, TILE_MAX = 14;
 async function tileTemplate() {
@@ -674,6 +706,10 @@ async function zoomOutTest() {
   const city = OPT.cold ? nextColdCity() : ["Barcelona", 2.1734, 41.3851];
   map.jumpTo({ center: [city[1], city[2]], zoom: 16 });
   await idle(); await wait(600);
+  // with prefetch on, give it the rest it would get when a person pauses on a street (up to 3 s)
+  const pf0 = { t: PF.tiles, b: PF.bytes };
+  if (OPT.prefetch) await Promise.race([prefetchZoomOut(), wait(3000)]);
+  const pf = { t: PF.tiles - pf0.t, kb: Math.round((PF.bytes - pf0.b) / 1024) };
   TT.pending.clear();                      // at idle anything still listed was cancelled earlier
   TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
   rec = []; const lt0 = stats.longTasks;
@@ -687,12 +723,12 @@ async function zoomOutTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round;
-  addRow(`Uzaklaşma 16→13→10,5→8, ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Uzaklaşma 16→13→10,5→8, ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}]${OPT.prefetch ? ` — ön yükleme ${pf.t} tile, ${pf.kb} KB` : ""} — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
 function cfgLabel() {
-  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}`;
+  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? " · ön yükleme" : ""}`;
 }
 function addRow(name, r) {
   let t = $("#report table");
@@ -733,11 +769,13 @@ function reloadWithOptions() {
   if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
   q.set("poi", OPT.poi);
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
+  if (OPT.prefetch) q.set("prefetch", "1"); else q.delete("prefetch");
   location.search = q.toString();
 }
 $("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
+$("#optPrefetch").onchange = e => { OPT.prefetch = e.target.checked; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); };
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
   $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
@@ -760,6 +798,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   OPT.lite = q.get("lite") === "1";
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
+  OPT.prefetch = q.get("prefetch") === "1"; $("#optPrefetch").checked = OPT.prefetch;
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
   // worker pool must be sized before the first map is created
   const getWC = () => typeof maplibregl.getWorkerCount === "function" ? maplibregl.getWorkerCount() : maplibregl.workerCount;
