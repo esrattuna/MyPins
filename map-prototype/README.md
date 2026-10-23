@@ -12,7 +12,7 @@ Ana menüdeki etkileşimli haritanın akıcılığını ölçmek için bağıms�
 - Geliştirme paneli: FPS, kare süresi p95, takılma (>34 ms) sayısı, uzun görevler, görünen pin ve yüklü tile sayısı, kare süresi grafiği.
 - **Worker ×4** (`?workers=4`): tile'ları işleyen arka plan iş parçacığı sayısını artırır. Havuz ilk haritadan önce kurulduğu için değiştirince sayfa yeniden yüklenir. Panelde gerçek sayı görünür. Varsayılan: kapalı (MapLibre'nin kendi sayısı).
 - **Sade stil** (`?lite=1`): ev numarası, bina, havalimanı, yol kalkanı, tek yön oku, patika ve küçük yol adı katmanlarını kaldırır. POI davranışı `?poi=` ile seçilir: `off` (a, tamamen kaldır), `street` (b, sadece zoom 16+), `select` (c, yeme-içme kalkar; durak, müze ve diğerleri kalır). Varsayılan: kapalı.
-- "⏱ Hızlı uzaklaşma testi": Barcelona sokak seviyesinden (z16) z5'e 1,2 saniyede uzaklaşır. Bu sırada istenen tile'ların ortalama hazır olma süresini, en çok bekleyen tile sayısını ve hareket bittikten sonra haritanın dolma süresini ("doluş") rapora yazar.
+- "⏱ Uzaklaşma testi": Barcelona sokak seviyesinden (z16) parmakla uzaklaşmayı taklit eden üç sıkıştırma yapar (16→13→10,5→8, aralarında 0,25 sn duraklama) ve sorunun görüldüğü orta ölçekte biter. Rapora istenen ve biten tile sayısını, ortalama hazır olma süresini, en çok bekleyen tile sayısını ve son hareketten sonra haritanın dolma süresini ("doluş") yazar. İlk sürüm (16→5, 1,2 sn tek hareket) ara seviyeleri çok hızlı geçtiği için sorunu üretmiyordu.
 - "Senaryoları çalıştır": sürükleme, yakınlaştırma, kıta ölçeğinde zoom, nokta seçimi ve ekrandan çıkıp geri dönme senaryolarını tekrarlanabilir şekilde ölçer.
 
 ## Veri

@@ -95,7 +95,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     </div>
     <canvas id="spark" width="600" height="72" aria-label="Kare süresi grafiği"></canvas>
     <div class="row">
-      <button class="btn" id="runZoomOut">⏱ Hızlı uzaklaşma testi</button>
+      <button class="btn" id="runZoomOut">⏱ Uzaklaşma testi</button>
       <button class="btn" id="runAll">▶ Senaryoları çalıştır</button>
       <button class="btn ghost" id="toggleScreen">Ekrandan çık</button>
       <button class="btn ghost" id="resetStats">Sıfırla</button>
@@ -494,7 +494,8 @@ const cls = (v, g, w) => v <= g ? "good" : v <= w ? "warn" : "bad";
 const TT = { net: [], ready: [], pending: new Map(), maxPend: 0, cached: 0, total: 0, run: null };   // run: uncapped samples during the zoom-out test
 const isVectorTile = e => e.tile && e.sourceId && map.getSource(e.sourceId) && map.getSource(e.sourceId).type === "vector";
 function onTileStart(e) {
-  if (!isVectorTile(e)) return; const k = e.tile.tileID.key; if (!TT.pending.has(k)) TT.pending.set(k, performance.now());
+  if (!isVectorTile(e)) return; const k = e.tile.tileID.key;
+  if (!TT.pending.has(k)) { TT.pending.set(k, performance.now()); if (TT.run) TT.run.req++; }
   TT.maxPend = Math.max(TT.maxPend, TT.pending.size); if (TT.run) TT.run.maxPend = Math.max(TT.run.maxPend, TT.pending.size);
 }
 function onTileDone(e) {
@@ -591,24 +592,32 @@ async function runAll() {
   $("#runAll").disabled = false;
   addRow("✓ Bitti", {});
 }
-/* Scripted fast zoom-out (same gesture every run): Barcelona street level z16 -> z5 in 1.2 s.
-   Reports average "ready" time of tiles requested during the run, max queue, and how long the map
-   needed to fill in after the movement ended ("doluş"). */
+/* Scripted zoom-out that imitates a finger: three pinches from Barcelona street level (z16 -> 13 -> 10.5 -> 8)
+   with short pauses in between, ending at the mid scale where detail fills in late. A single smooth 16 -> 5 ease
+   (first version) passed each zoom in ~0.1 s, so intermediate tiles were never queued and it did not reproduce the
+   problem (iPhone: 4-7 tiles vs 106 by hand).
+   Reports tiles requested, average "ready" time, max queue, and how long the map needed to fill in after the last
+   pinch ended ("doluş"). */
+const PINCHES = [[13, 700], [10.5, 700], [8, 800]];
 async function zoomOutTest() {
   if (!map) return;
   $("#runZoomOut").disabled = true; $("#runAll").disabled = true; closeInfo();
   map.jumpTo({ center: [2.1734, 41.3851], zoom: 16 });
   await idle(); await wait(600);
   TT.pending.clear();                      // at idle anything still listed was cancelled earlier
-  TT.run = { ready: [], net: [], cached: 0, maxPend: 0 };
+  TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
   rec = []; const lt0 = stats.longTasks;
-  await new Promise(r => { map.easeTo({ zoom: 5, duration: 1200, easing: t => t }); map.once("moveend", r); });
+  for (let k = 0; k < PINCHES.length; k++) {
+    const [z, d] = PINCHES[k];
+    await new Promise(r => { map.easeTo({ zoom: z, duration: d, easing: t => 1 - (1 - t) * (1 - t) }); map.once("moveend", r); });
+    if (k < PINCHES.length - 1) await wait(250);     // finger lifts and grabs again
+  }
   const tMove = performance.now();
   await idle();
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round;
-  addRow(`Hızlı uzaklaşma 16→5 [${cfgLabel()}] — hazır ort ${r(avg(run.ready))} ms (n=${run.ready.length}), indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Uzaklaşma 16→13→10,5→8 [${cfgLabel()}] — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
