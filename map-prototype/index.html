@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MyPins · Harita prototipi</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{--sea:#7fcfd0;--land:#ecd3a0;--ink:#2b3338;--muted:#6a6f68;--paper:#fbf7ee;--rule:#ebdfc6;--pin:#f4e08c;--pin-ink:#5e5016;--good:#2f7a3d;--warn:#b7791f;--bad:#c2412d;
+  --f-display:Gloock,Georgia,serif;--f-body:"Courier Prime","Courier New",ui-monospace,monospace;color-scheme:light}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hidden}
+#stage{position:fixed;inset:0}
+#map{position:absolute;inset:0}
+#off{position:absolute;inset:0;display:grid;place-items:center;background:var(--paper);font-size:15px;text-align:center;padding:20px}
+/* dev panel */
+#dev{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));z-index:5;width:min(330px,calc(100% - 20px));
+  background:color-mix(in srgb,var(--paper) 94%,transparent);border:1px solid var(--rule);border-radius:10px;box-shadow:0 6px 24px rgba(31,62,70,.18);font-size:12.5px}
+#dev header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px dashed var(--rule);cursor:pointer}
+#dev h1{font:400 16px var(--f-display);margin:0}
+#dev .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px}
+#dev.min .body{display:none}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:74px}
+.seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--paper);padding:5px 10px;font:700 12.5px var(--f-body);cursor:pointer;color:var(--pin-ink)}
+.seg button[aria-pressed="true"]{background:var(--pin)}
+.tog{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.tog input{accent-color:var(--pin-ink);width:16px;height:16px}
+.btn{border:1.5px solid var(--pin-ink);background:var(--pin);color:var(--pin-ink);border-radius:6px;padding:6px 10px;font:700 12.5px var(--f-body);cursor:pointer}
+.btn.ghost{background:var(--paper)}
+.btn:disabled{opacity:.5;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.stat{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px 6px}
+.stat b{display:block;font:400 18px var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font-size:10.5px;color:var(--muted)}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+#spark{width:100%;height:36px;background:var(--paper);border:1px solid var(--rule);border-radius:6px;display:block}
+#report{max-height:220px;overflow:auto}
+#report table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+#report th,#report td{text-align:right;padding:3px 4px;border-bottom:1px solid var(--rule)}
+#report th:first-child,#report td:first-child{text-align:left}
+.note{font-size:11px;color:var(--muted);line-height:1.45}
+/* info panel */
+#info{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;width:min(320px,calc(100% - 24px));
+  background:var(--paper);border-radius:12px;box-shadow:0 10px 30px rgba(31,62,70,.25);overflow:hidden;transform:translateY(0);opacity:1}
+body.anim #info{transition:transform .22s ease,opacity .22s ease}
+#info[hidden]{display:block!important;transform:translateY(16px);opacity:0;pointer-events:none}
+#info .ph{aspect-ratio:4/3;background:var(--sea);overflow:hidden}
+#info .ph img{width:100%;height:100%;object-fit:cover;display:block}
+#info .tx{padding:10px 12px 12px}
+#info h2{font:400 20px var(--f-display);margin:0 0 2px}
+#info p{margin:4px 0 0;font-size:12.5px;line-height:1.5;max-height:5.6em;overflow:hidden}
+#info .x{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;font-size:14px}
+.maplibregl-ctrl-attrib{font-size:10.5px}
+@media (max-width:600px){#info{left:12px;right:12px;width:auto}#dev{width:calc(100% - 20px)}}
+</style>
+</head>
+<body class="anim">
+<div id="stage"><div id="map" aria-label="Harita"></div><div id="off" hidden>Harita kapatıldı (ekrandan çıkıldı).<br>Kaynaklar temizlendi. “Ekrana geri dön” ile yeniden aç.</div></div>
+
+<section id="dev">
+  <header id="devHead"><h1>Harita prototipi</h1><span id="devMin">▾</span></header>
+  <div class="body">
+    <div class="row"><span class="lab">Nokta</span>
+      <span class="seg" id="counts"><button data-n="20">20</button><button data-n="100">100</button><button data-n="500">500</button></span></div>
+    <div class="row"><span class="lab">Seçenek</span>
+      <label class="tog"><input type="checkbox" id="optAnim" checked> Animasyon</label>
+      <label class="tog"><input type="checkbox" id="optCluster"> Clustering</label>
+      <label class="tog"><input type="checkbox" id="optPhoto"> Fotoğraflı pin</label></div>
+    <div class="stats">
+      <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
+      <div class="stat"><b id="sP95">–</b><span>kare p95 (ms)</span></div>
+      <div class="stat"><b id="sJank">0</b><span>takılma (&gt;34ms)</span></div>
+      <div class="stat"><b id="sPins">–</b><span>görünen pin</span></div>
+      <div class="stat"><b id="sTiles">–</b><span>yüklü tile</span></div>
+      <div class="stat"><b id="sLong">0</b><span>uzun görev</span></div>
+    </div>
+    <canvas id="spark" width="600" height="72" aria-label="Kare süresi grafiği"></canvas>
+    <div class="row">
+      <button class="btn" id="runAll">▶ Senaryoları çalıştır</button>
+      <button class="btn ghost" id="toggleScreen">Ekrandan çık</button>
+      <button class="btn ghost" id="resetStats">Sıfırla</button>
+    </div>
+    <div id="report"></div>
+    <p class="note" id="srcNote">Veriler yükleniyor…</p>
+  </div>
+</section>
+
+<aside id="info" hidden aria-live="polite">
+  <button class="x" id="infoX" aria-label="Kapat">✕</button>
+  <div class="ph"><img id="infoImg" alt=""></div>
+  <div class="tx"><h2 id="infoTitle"></h2><p id="infoMeta" class="note"></p><p id="infoNote"></p></div>
+</aside>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../app/config.js"></script>
+<script>
+"use strict";
+/* ================== MyPins map prototype ==================
+   Goal: measure pan/zoom smoothness with 20/100/500 pins on a real geographic map.
+   - Map is created once; UI updates never recreate it.
+   - Camera movement does not touch app state; the dev panel reads a ring buffer at 4 Hz.
+   - Tiles: vector tiles (OpenFreeMap), loaded only for the visible area, LOD by zoom.
+   - Pins: one GeoJSON source rendered on the GPU (no DOM markers). Optional clustering and
+     photo markers to compare costs. Photo icons are loaded only when visible (styleimagemissing). */
+const $ = s => document.querySelector(s);
+const T0 = performance.now();
+const OPT = { n: 100, anim: true, cluster: false, photo: false };
+const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
+  ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
+let map = null, styleJSON = null, BASE = [], PHOTOS = [], photoUrl = new Map();
+const cleanups = [];   // everything created per "screen" registers its teardown here
+
+/* ---------- data: Esra's real public pins + synthetic fill ---------- */
+async function loadData() {
+  try {
+    const sb = supabase.createClient(MYPINS.supabaseUrl, MYPINS.supabaseKey, { auth: { persistSession: false } });
+    const { data: prof } = await sb.from("profiles").select("id").eq("username", MYPINS.featured || "esra").maybeSingle();
+    if (prof) {
+      const { data } = await sb.from("pins").select("id,kind,title,city,note,lat,lon,photos").eq("user_id", prof.id);
+      BASE = (data || []).map(p => ({ ...p, real: true }));
+      const paths = [...new Set(BASE.flatMap(p => p.photos || []))];
+      if (paths.length) {
+        const { data: signed } = await sb.storage.from("photos").createSignedUrls(paths, 3600);
+        (signed || []).forEach(s => s.signedUrl && photoUrl.set(s.path, s.signedUrl));
+      }
+      PHOTOS = paths.filter(p => photoUrl.has(p));
+    }
+  } catch (e) { console.warn(e); }
+  $("#srcNote").textContent = BASE.length
+    ? `Gerçek veri: ${BASE.length} pin ve ${PHOTOS.length} fotoğraf (Esra'nın haritası). 100 ve 500 için bu pinlerin çevresine örnek pinler eklenir ve aynı fotoğraflar döngüyle kullanılır; tarayıcı önbelleği nedeniyle fotoğraf yükü gerçek kullanımdan biraz hafif kalır.`
+    : "Gerçek veri alınamadı; tamamen örnek pinler kullanılıyor.";
+}
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function makePoints(n) {
+  const r = rng(42), out = [];
+  const anchors = BASE.length ? BASE : [{ lat: 41.0, lon: 28.97 }, { lat: 38.72, lon: -9.14 }, { lat: 41.39, lon: 2.17 }, { lat: 40.85, lon: 14.27 }];
+  for (const p of BASE.slice(0, n)) out.push(p);
+  let i = 0;
+  while (out.length < n) {
+    const a = anchors[i++ % anchors.length];
+    const spread = r() < 0.6 ? 0.03 : 0.6;          // most synthetic pins cluster near real places, like real users' maps
+    out.push({ id: "syn" + out.length, kind: r() < 0.3 ? "yemek" : "yer", title: (a.city || a.title || "Yer") + " #" + out.length,
+      city: a.city || "", note: "Örnek pin (performans testi).", lat: a.lat + (r() - .5) * spread, lon: a.lon + (r() - .5) * spread * 1.3,
+      photos: PHOTOS.length ? [PHOTOS[out.length % PHOTOS.length]] : [] });
+  }
+  return out;
+}
+let POINTS = [];
+function geojson() {
+  return { type: "FeatureCollection", features: POINTS.map((p, i) => ({ type: "Feature", id: i, geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+    properties: { i, title: p.title, icon: p.kind === "yemek" ? "pin-yemek" : "pin-yer", ph: OPT.photo && p.photos && p.photos[0] ? "ph:" + p.photos[0] : "" } })) };
+}
+
+/* ---------- style ---------- */
+async function getStyle() {
+  if (styleJSON) return JSON.parse(JSON.stringify(styleJSON));
+  const s = await (await fetch("https://tiles.openfreemap.org/styles/liberty")).json();
+  const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
+  for (const l of s.layers) {
+    const id = l.id, p = (l.paint = l.paint || {});
+    if (l.type === "background") p["background-color"] = C.land;
+    else if (id === "water" && l.type === "fill") p["fill-color"] = C.sea;
+    else if (/^waterway/.test(id) && l.type === "line") p["line-color"] = C.sea2;
+    else if (id === "natural_earth" || /park_outline/.test(id)) l.layout = { ...(l.layout || {}), visibility: "none" };
+    else if (/park/.test(id) && l.type === "fill") { p["fill-color"] = C.park; p["fill-opacity"] = 0.7; }
+    else if (/landcover_wood/.test(id)) { p["fill-color"] = C.wood; p["fill-opacity"] = 0.5; }
+    else if (/landcover_grass|landuse_(pitch|track|cemetery)/.test(id)) { p["fill-color"] = C.park; p["fill-opacity"] = 0.45; }
+    else if (/landcover_sand/.test(id)) p["fill-color"] = C.sand;
+    else if (/landuse_residential/.test(id)) { p["fill-color"] = C.land2; p["fill-opacity"] = 0.5; }
+    else if (/building/.test(id) && l.type === "fill-extrusion") { l.type = "fill"; l.paint = { "fill-color": C.building, "fill-opacity": 0.6 }; delete l.layout; }
+    else if (/building/.test(id) && l.type === "fill") { p["fill-color"] = C.building; p["fill-opacity"] = 0.6; }
+    else if (l.type === "line" && /casing/.test(id)) p["line-color"] = C.roadCase;
+    else if (l.type === "line" && /^(road|bridge|tunnel)_/.test(id) && !/rail|hatching|path/.test(id)) p["line-color"] = C.road;
+    else if (l.type === "line" && /boundary/.test(id)) p["line-color"] = C.border;
+    if (l.type === "symbol" && l.layout && l.layout["text-field"]) {
+      l.layout["text-field"] = ["case", ["==", ["coalesce", ["get", "name:en"], ""], "Israel"], "", name];
+      p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
+    }
+  }
+  styleJSON = s;
+  return JSON.parse(JSON.stringify(s));
+}
+function pinImg(kind) {
+  const k = 2, w = 22 * k, h = 30 * k, c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"); g.scale(k, k);
+  g.beginPath(); g.moveTo(11, 29); g.bezierCurveTo(8, 23, 2, 19, 2, 12); g.arc(11, 11, 9, Math.PI, 0); g.bezierCurveTo(20, 19, 14, 23, 11, 29); g.closePath();
+  g.fillStyle = C.pin; g.fill(); g.lineWidth = 1.5; g.strokeStyle = C.pinInk; g.stroke(); g.fillStyle = C.pinInk; g.strokeStyle = C.pinInk;
+  if (kind === "yemek") { g.lineWidth = 1.3; g.lineCap = "round"; g.beginPath(); g.moveTo(8, 6); g.lineTo(8, 16); g.moveTo(6.5, 6); g.lineTo(6.5, 10); g.moveTo(9.5, 6); g.lineTo(9.5, 10); g.moveTo(14, 16); g.lineTo(14, 6); g.quadraticCurveTo(16, 8, 14, 11); g.stroke(); }
+  else { g.beginPath(); g.arc(11, 11, 3.4, 0, Math.PI * 2); g.fill(); }
+  return { width: w, height: h, data: g.getImageData(0, 0, w, h).data };
+}
+
+/* ---------- map screen: create / destroy ---------- */
+async function createMap() {
+  $("#off").hidden = true;
+  const style = await getStyle();
+  map = new maplibregl.Map({ container: "map", style, center: [10, 42], zoom: 3.2, minZoom: 1.5, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
+    fadeDuration: OPT.anim ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 300 });
+  map.touchZoomRotate.disableRotation();
+  const tLoad = performance.now();
+  map.once("idle", () => { const ms = Math.round(performance.now() - tLoad); stats.firstIdle = ms; addRow("İlk açılış (harita hazır)", { note: `${ms} ms` }); });
+  map.on("load", () => {
+    map.addImage("pin-yer", pinImg("yer"), { pixelRatio: 2 });
+    map.addImage("pin-yemek", pinImg("yemek"), { pixelRatio: 2 });
+    addPinLayers();
+  });
+  // photo markers: only images for visible pins are fetched, then cached by the map
+  const onMissing = e => {
+    if (!e.id.startsWith("ph:")) return;
+    const url = photoUrl.get(e.id.slice(3)); if (!url || pendingImg.has(e.id)) return;
+    pendingImg.add(e.id);
+    loadThumb(url).then(img => { if (map && !map.hasImage(e.id)) map.addImage(e.id, img, { pixelRatio: 2 }); });
+  };
+  map.on("styleimagemissing", onMissing);
+  map.on("idle", updateCounts);
+  cleanups.push(() => { map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
+}
+const pendingImg = new Set();
+async function loadThumb(url) {
+  // decode off the main thread where supported, then draw a 48x48 round thumbnail with a yellow ring
+  const blob = await (await fetch(url)).blob();
+  const bmp = await createImageBitmap(blob, { resizeWidth: 96, resizeHeight: 96, resizeQuality: "medium" });
+  const c = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(96, 96) : Object.assign(document.createElement("canvas"), { width: 96, height: 96 });
+  const g = c.getContext("2d");
+  g.save(); g.beginPath(); g.arc(48, 48, 44, 0, Math.PI * 2); g.clip(); g.drawImage(bmp, 0, 0, 96, 96); g.restore();
+  g.lineWidth = 6; g.strokeStyle = C.pin; g.beginPath(); g.arc(48, 48, 44, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = C.pinInk; g.beginPath(); g.arc(48, 48, 47, 0, Math.PI * 2); g.stroke();
+  bmp.close && bmp.close();
+  return g.getImageData(0, 0, 96, 96);
+}
+function addPinLayers() {
+  map.addSource("pins", { type: "geojson", data: geojson(), cluster: OPT.cluster, clusterRadius: 44, clusterMaxZoom: 11 });
+  if (OPT.cluster) {
+    map.addLayer({ id: "cl", type: "circle", source: "pins", filter: ["has", "point_count"],
+      paint: { "circle-color": C.pin, "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6, "circle-radius": ["step", ["get", "point_count"], 14, 10, 18, 50, 24] } });
+    map.addLayer({ id: "cl-n", type: "symbol", source: "pins", filter: ["has", "point_count"],
+      layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-allow-overlap": true }, paint: { "text-color": C.pinInk } });
+  }
+  const single = ["!", ["has", "point_count"]];
+  map.addLayer({ id: "dot", type: "circle", source: "pins", maxzoom: 6, filter: single,
+    paint: { "circle-radius": 5, "circle-color": C.pin, "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6 } });
+  map.addLayer({ id: "pin", type: "symbol", source: "pins", minzoom: 6, filter: single,
+    layout: { "icon-image": OPT.photo ? ["case", ["!=", ["get", "ph"], ""], ["get", "ph"], ["get", "icon"]] : ["get", "icon"],
+      "icon-size": OPT.photo ? ["case", ["!=", ["get", "ph"], ""], 0.5, 1] : 1, "icon-anchor": OPT.photo ? "center" : "bottom", "icon-allow-overlap": true,
+      "text-field": ["step", ["zoom"], "", 9, ["get", "title"]], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-anchor": "top", "text-offset": [0, OPT.photo ? 1.6 : 0.2], "text-optional": true },
+    paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.6 } });
+  map.addLayer({ id: "sel", type: "circle", source: "pins", filter: ["==", ["get", "i"], -1],
+    paint: { "circle-radius": 16, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": C.pinInk, "circle-stroke-width": 2.5 } });
+  for (const id of ["dot", "pin", "cl"]) {
+    if (!map.getLayer(id)) continue;
+    map.on("click", id, onPinClick);
+    map.on("mouseenter", id, () => map.getCanvas().style.cursor = "pointer");
+    map.on("mouseleave", id, () => map.getCanvas().style.cursor = "");
+  }
+}
+function rebuildPins() {
+  if (!map || !map.isStyleLoaded()) return;
+  for (const id of ["sel", "pin", "dot", "cl-n", "cl"]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getSource("pins")) map.removeSource("pins");
+  addPinLayers();
+}
+function setCount(n) {
+  OPT.n = n; POINTS = makePoints(n);
+  document.querySelectorAll("#counts button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === n)));
+  if (map && map.getSource("pins")) map.getSource("pins").setData(geojson());   // data swap only, no map rebuild
+  closeInfo();
+}
+function onPinClick(e) {
+  const f = e.features[0]; if (!f) return;
+  if (f.properties.cluster) {
+    map.getSource("pins").getClusterExpansionZoom(f.properties.cluster_id).then(z => camera({ center: f.geometry.coordinates, zoom: z }));
+    return;
+  }
+  openInfo(f.properties.i, e._probe);
+}
+function camera(opts) { OPT.anim ? map.easeTo({ ...opts, duration: 600 }) : map.jumpTo(opts); }
+
+/* ---------- info panel (plain DOM; opening it never touches the map) ---------- */
+function openInfo(i, probe) {
+  const p = POINTS[i]; if (!p) return;
+  const t0 = performance.now();
+  $("#infoTitle").textContent = p.title;
+  $("#infoMeta").textContent = [p.kind === "yemek" ? "🍴 Sofra" : "🌍 Yer", p.city].filter(Boolean).join(" · ");
+  $("#infoNote").textContent = p.note || "";
+  const url = p.photos && p.photos[0] ? photoUrl.get(p.photos[0]) : "";
+  const img = $("#infoImg"); img.hidden = !url; if (url) { img.loading = "eager"; img.decoding = "async"; img.src = url; }
+  $("#info").hidden = false;
+  map.setFilter("sel", ["==", ["get", "i"], i]);
+  requestAnimationFrame(() => { const ms = performance.now() - t0; if (probe) probe(ms); });
+}
+function closeInfo() { $("#info").hidden = true; if (map && map.getLayer("sel")) map.setFilter("sel", ["==", ["get", "i"], -1]); }
+$("#infoX").onclick = closeInfo;
+
+/* ---------- frame meter: rAF ring buffer, DOM written at 4 Hz ---------- */
+const stats = { frames: new Float32Array(600), idx: 0, count: 0, jank: 0, longTasks: 0, firstIdle: 0 };
+let meterRaf = 0, lastT = 0, uiTimer = 0, rec = null;
+function frame(t) {
+  if (lastT) {
+    const dt = t - lastT;
+    stats.frames[stats.idx] = dt; stats.idx = (stats.idx + 1) % stats.frames.length; stats.count = Math.min(stats.count + 1, stats.frames.length);
+    if (dt > 34) stats.jank++;
+    if (rec) rec.push(dt);
+  }
+  lastT = t; meterRaf = requestAnimationFrame(frame);
+}
+function startMeter() { if (meterRaf) return; lastT = 0; meterRaf = requestAnimationFrame(frame); uiTimer = setInterval(paintStats, 250); }
+function stopMeter() { cancelAnimationFrame(meterRaf); meterRaf = 0; clearInterval(uiTimer); uiTimer = 0; }
+function recent(n) { const a = []; for (let k = 1; k <= Math.min(n, stats.count); k++) a.push(stats.frames[(stats.idx - k + stats.frames.length) % stats.frames.length]); return a; }
+function summarize(arr) {
+  if (!arr.length) return { fps: 0, p95: 0, max: 0, jank: 0 };
+  const s = [...arr].sort((a, b) => a - b), sum = arr.reduce((a, b) => a + b, 0);
+  return { fps: 1000 / (sum / arr.length), p95: s[Math.floor(s.length * .95)] || s[s.length - 1], max: s[s.length - 1], jank: arr.filter(x => x > 34).length };
+}
+const cls = (v, g, w) => v <= g ? "good" : v <= w ? "warn" : "bad";
+function paintStats() {
+  const r = summarize(recent(60));
+  const fps = Math.round(r.fps), p95 = Math.round(r.p95);
+  $("#sFps").textContent = fps || "–"; $("#sFps").className = fps >= 55 ? "good" : fps >= 40 ? "warn" : "bad";
+  $("#sP95").textContent = p95 || "–"; $("#sP95").className = cls(p95, 20, 34);
+  $("#sJank").textContent = stats.jank; $("#sLong").textContent = stats.longTasks;
+  drawSpark();
+}
+function drawSpark() {
+  const c = $("#spark"), g = c.getContext("2d"), a = recent(150).reverse(), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  g.strokeStyle = "#ebdfc6"; g.beginPath(); for (const ms of [16.7, 33.3]) { const y = H - ms / 50 * H; g.moveTo(0, y); g.lineTo(W, y); } g.stroke();
+  const bw = W / 150;
+  a.forEach((ms, i) => { const h = Math.min(H, ms / 50 * H); g.fillStyle = ms > 34 ? "#c2412d" : ms > 20 ? "#b7791f" : "#2f7a3d"; g.fillRect(i * bw, H - h, Math.max(1, bw - 1), h); });
+}
+function updateCounts() {
+  if (!map) return;
+  const layers = ["dot", "pin", "cl"].filter(id => map.getLayer(id));
+  $("#sPins").textContent = map.queryRenderedFeatures({ layers }).length;
+  let tiles = "–";
+  try { tiles = Object.values(map.style.sourceCaches || map.style.tileManagers || {}).reduce((a, sc) => a + (sc.getIds ? sc.getIds().length : 0), 0); } catch (e) {}
+  $("#sTiles").textContent = tiles;
+}
+let longObs = null;
+try { longObs = new PerformanceObserver(l => { stats.longTasks += l.getEntries().length; }); longObs.observe({ type: "longtask", buffered: false }); } catch (e) {}
+
+/* ---------- scripted scenarios (repeatable, approximate real gestures) ---------- */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const idle = () => new Promise(r => map.loaded() && !map.isMoving() ? r() : map.once("idle", r));
+async function measure(name, fn) {
+  await idle(); await wait(300);
+  rec = [];
+  const lt0 = stats.longTasks, t0 = performance.now();
+  const extra = await fn();
+  const r = summarize(rec); rec = null;
+  addRow(name, { ...r, ms: performance.now() - t0, longs: stats.longTasks - lt0, note: extra || "" });
+}
+async function runAll() {
+  $("#runAll").disabled = true; closeInfo();
+  map.jumpTo({ center: [-9.1, 38.75], zoom: 6 });
+  await measure("Sürükleme (pan, 4 sn)", async () => {
+    for (let k = 0; k < 8; k++) { map.panBy([k % 2 ? -260 : 260, k % 3 ? 120 : -120], { duration: 500, easing: t => t }); await new Promise(r => map.once("moveend", r)); }
+  });
+  await measure("Yakınlaştırma 6→15→6", async () => {
+    await new Promise(r => { map.easeTo({ zoom: 15, center: [-9.14, 38.71], duration: 2200 }); map.once("moveend", r); });
+    await new Promise(r => { map.easeTo({ zoom: 6, duration: 2200 }); map.once("moveend", r); });
+  });
+  await measure("Kıta ölçeğinde zoom 3→8→3", async () => {
+    await new Promise(r => { map.easeTo({ zoom: 8, center: [12.5, 41.9], duration: 1800 }); map.once("moveend", r); });
+    await new Promise(r => { map.easeTo({ zoom: 3, duration: 1800 }); map.once("moveend", r); });
+  });
+  await measure("Nokta seçimi", async () => {
+    map.jumpTo({ center: [POINTS[0].lon, POINTS[0].lat], zoom: 12 }); await idle();
+    const pt = map.project([POINTS[0].lon, POINTS[0].lat]);
+    const feats = map.queryRenderedFeatures([pt.x, pt.y - 10], { layers: ["pin", "dot", "cl"].filter(id => map.getLayer(id)) });
+    let ms = -1;
+    if (feats[0]) onPinClick({ features: feats, _probe: v => ms = v });
+    await wait(400);
+    return ms >= 0 ? `panel ${ms.toFixed(1)} ms` : "pin bulunamadı";
+  });
+  await measure("Ekrandan çık → geri dön", async () => {
+    const before = cleanups.length;
+    destroyScreen(); const left = { map: !!map, raf: !!meterRaf };
+    await wait(300);
+    const t0 = performance.now(); await createScreen(); await idle();
+    return `temizlik: map=${left.map ? "kaldı!" : "silindi"}, döngü=${left.raf ? "kaldı!" : "durdu"} · yeniden açılış ${Math.round(performance.now() - t0)} ms`;
+  });
+  $("#runAll").disabled = false;
+}
+function addRow(name, r) {
+  let t = $("#report table");
+  if (!t) { $("#report").innerHTML = `<table><thead><tr><th>Senaryo (${OPT.n} pin${OPT.cluster ? ", cl" : ""}${OPT.photo ? ", foto" : ""})</th><th>FPS</th><th>p95</th><th>maks</th><th>takılma</th></tr></thead><tbody></tbody></table>`; t = $("#report table"); }
+  const tr = document.createElement("tr");
+  const f = v => v == null || !isFinite(v) ? "" : Math.round(v);
+  tr.innerHTML = `<td></td><td class="${r.fps ? (r.fps >= 55 ? "good" : r.fps >= 40 ? "warn" : "bad") : ""}">${f(r.fps)}</td><td>${f(r.p95)}</td><td>${f(r.max)}</td><td>${r.jank ?? ""}</td>`;
+  tr.firstChild.textContent = name + (r.note ? " — " + r.note : "");
+  t.tBodies[0].append(tr);
+}
+
+/* ---------- screen lifecycle ---------- */
+async function createScreen() { await createMap(); startMeter(); }
+function destroyScreen() {
+  closeInfo();
+  while (cleanups.length) { try { cleanups.pop()(); } catch (e) { console.warn(e); } }
+  stopMeter(); $("#off").hidden = false;
+}
+$("#toggleScreen").onclick = async () => {
+  if (map) { destroyScreen(); $("#toggleScreen").textContent = "Ekrana geri dön"; }
+  else { await createScreen(); $("#toggleScreen").textContent = "Ekrandan çık"; }
+};
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopMeter(); else if (map) startMeter(); });
+
+/* ---------- controls ---------- */
+document.querySelectorAll("#counts button").forEach(b => b.onclick = () => setCount(+b.dataset.n));
+$("#optAnim").onchange = e => { OPT.anim = e.target.checked; document.body.classList.toggle("anim", OPT.anim); if (map && "_fadeDuration" in map) map._fadeDuration = OPT.anim ? 300 : 0; };
+$("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins(); };
+$("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
+$("#runAll").onclick = () => map && runAll();
+$("#resetStats").onclick = () => { stats.jank = 0; stats.longTasks = 0; stats.count = 0; $("#report").innerHTML = ""; };
+$("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").textContent = $("#dev").classList.contains("min") ? "▸" : "▾"; };
+
+(async () => {
+  await loadData();
+  POINTS = makePoints(OPT.n);
+  document.querySelectorAll("#counts button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === OPT.n)));
+  await createScreen();
+})();
+</script>
+</body>
+</html>
