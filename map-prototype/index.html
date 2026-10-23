@@ -164,7 +164,7 @@ function geojson() {
 /* ---------- style ---------- */
 async function getStyle() {
   if (styleJSON) return JSON.parse(JSON.stringify(styleJSON));
-  const s = await (await fetch("https://tiles.openfreemap.org/styles/liberty")).json();
+  const [s] = await Promise.all([fetch("https://tiles.openfreemap.org/styles/liberty").then(r => r.json()), loadCountries()]);
   const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   for (const l of s.layers) {
     const id = l.id, p = (l.paint = l.paint || {});
@@ -187,8 +187,35 @@ async function getStyle() {
       p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
     }
   }
+  // Fallback base: until a region's tiles arrive, the coarse country fill already shows land and sea in the right
+  // colors at continent scale (<= z7). Above z7 the background is land as before.
+  const bg = s.layers.findIndex(l => l.type === "background");
+  s.layers[bg].paint["background-color"] = ["step", ["zoom"], C.sea, 7, C.land];
+  s.sources.countries = { type: "geojson", data: COUNTRIES, tolerance: 0.6, buffer: 32 };
+  s.layers.splice(bg + 1, 0, { id: "base-land", type: "fill", source: "countries", maxzoom: 7, paint: { "fill-color": C.land, "fill-antialias": false } });
   styleJSON = s;
   return JSON.parse(JSON.stringify(s));
+}
+/* ---------- countries: coarse outlines (Natural Earth 1:50m, rounded) for the fallback base and tap-to-zoom ---------- */
+let COUNTRIES = null;
+async function loadCountries() {
+  if (COUNTRIES) return;
+  try {
+    COUNTRIES = await (await fetch("countries.json")).json();
+    for (const f of COUNTRIES.features) {     // full bbox for a fast point-in-polygon precheck
+      let b = [180, 90, -180, -90];
+      for (const poly of f.geometry.coordinates) for (const [x, y] of poly[0]) { b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y); }
+      f.bb = b;
+    }
+  } catch (e) { console.warn(e); COUNTRIES = { type: "FeatureCollection", features: [] }; }
+}
+function inRing(x, y, r) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function countryAt(lng, lat) {
+  for (const f of COUNTRIES.features) {
+    const b = f.bb; if (lng < b[0] || lng > b[2] || lat < b[1] || lat > b[3]) continue;
+    for (const poly of f.geometry.coordinates) if (inRing(lng, lat, poly[0]) && !poly.slice(1).some(h => inRing(lng, lat, h))) return f;
+  }
+  return null;
 }
 function pinImg(kind) {
   const k = 2, w = 22 * k, h = 30 * k, c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -205,7 +232,7 @@ async function createMap() {
   $("#off").hidden = true;
   const style = await getStyle();
   map = new maplibregl.Map({ container: "map", style, center: lastCam ? lastCam.center : [10, 42], zoom: lastCam ? lastCam.zoom : 3.2, minZoom: 1.5, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
-    fadeDuration: OPT.anim ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 300 });
+    fadeDuration: OPT.anim ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 1200 });
   map.touchZoomRotate.disableRotation();
   const tLoad = performance.now();
   map.once("idle", () => { const ms = Math.round(performance.now() - tLoad); stats.firstIdle = ms; addRow("İlk açılış (harita hazır)", { note: `${ms} ms` }); });
@@ -226,7 +253,8 @@ async function createMap() {
   };
   map.on("styleimagemissing", onMissing);
   map.on("idle", updateCounts);
-  cleanups.push(() => { lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
+  map.on("click", onMapTap);
+  cleanups.push(() => { map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
 }
 const pendingImg = new Set();
 let lastCam = null;   // camera survives leaving and returning, like a real screen
@@ -287,6 +315,25 @@ function onPinClick(e) {
     return;
   }
   openInfo(f.properties.i, e._probe);
+  const z = map.getZoom();
+  if (z < 12 && !e._probe) camera({ center: f.geometry.coordinates, zoom: Math.max(12, z + 3) });
+}
+const PIN_LAYERS = ["dot", "pin", "cl"];
+const PLACE_ZOOM = { city: 11.5, town: 13, village: 14, suburb: 14.5, quarter: 15, neighbourhood: 15.5, hamlet: 15 };
+function onMapTap(e) {
+  const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
+  if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;   // the pin handler owns this tap
+  const z = map.getZoom();
+  const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class]);
+  if (place) {
+    const tz = PLACE_ZOOM[place.properties.class];
+    camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
+    return;
+  }
+  if (z < 5.5 && COUNTRIES) {
+    const c = countryAt(e.lngLat.lng, e.lngLat.lat);
+    if (c) { const b = c.properties.b; OPT.anim ? map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, duration: 700, maxZoom: 7.5 }) : map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, animate: false, maxZoom: 7.5 }); }
+  }
 }
 function camera(opts) { OPT.anim ? map.easeTo({ ...opts, duration: 600 }) : map.jumpTo(opts); }
 
