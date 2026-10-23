@@ -823,6 +823,7 @@ const OT = {
     already: "Zaten haritanda", others: (c, n) => `${c} ülkesinde de ${n} fotoğrafın var.`, addCountry: "Bunu da ekle",
     add: n => `Seçilenleri ekle (${n})`, adding: "Ekleniyor…", done: n => `${n} pin haritana eklendi`, addErr: "Eklenemedi. Bağlantını kontrol edip tekrar dene.",
     menu: "📷 Fotoğraflardan yer bul", near_u: "yakınları",
+    diag: d => `Teşhis: ${d.jpeg} JPEG, ${d.heic} HEIC, ${d.other} diğer · ${d.exif} fotoğrafta bilgi bloğu var, ${d.gps} tanesinde konum var.`,
   },
   en: {
     eyebrow: "Build your map", t1: "Which countries have you been to?", p1: "Tap countries on the map or pick them from the list.",
@@ -841,22 +842,36 @@ const OT = {
     already: "Already on your map", others: (c, n) => `You also have ${n} photos in ${c}.`, addCountry: "Add it too",
     add: n => `Add selected (${n})`, adding: "Adding…", done: n => `${n} pins added to your map`, addErr: "Couldn't add. Check your connection and try again.",
     menu: "📷 Find places in photos", near_u: "area",
+    diag: d => `Diagnostics: ${d.jpeg} JPEG, ${d.heic} HEIC, ${d.other} other · ${d.exif} photos have a metadata block, ${d.gps} have a location.`,
   },
 };
 const ot = (k, ...a) => { const v = OT[LANG][k] ?? OT.tr[k]; return typeof v === "function" ? v(...a) : v; };
 
-/* --- tiny JPEG EXIF reader: GPS + DateTimeOriginal --- */
+/* --- EXIF reader: GPS + DateTimeOriginal from JPEG or HEIC (searches for the TIFF block) --- */
+const DIAG = { jpeg: 0, heic: 0, other: 0, exif: 0, gps: 0 };
+function findTiff(v) {
+  // look for "Exif\0\0" followed by a TIFF header ("II*\0" or "MM\0*")
+  const n = v.byteLength - 10;
+  for (let i = 0; i < n; i++) {
+    if (v.getUint8(i) === 0x45 && v.getUint8(i + 1) === 0x78 && v.getUint8(i + 2) === 0x69 && v.getUint8(i + 3) === 0x66 && v.getUint8(i + 4) === 0 && v.getUint8(i + 5) === 0) {
+      const t = i + 6, h = v.getUint16(t);
+      if ((h === 0x4949 && v.getUint16(t + 2, true) === 42) || (h === 0x4D4D && v.getUint16(t + 2) === 42)) return t;
+    }
+  }
+  return -1;
+}
 async function readExif(file) {
   try {
-    const buf = await file.slice(0, 256 * 1024).arrayBuffer();
-    const v = new DataView(buf);
-    if (v.getUint16(0) !== 0xFFD8) return null;
-    let o = 2;
-    while (o + 4 < v.byteLength) {
-      const marker = v.getUint16(o), len = v.getUint16(o + 2);
-      if (marker === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) return parseTiff(v, o + 10);
-      if ((marker & 0xFF00) !== 0xFF00) break;
-      o += 2 + len;
+    const head = new DataView(await file.slice(0, 16).arrayBuffer());
+    const isJpeg = head.getUint16(0) === 0xFFD8;
+    const brand = String.fromCharCode(...[8, 9, 10, 11].map(i => head.getUint8(i)));
+    const isHeic = String.fromCharCode(...[4, 5, 6, 7].map(i => head.getUint8(i))) === "ftyp" && /hei|mif|hev|avif/i.test(brand);
+    if (isJpeg) DIAG.jpeg++; else if (isHeic) DIAG.heic++; else { DIAG.other++; return null; }
+    for (const [from, to] of [[0, 512 * 1024], [Math.max(0, file.size - 512 * 1024), file.size]]) {
+      const v = new DataView(await file.slice(from, to).arrayBuffer());
+      const t = findTiff(v);
+      if (t >= 0) { DIAG.exif++; const r = parseTiff(v, t); if (r && r.lat != null) DIAG.gps++; return r; }
+      if (file.size <= 512 * 1024) break;
     }
   } catch (e) {}
   return null;
@@ -1049,7 +1064,7 @@ async function onbNameRegions() {
 /* --- scanning --- */
 async function onbScan(files) {
   const list = [...files].filter(f => /image\//.test(f.type) || /\.(jpe?g|heic|heif|png)$/i.test(f.name));
-  ONB.step = "scan"; ONB.total = list.length; ONB.scanned = 0; ONB.pts = []; render();
+  ONB.step = "scan"; ONB.total = list.length; ONB.scanned = 0; ONB.pts = []; Object.keys(DIAG).forEach(k => DIAG[k] = 0); render();
   let i = 0;
   const worker = async () => {
     while (i < list.length) {
@@ -1139,6 +1154,7 @@ function onbResults() {
   body.append(el("button", { class: "back", type: "button", onclick: () => { ONB.step = "photos"; render(); } }, ot("back")));
   body.append(el("h2", { class: "d-title", text: ot("t3") }), el("p", { class: "onb-p", text: ot("p3") }));
   body.append(el("p", { class: "hint", text: ot("stats", ONB.total, ONB.pts.length) }));
+  if (ONB.pts.length < ONB.total) body.append(el("p", { class: "hint diag", text: ot("diag", DIAG) }));
   if (!ONB.regions.length) {
     body.append(el("div", { class: "empty" }, el("strong", { text: ot("none") }), ot("noneHint")));
   }
