@@ -23,6 +23,9 @@ body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hid
 #dev h1{font:400 16px var(--f-display);margin:0}
 #dev .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px}
 #dev.min .body{display:none}
+#dev{-webkit-user-select:none;user-select:none}
+#dev .hstat{margin-left:auto;margin-right:8px;font-size:12px;font-variant-numeric:tabular-nums}
+#dev:not(.min) .hstat{display:none}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:74px}
 .seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
@@ -56,14 +59,14 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
 #info p{margin:4px 0 0;font-size:12.5px;line-height:1.5;max-height:5.6em;overflow:hidden}
 #info .x{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;font-size:14px}
 .maplibregl-ctrl-attrib{font-size:10.5px}
-@media (max-width:600px){#info{left:12px;right:12px;width:auto}#dev{width:calc(100% - 20px)}}
+@media (max-width:600px){#info{left:12px;right:12px;width:auto}#dev{width:calc(100% - 20px)}#dev .body{max-height:46vh;overflow:auto;overscroll-behavior:contain}}
 </style>
 </head>
 <body class="anim">
 <div id="stage"><div id="map" aria-label="Harita"></div><div id="off" hidden>Harita kapatıldı (ekrandan çıkıldı).<br>Kaynaklar temizlendi. “Ekrana geri dön” ile yeniden aç.</div></div>
 
 <section id="dev">
-  <header id="devHead"><h1>Harita prototipi</h1><span id="devMin">▾</span></header>
+  <header id="devHead"><h1>Harita prototipi</h1><span class="hstat" id="hStat"></span><span id="devMin">▾</span></header>
   <div class="body">
     <div class="row"><span class="lab">Nokta</span>
       <span class="seg" id="counts"><button data-n="20">20</button><button data-n="100">100</button><button data-n="500">500</button></span></div>
@@ -84,6 +87,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <button class="btn" id="runAll">▶ Senaryoları çalıştır</button>
       <button class="btn ghost" id="toggleScreen">Ekrandan çık</button>
       <button class="btn ghost" id="resetStats">Sıfırla</button>
+      <button class="btn ghost" id="copyReport">Sonuçları kopyala</button>
     </div>
     <div id="report"></div>
     <p class="note" id="srcNote">Veriler yükleniyor…</p>
@@ -200,7 +204,7 @@ function pinImg(kind) {
 async function createMap() {
   $("#off").hidden = true;
   const style = await getStyle();
-  map = new maplibregl.Map({ container: "map", style, center: [10, 42], zoom: 3.2, minZoom: 1.5, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
+  map = new maplibregl.Map({ container: "map", style, center: lastCam ? lastCam.center : [10, 42], zoom: lastCam ? lastCam.zoom : 3.2, minZoom: 1.5, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
     fadeDuration: OPT.anim ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 300 });
   map.touchZoomRotate.disableRotation();
   const tLoad = performance.now();
@@ -215,13 +219,17 @@ async function createMap() {
     if (!e.id.startsWith("ph:")) return;
     const url = photoUrl.get(e.id.slice(3)); if (!url || pendingImg.has(e.id)) return;
     pendingImg.add(e.id);
-    loadThumb(url).then(img => { if (map && !map.hasImage(e.id)) map.addImage(e.id, img, { pixelRatio: 2 }); });
+    // same-size transparent placeholder now (no warning, no relayout later), real thumbnail swapped in when decoded
+    if (!map.hasImage(e.id)) map.addImage(e.id, { width: 96, height: 96, data: new Uint8Array(96 * 96 * 4) }, { pixelRatio: 2 });
+    const m = map;
+    loadThumb(url).then(img => { if (map === m && m.hasImage(e.id)) m.updateImage(e.id, img); }).catch(() => {});
   };
   map.on("styleimagemissing", onMissing);
   map.on("idle", updateCounts);
-  cleanups.push(() => { map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
+  cleanups.push(() => { lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.remove(); map = null; pendingImg.clear(); });
 }
 const pendingImg = new Set();
+let lastCam = null;   // camera survives leaving and returning, like a real screen
 async function loadThumb(url) {
   // decode off the main thread where supported, then draw a 48x48 round thumbnail with a yellow ring
   const blob = await (await fetch(url)).blob();
@@ -254,13 +262,14 @@ function addPinLayers() {
     paint: { "circle-radius": 16, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": C.pinInk, "circle-stroke-width": 2.5 } });
   for (const id of ["dot", "pin", "cl"]) {
     if (!map.getLayer(id)) continue;
-    map.on("click", id, onPinClick);
-    map.on("mouseenter", id, () => map.getCanvas().style.cursor = "pointer");
-    map.on("mouseleave", id, () => map.getCanvas().style.cursor = "");
+    map.on("click", id, onPinClick); map.on("mouseenter", id, onEnter); map.on("mouseleave", id, onLeave);
   }
 }
+const onEnter = () => map.getCanvas().style.cursor = "pointer", onLeave = () => map.getCanvas().style.cursor = "";
 function rebuildPins() {
   if (!map || !map.isStyleLoaded()) return;
+  // layer-bound listeners would pile up on every rebuild; detach them first
+  for (const id of ["dot", "pin", "cl"]) { map.off("click", id, onPinClick); map.off("mouseenter", id, onEnter); map.off("mouseleave", id, onLeave); }
   for (const id of ["sel", "pin", "dot", "cl-n", "cl"]) if (map.getLayer(id)) map.removeLayer(id);
   if (map.getSource("pins")) map.removeSource("pins");
   addPinLayers();
@@ -324,6 +333,7 @@ function paintStats() {
   $("#sFps").textContent = fps || "–"; $("#sFps").className = fps >= 55 ? "good" : fps >= 40 ? "warn" : "bad";
   $("#sP95").textContent = p95 || "–"; $("#sP95").className = cls(p95, 20, 34);
   $("#sJank").textContent = stats.jank; $("#sLong").textContent = stats.longTasks;
+  $("#hStat").textContent = fps ? `${fps} FPS · p95 ${p95} ms` : "";
   drawSpark();
 }
 function drawSpark() {
@@ -357,6 +367,7 @@ async function measure(name, fn) {
 }
 async function runAll() {
   $("#runAll").disabled = true; closeInfo();
+  addRow(`— ${OPT.n} pin · animasyon ${OPT.anim ? "açık" : "kapalı"}${OPT.cluster ? " · clustering" : ""}${OPT.photo ? " · fotoğraflı" : ""} —`, {});
   map.jumpTo({ center: [-9.1, 38.75], zoom: 6 });
   await measure("Sürükleme (pan, 4 sn)", async () => {
     for (let k = 0; k < 8; k++) { map.panBy([k % 2 ? -260 : 260, k % 3 ? 120 : -120], { duration: 500, easing: t => t }); await new Promise(r => map.once("moveend", r)); }
@@ -386,10 +397,11 @@ async function runAll() {
     return `temizlik: map=${left.map ? "kaldı!" : "silindi"}, döngü=${left.raf ? "kaldı!" : "durdu"} · yeniden açılış ${Math.round(performance.now() - t0)} ms`;
   });
   $("#runAll").disabled = false;
+  addRow("✓ Bitti", {});
 }
 function addRow(name, r) {
   let t = $("#report table");
-  if (!t) { $("#report").innerHTML = `<table><thead><tr><th>Senaryo (${OPT.n} pin${OPT.cluster ? ", cl" : ""}${OPT.photo ? ", foto" : ""})</th><th>FPS</th><th>p95</th><th>maks</th><th>takılma</th></tr></thead><tbody></tbody></table>`; t = $("#report table"); }
+  if (!t) { $("#report").innerHTML = `<table><thead><tr><th>Senaryo</th><th>FPS</th><th>p95</th><th>maks</th><th>takılma</th></tr></thead><tbody></tbody></table>`; t = $("#report table"); }
   const tr = document.createElement("tr");
   const f = v => v == null || !isFinite(v) ? "" : Math.round(v);
   tr.innerHTML = `<td></td><td class="${r.fps ? (r.fps >= 55 ? "good" : r.fps >= 40 ? "warn" : "bad") : ""}">${f(r.fps)}</td><td>${f(r.p95)}</td><td>${f(r.max)}</td><td>${r.jank ?? ""}</td>`;
@@ -416,14 +428,26 @@ $("#optAnim").onchange = e => { OPT.anim = e.target.checked; document.body.class
 $("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins(); };
 $("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
 $("#runAll").onclick = () => map && runAll();
+$("#copyReport").onclick = async () => {
+  const t = $("#report table"); if (!t) return;
+  const txt = [navigator.userAgent, `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, ...[...t.rows].map(r => [...r.cells].map(c => c.textContent).join("\t"))].join("\n");
+  try { await navigator.clipboard.writeText(txt); $("#copyReport").textContent = "Kopyalandı"; } catch (e) { prompt("Sonuçlar:", txt); }
+};
 $("#resetStats").onclick = () => { stats.jank = 0; stats.longTasks = 0; stats.count = 0; $("#report").innerHTML = ""; };
 $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").textContent = $("#dev").classList.contains("min") ? "▸" : "▾"; };
 
 (async () => {
+  // URL options for repeatable phone tests, e.g. ?n=500&photo=1&anim=0&auto=1
+  const q = new URLSearchParams(location.search);
+  if ([20, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
+  for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
+  document.body.classList.toggle("anim", OPT.anim);
   await loadData();
   POINTS = makePoints(OPT.n);
   document.querySelectorAll("#counts button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === OPT.n)));
   await createScreen();
+  if (innerWidth < 600 && q.get("panel") !== "1") { $("#dev").classList.add("min"); $("#devMin").textContent = "▸"; }
+  if (q.get("auto") === "1") { await idle(); await wait(1500); runAll(); }
 })();
 </script>
 </body>
