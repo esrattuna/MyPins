@@ -219,8 +219,19 @@ function liteStyle(s) {
   LAYER_INFO.used = s.layers.length;
   return s;
 }
+// The map host can be slow or unreachable; without a time limit the page waited forever on a blank map.
+// Two tries of 12 s, then the error is shown on screen instead of an empty map.
+async function fetchStyleJSON() {
+  for (let k = 0; k < 2; k++) {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000);
+    try { const r = await fetch("https://tiles.openfreemap.org/styles/liberty", { signal: ctl.signal }); if (r.ok) return await r.json(); }
+    catch (e) { console.warn("style fetch", k + 1, e.name); }
+    finally { clearTimeout(t); }
+  }
+  throw new Error("map-host-unreachable");
+}
 async function buildBaseStyle() {
-  const [s] = await Promise.all([fetch("https://tiles.openfreemap.org/styles/liberty").then(r => r.json()), loadCountries()]);
+  const [s] = await Promise.all([fetchStyleJSON(), loadCountries()]);
   const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   for (const l of s.layers) {
     const id = l.id, p = (l.paint = l.paint || {});
@@ -764,7 +775,13 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   await loadData();
   POINTS = makePoints(OPT.n);
   document.querySelectorAll("#counts button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === OPT.n)));
-  await createScreen();
+  try { await createScreen(); }
+  catch (e) {
+    console.warn(e);
+    const off = $("#off"); off.hidden = false;
+    off.innerHTML = "Harita sunucusuna (OpenFreeMap) ulaşılamadı.<br>Bu genelde geçici bir bağlantı sorunu.<br><br><button class=\"btn\" onclick=\"location.reload()\">Tekrar dene</button>";
+    return;
+  }
   paintCfg();
   if (innerWidth < 600 && q.get("panel") !== "1") { $("#dev").classList.add("min"); $("#devMin").textContent = "▸"; }
   if (q.get("auto") === "1") { await idle(); await wait(1500); runAll(); }
