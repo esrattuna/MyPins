@@ -390,16 +390,24 @@ function onMapTap(e) {
   const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
   if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;   // the pin handler owns this tap
   const z = map.getZoom();
+  // At country scale, a tap in a different country than the one in the middle of the screen moves to that country
+  // (e.g. Spain is open, tap Portugal -> Portugal is framed). Checked before place labels so a city label near the
+  // tap does not swallow the country switch; inside the same country, labels behave as before.
+  if (z >= 5.5 && z < 8 && COUNTRIES) {
+    const c = countryAt(e.lngLat.lng, e.lngLat.lat), mid = map.getCenter(), here = countryAt(mid.lng, mid.lat);
+    if (c && c !== here) { frameCountry(c); return; }
+  }
   const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class]);
   if (place) {
     const tz = PLACE_ZOOM[place.properties.class];
     camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
     return;
   }
-  if (z < 5.5 && COUNTRIES) {
-    const c = countryAt(e.lngLat.lng, e.lngLat.lat);
-    if (c) { const b = c.properties.b, cam = map.cameraForBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, maxZoom: 7.5 }); if (cam) camera({ center: cam.center, zoom: cam.zoom }); }
-  }
+  if (z < 5.5 && COUNTRIES) { const c = countryAt(e.lngLat.lng, e.lngLat.lat); if (c) frameCountry(c); }   // continent scale, unchanged
+}
+function frameCountry(c) {
+  const b = c.properties.b, cam = map.cameraForBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, maxZoom: 7.5 });
+  if (cam) camera({ center: cam.center, zoom: cam.zoom });
 }
 function camera(opts) {
   if (OPT.smooth) { prefetchView(opts.center, opts.zoom); map.flyTo({ ...opts, duration: 1000, curve: 1.3, essential: true }); }
