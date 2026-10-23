@@ -239,8 +239,12 @@ async function buildBaseStyle() {
     else if (l.type === "line" && /^(road|bridge|tunnel)_/.test(id) && !/rail|hatching|path/.test(id)) p["line-color"] = C.road;
     else if (l.type === "line" && /boundary/.test(id)) p["line-color"] = C.border;
     if (l.type === "symbol" && l.layout && l.layout["text-field"]) {
-      l.layout["text-field"] = ["case", ["==", ["coalesce", ["get", "name:en"], ""], "Israel"], "", name];
-      p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
+      // Only labels that show a name get the Turkish-first name. Road shields show the road number ("ref");
+      // replacing that with the (usually empty) road name left blank white shield boxes on roads.
+      if (/"name/.test(JSON.stringify(l.layout["text-field"]))) {
+        l.layout["text-field"] = ["case", ["==", ["coalesce", ["get", "name:en"], ""], "Israel"], "", name];
+        p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
+      }
     }
   }
   // Fallback base: until a region's tiles arrive, the coarse country fill already shows land and sea in the right
