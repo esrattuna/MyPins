@@ -84,7 +84,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">POI (sade)</span>
       <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
     <div class="row"><span class="lab">Tile kaynağı</span>
-      <span class="seg" id="tileSeg"><button data-tiles="ofm">OpenFreeMap</button><button data-tiles="maptiler">MapTiler</button></span></div>
+      <span class="seg" id="tileSeg"><button data-tiles="ofm">OpenFreeMap</button><button data-tiles="maptiler">MapTiler</button></span>
+      <button class="btn ghost" id="mtForget">MapTiler anahtarını sil</button></div>
     <p class="note" id="cfgNote"></p>
     <div class="stats">
       <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
@@ -137,9 +138,16 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
   prefetch: false,     // zoom-out prefetch: when the map rests, download the coarser levels a zoom-out will need
   tiles: "ofm" };      // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
-// MapTiler key for the prototype, restricted to raw.githack.com in the MapTiler account. Map keys are public by
-// design (every tile URL carries them); the origin restriction is what protects it.
-const MAPTILER_KEY = "MAPTILER_KEY_REMOVED";
+// The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
+// that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
+function mapTilerKey() {
+  let k = ""; try { k = localStorage.getItem("mp-maptiler-key") || ""; } catch (e) {}
+  if (!k) {
+    k = (prompt("MapTiler API anahtarı (sadece bu tarayıcıda saklanır):") || "").trim();
+    if (k) try { localStorage.setItem("mp-maptiler-key", k); } catch (e) {}
+  }
+  return k;
+}
 const WK = { def: 0, now: 0, on: 4 };
 const LAYER_INFO = { all: 0, used: 0 };
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
@@ -242,8 +250,12 @@ async function buildBaseStyle() {
   const [s] = await Promise.all([fetchStyleJSON(), loadCountries()]);
   // Same layer definitions either way; only the vector tiles come from the chosen host. (The style, fonts and
   // icons still come from OpenFreeMap in this test.)
-  if (OPT.tiles === "maptiler") for (const src of Object.values(s.sources))
-    if (src.type === "vector" && src.url) src.url = `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${MAPTILER_KEY}`;
+  if (OPT.tiles === "maptiler") {
+    const key = mapTilerKey();
+    if (!key) OPT.tiles = "ofm";            // no key given: stay on OpenFreeMap
+    else for (const src of Object.values(s.sources))
+      if (src.type === "vector" && src.url) src.url = `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${encodeURIComponent(key)}`;
+  }
   const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   for (const l of s.layers) {
     const id = l.id, p = (l.paint = l.paint || {});
@@ -786,6 +798,7 @@ function reloadWithOptions() {
 $("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
+$("#mtForget").onclick = () => { try { localStorage.removeItem("mp-maptiler-key"); } catch (e) {} $("#mtForget").textContent = "Silindi"; };
 document.querySelectorAll("#tileSeg button").forEach(b => b.onclick = () => { if (OPT.tiles !== b.dataset.tiles) { OPT.tiles = b.dataset.tiles; reloadWithOptions(); } });
 $("#optPrefetch").onchange = e => { OPT.prefetch = e.target.checked; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); };
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
