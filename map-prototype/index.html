@@ -247,6 +247,8 @@ async function buildBaseStyle() {
       }
     }
   }
+  // Road number shields (A7, S511...) are not useful in a travel diary map and clutter roads: removed in every style.
+  s.layers = s.layers.filter(l => !/shield/.test(l.id));
   // Fallback base: until a region's tiles arrive, the coarse country fill already shows land and sea in the right
   // colors at continent scale (<= z7). Above z7 the background is land as before.
   const bg = s.layers.findIndex(l => l.type === "background");
