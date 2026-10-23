@@ -249,6 +249,20 @@ async function buildBaseStyle() {
   }
   // Road number shields (A7, S511...) are not useful in a travel diary map and clutter roads: removed in every style.
   s.layers = s.layers.filter(l => !/shield/.test(l.id));
+  // Island names: in the upstream style they fall into "label_other", which starts at zoom 8, so a framed
+  // Greece (~z6) showed no island names. Own layer from z6 (larger islands first by rank), islets from z10.
+  const other = s.layers.find(l => l.id === "label_other");
+  if (other) {
+    other.filter = ["all", other.filter, ["!", ["in", ["get", "class"], ["literal", ["island", "islet"]]]]];
+    const at = s.layers.indexOf(other);
+    const islandLayer = (id, cls, minzoom) => ({ id, type: "symbol", source: other.source, "source-layer": "place", minzoom,
+      filter: ["==", ["get", "class"], cls],
+      layout: { "text-field": ["case", ["==", ["coalesce", ["get", "name:en"], ""], "Israel"], "", name], "text-font": (other.layout && other.layout["text-font"]) || ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 11, 10, 13, 14, 15], "symbol-sort-key": ["coalesce", ["get", "rank"], 99],
+        "text-max-width": 7, "text-padding": 4 },
+      paint: { "text-color": "#3f5a5c", "text-halo-color": C.halo, "text-halo-width": 1.4 } });
+    s.layers.splice(at + 1, 0, islandLayer("label_island", "island", 6), islandLayer("label_islet", "islet", 10));
+  }
   // Fallback base: until a region's tiles arrive, the coarse country fill already shows land and sea in the right
   // colors at continent scale (<= z7). Above z7 the background is land as before.
   const bg = s.layers.findIndex(l => l.type === "background");
@@ -385,7 +399,15 @@ function onPinClick(e) {
   if (z < 12 && !e._probe) camera({ center: f.geometry.coordinates, zoom: Math.max(12, z + 3) });
 }
 const PIN_LAYERS = ["dot", "pin", "cl"];
-const PLACE_ZOOM = { city: 11.5, town: 13, village: 14, suburb: 14.5, quarter: 15, neighbourhood: 15.5, hamlet: 15 };
+const PLACE_ZOOM = { city: 11.5, town: 13, village: 14, suburb: 14.5, quarter: 15, neighbourhood: 15.5, hamlet: 15, island: 10.5, islet: 13 };
+// a tap on an island's land (not exactly on its name) still finds the island: nearest island label within ~45 px
+function islandNear(pt) {
+  const layers = ["label_island", "label_islet"].filter(id => map.getLayer(id)); if (!layers.length) return null;
+  const r = 45, feats = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]], { layers });
+  let best = null, bd = Infinity;
+  for (const f of feats) { const p = map.project(f.geometry.coordinates), d = (p.x - pt.x) ** 2 + (p.y - pt.y) ** 2; if (d < bd) { bd = d; best = f; } }
+  return best;
+}
 function onMapTap(e) {
   const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
   if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;   // the pin handler owns this tap
@@ -397,7 +419,8 @@ function onMapTap(e) {
     const c = countryAt(e.lngLat.lng, e.lngLat.lat), mid = map.getCenter(), here = countryAt(mid.lng, mid.lat);
     if (c && c !== here) { frameCountry(c); return; }
   }
-  const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class]);
+  const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class])
+    || islandNear(e.point);
   if (place) {
     const tz = PLACE_ZOOM[place.properties.class];
     camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
