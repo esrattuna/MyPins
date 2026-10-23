@@ -79,8 +79,9 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">Hız ayarı</span>
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
       <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
-      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
-      <label class="tog"><input type="checkbox" id="optPrefetch"> Ön yükleme</label></div>
+      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label></div>
+    <div class="row"><span class="lab">Ön yükleme</span>
+      <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
       <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
     <div class="row"><span class="lab">Tile kaynağı</span>
@@ -136,7 +137,7 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   lite: false,         // "Sade stil": fewer style layers
   poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
   cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
-  prefetch: false,     // zoom-out prefetch: when the map rests, download the coarser levels a zoom-out will need
+  prefetch: "",        // zoom-out prefetch: "" off | "light" mid scale only (z<=12) | "full" every coarser level
   tiles: "ofm" };      // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
@@ -504,7 +505,10 @@ function applySmooth() {
    about half the requested tiles were cancelled before they arrived (the blank squares). So when the map rests,
    download the tiles of every coarser level down to 8 levels up, for the visible area, into the browser cache.
    A later zoom-out then finds them there. Capped at 80 tiles per rest; the same tile is never fetched twice. */
-const PF = { done: new Set(), timer: 0, running: null, tiles: 0, bytes: 0 };
+// "full" (8269c00) removed the blank squares on iPhone but cost 3-6 MB per rest. "light" skips the heavy
+// near levels (z13+, dense city tiles) and keeps the mid scale (z5-12) where the blank squares were seen.
+const PF_MODES = { full: { top: 14, bottom: 3, cap: 80 }, light: { top: 12, bottom: 5, cap: 40 } };
+const PF = { done: new Set(), timer: 0, running: null, tiles: 0, bytes: 0, byLevel: {} };
 function onIdlePrefetch() { clearTimeout(PF.timer); if (OPT.prefetch) PF.timer = setTimeout(prefetchZoomOut, 300); }
 async function prefetchZoomOut() {
   if (!OPT.prefetch || !map) return;
@@ -513,18 +517,19 @@ async function prefetchZoomOut() {
   const z = Math.floor(map.getZoom()); if (z < 6) return;
   const c = map.getCenter(), rect = map.getContainer().getBoundingClientRect();
   const hx = rect.width / 2 / 512 + 0.5, hy = rect.height / 2 / 512 + 0.5, urls = [];
-  for (let tz = Math.min(TILE_MAX, z - 1); tz >= Math.max(3, z - 8); tz--) {
+  const M = PF_MODES[OPT.prefetch] || PF_MODES.full;
+  for (let tz = Math.min(TILE_MAX, M.top, z - 1); tz >= Math.max(M.bottom, z - 8); tz--) {
     const n = 2 ** tz, x = (c.lng + 180) / 360 * n, lr = c.lat * Math.PI / 180;
     const y = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
     for (let ty = Math.floor(y - hy); ty <= Math.floor(y + hy); ty++) for (let tx = Math.floor(x - hx); tx <= Math.floor(x + hx); tx++) {
       if (ty < 0 || ty >= n) continue;
       const u = tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty);
-      if (!PF.done.has(u)) urls.push(u);
+      if (!PF.done.has(u)) urls.push([u, tz]);
     }
   }
-  const batch = urls.slice(0, 80); batch.forEach(u => PF.done.add(u));
-  PF.running = Promise.all(batch.map(u => fetch(u, { mode: "cors", credentials: "same-origin" })
-    .then(r => r.arrayBuffer()).then(b => { PF.tiles++; PF.bytes += b.byteLength; }).catch(() => {})))
+  const batch = urls.slice(0, M.cap); batch.forEach(([u]) => PF.done.add(u));
+  PF.running = Promise.all(batch.map(([u, tz]) => fetch(u, { mode: "cors", credentials: "same-origin" })
+    .then(r => r.arrayBuffer()).then(b => { PF.tiles++; PF.bytes += b.byteLength; PF.byLevel[tz] = (PF.byLevel[tz] || 0) + b.byteLength; }).catch(() => {})))
     .then(() => { PF.running = null; });
   return PF.running;
 }
@@ -725,13 +730,12 @@ async function zoomOutTest() {
   if (!map) return;
   $("#runZoomOut").disabled = true; $("#runAll").disabled = true; closeInfo();
   clearTileMemory();
+  const pf0 = { t: PF.tiles, b: PF.bytes }; PF.byLevel = {};
   const city = OPT.cold ? nextColdCity() : ["Barcelona", 2.1734, 41.3851];
   map.jumpTo({ center: [city[1], city[2]], zoom: 16 });
   await idle(); await wait(600);
   // with prefetch on, give it the rest it would get when a person pauses on a street (up to 3 s)
-  const pf0 = { t: PF.tiles, b: PF.bytes };
   if (OPT.prefetch) await Promise.race([prefetchZoomOut(), wait(3000)]);
-  const pf = { t: PF.tiles - pf0.t, kb: Math.round((PF.bytes - pf0.b) / 1024) };
   TT.pending.clear();                      // at idle anything still listed was cancelled earlier
   TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
   rec = []; const lt0 = stats.longTasks;
@@ -745,12 +749,17 @@ async function zoomOutTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round;
-  addRow(`Uzaklaşma 16→13→10,5→8, ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}]${OPT.prefetch ? ` — ön yükleme ${pf.t} tile, ${pf.kb} KB` : ""} — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Uzaklaşma 16→13→10,5→8, ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}]${OPT.prefetch ? ` — ön yükleme ${pfText(pf0)}` : ""} — istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
+// prefetch cost of this round (includes downloads that finished during the zoom-out), per level in KB
+function pfText(pf0) {
+  const lv = Object.keys(PF.byLevel).map(Number).sort((a, b) => b - a).map(z => `z${z} ${Math.round(PF.byLevel[z] / 1024)}`).join(", ");
+  return `${PF.tiles - pf0.t} tile, ${Math.round((PF.bytes - pf0.b) / 1024)} KB${lv ? ` (${lv})` : ""}`;
+}
 function cfgLabel() {
-  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? " · ön yükleme" : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}`;
+  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? ` · ön yükleme ${OPT.prefetch === "light" ? "hafif" : "tam"}` : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}`;
 }
 function addRow(name, r) {
   let t = $("#report table");
@@ -791,7 +800,7 @@ function reloadWithOptions() {
   if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
   q.set("poi", OPT.poi);
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
-  if (OPT.prefetch) q.set("prefetch", "1"); else q.delete("prefetch");
+  if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
 }
@@ -800,12 +809,13 @@ $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions()
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
 $("#mtForget").onclick = () => { try { localStorage.removeItem("mp-maptiler-key"); } catch (e) {} $("#mtForget").textContent = "Silindi"; };
 document.querySelectorAll("#tileSeg button").forEach(b => b.onclick = () => { if (OPT.tiles !== b.dataset.tiles) { OPT.tiles = b.dataset.tiles; reloadWithOptions(); } });
-$("#optPrefetch").onchange = e => { OPT.prefetch = e.target.checked; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); };
+document.querySelectorAll("#pfSeg button").forEach(b => b.onclick = () => { OPT.prefetch = b.dataset.pf; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); });
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
   $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
   document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
   document.querySelectorAll("#tileSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tiles === OPT.tiles)));
+  document.querySelectorAll("#pfSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pf === OPT.prefetch)));
   $("#cfgNote").textContent = `Şu an: ${cfgLabel()} (normal stilde ${LAYER_INFO.all}). Worker ve stil değişince sayfa yeniden yüklenir.`;
 }
 $("#copyReport").onclick = async () => {
@@ -824,7 +834,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   OPT.lite = q.get("lite") === "1";
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
-  OPT.prefetch = q.get("prefetch") === "1"; $("#optPrefetch").checked = OPT.prefetch;
+  const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
   if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
   // worker pool must be sized before the first map is created
