@@ -245,7 +245,7 @@ function drawWorld() {
   }
   gWorld.append("g").selectAll("path").data(COUNTRIES.features).join("path")
     .attr("class", "land").attr("vector-effect", "non-scaling-stroke").attr("d", path)
-    .on("click", (e, d) => { if (S.picking) return; e.stopPropagation(); zoomToCountry(d); })
+    .on("click", (e, d) => { if (S.picking) return; e.stopPropagation(); if (typeof onbLandClick === "function" && onbLandClick(d)) return; zoomToCountry(d); })
     .append("title").text(d => HIDE_LABEL.has(d.properties.n) ? "" : cName(d));
   gWorld.append("path").attr("class", "admin1").attr("vector-effect", "non-scaling-stroke").attr("d", path(ADMIN1));
 }
@@ -399,7 +399,8 @@ $("#handle").onclick = () => {
 function render() {
   body.replaceChildren();
   body.dataset.view = S.panelMode === "map" ? S.view : S.panelMode;
-  if (S.panelMode === "settings") renderSettings();
+  if (S.panelMode === "onboard") renderOnboard();
+  else if (S.panelMode === "settings") renderSettings();
   else if (S.panelMode === "people") renderPeople();
   else if (S.ownerState === "notfound") renderNotFound();
   else if (S.view === "detail") renderDetail();
@@ -452,7 +453,8 @@ function renderList() {
   if (!items.length) {
     body.append(el("div", { class: "empty" },
       el("strong", { text: S.places.length ? t("emptyFilter") : t("emptyAll") }),
-      S.canEdit ? t("emptyEdit") : t("emptyView")));
+      S.canEdit ? t("emptyEdit") : t("emptyView"),
+      S.canEdit && !S.places.length ? el("div", { style: "margin-top:12px" }, el("a", { class: "btn small", href: "#/start" }, ot("menu"))) : null));
     return;
   }
   const byCountry = d3.groups(items, p => placeCountry(p) || t("other"))
@@ -745,7 +747,7 @@ async function fetchMe() {
   if (S.me && S.me.avatar_path) await signPhotos([S.me.avatar_path]);
 }
 
-async function loadOwner(username) {
+async function loadOwner(username, quiet) {
   S.ownerState = "loading"; S.owner = null; S.places = []; S.loaded = false; S.rel = null; S.view = "list"; S.selId = null;
   render();
   const { data: prof, error } = await sb.from("profiles").select("*").ilike("username", username).maybeSingle();
@@ -772,6 +774,7 @@ async function loadOwner(username) {
   S.ownerState = "ok"; S.loaded = true;
   renderChrome(); render();
   maybeAutoIntro();
+  if (!quiet && S.canEdit && !S.places.length && !ls("mp-onb-done-" + S.me.id)) location.hash = "#/start";
 }
 
 async function follow() {
@@ -801,6 +804,340 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape" && S.picking) setPicking(false);
 });
 
+/* ---------------- onboarding: countries → find places in photos → add pins ---------------- */
+const OT = {
+  tr: {
+    eyebrow: "Haritanı oluştur", t1: "Hangi ülkelere gittin?", p1: "Haritada ülkelere dokun ya da listeden seç.",
+    search: "Ülke ara", selected: n => `${n} ülke seçildi`, next: "Devam", skip: "Şimdilik geç",
+    t2: "Gittiğin yerleri fotoğraflarından bulalım", p2: "Seçtiğin ülkelerde çektiğin fotoğrafların nerede çekildiğine bakıp gittiğin yerleri listeleriz.",
+    privacy: "🔒 Fotoğrafların cihazından çıkmaz ve yüklenmez. Sadece içlerindeki konum ve tarih bilgisini okuruz.",
+    pick: "Fotoğrafları seç", pickHint: "Galeride “Tümünü seç” diyebilirsin. Ne kadar çok fotoğraf, o kadar çok yer.",
+    scanning: (a, b) => `Fotoğraflar inceleniyor… ${a} / ${b}`, back: "← Geri",
+    t3: "Gittiğin yerler", p3: "Eklemek istediklerini işaretle. Fotoğraf ve not eklemeyi sonra yaparsın.",
+    stats: (n, l) => `${n} fotoğrafın ${l} tanesinde konum bilgisi vardı.`, none: "Seçtiğin ülkelerde konum bilgisi olan fotoğraf bulamadık.",
+    noneHint: "Telefonunda kamera için konum kaydı kapalı olabilir. Ülkelerini yine de ekleyebilir ya da yerleri haritadan tek tek işaretleyebilirsin.",
+    photos: n => `${n} fotoğraf`, spots: n => `Noktaları gör (${n})`, hideSpots: "Noktaları gizle",
+    spotHint: "Bu bölgedeki ayrı noktaları da pin olarak ekleyebilirsin. Neresi olduğunu hatırlamıyorsan yakındaki yerlerden birini seç.",
+    asPin: "Ayrı pin olarak ekle", near: "Yakında:", loadingNear: "Yakındaki yerler aranıyor…", noNear: "Yakında isimli bir yer bulunamadı.",
+    namePh: "Burası neresiydi?", unnamed: r => `İsimsiz yer, ${r} yakınları`, homeFlag: "🏠 Evin ya da iş yerin olabilir, bu yüzden işaretlemedik.",
+    already: "Zaten haritanda", others: (c, n) => `${c} ülkesinde de ${n} fotoğrafın var.`, addCountry: "Bunu da ekle",
+    add: n => `Seçilenleri ekle (${n})`, adding: "Ekleniyor…", done: n => `${n} pin haritana eklendi`, addErr: "Eklenemedi. Bağlantını kontrol edip tekrar dene.",
+    menu: "📷 Fotoğraflardan yer bul", near_u: "yakınları",
+  },
+  en: {
+    eyebrow: "Build your map", t1: "Which countries have you been to?", p1: "Tap countries on the map or pick them from the list.",
+    search: "Search countries", selected: n => `${n} ${n === 1 ? "country" : "countries"} selected`, next: "Continue", skip: "Skip for now",
+    t2: "Let's find the places you've been in your photos", p2: "We look at where your photos from the selected countries were taken and list the places you've been.",
+    privacy: "🔒 Your photos never leave your device and aren't uploaded. We only read the location and date stored in them.",
+    pick: "Choose photos", pickHint: "You can tap “Select all” in your gallery. More photos, more places.",
+    scanning: (a, b) => `Looking at photos… ${a} / ${b}`, back: "← Back",
+    t3: "Places you've been", p3: "Tick the ones you want to add. You can add photos and notes later.",
+    stats: (n, l) => `${l} of ${n} photos had location data.`, none: "We didn't find photos with location data in the selected countries.",
+    noneHint: "Location saving may be off for your camera. You can still add your countries, or mark places on the map one by one.",
+    photos: n => `${n} ${n === 1 ? "photo" : "photos"}`, spots: n => `See spots (${n})`, hideSpots: "Hide spots",
+    spotHint: "You can also add separate spots in this area as pins. If you don't remember the name, pick one of the nearby places.",
+    asPin: "Add as a separate pin", near: "Nearby:", loadingNear: "Looking for nearby places…", noNear: "No named places found nearby.",
+    namePh: "What was this place?", unnamed: r => `Unnamed place near ${r}`, homeFlag: "🏠 This might be your home or workplace, so we left it unticked.",
+    already: "Already on your map", others: (c, n) => `You also have ${n} photos in ${c}.`, addCountry: "Add it too",
+    add: n => `Add selected (${n})`, adding: "Adding…", done: n => `${n} pins added to your map`, addErr: "Couldn't add. Check your connection and try again.",
+    menu: "📷 Find places in photos", near_u: "area",
+  },
+};
+const ot = (k, ...a) => { const v = OT[LANG][k] ?? OT.tr[k]; return typeof v === "function" ? v(...a) : v; };
+
+/* --- tiny JPEG EXIF reader: GPS + DateTimeOriginal --- */
+async function readExif(file) {
+  try {
+    const buf = await file.slice(0, 256 * 1024).arrayBuffer();
+    const v = new DataView(buf);
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let o = 2;
+    while (o + 4 < v.byteLength) {
+      const marker = v.getUint16(o), len = v.getUint16(o + 2);
+      if (marker === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) return parseTiff(v, o + 10);
+      if ((marker & 0xFF00) !== 0xFF00) break;
+      o += 2 + len;
+    }
+  } catch (e) {}
+  return null;
+}
+function parseTiff(v, t) {
+  const le = v.getUint16(t) === 0x4949;
+  const u16 = p => v.getUint16(p, le), u32 = p => v.getUint32(p, le);
+  const ifd = off => {
+    const out = {}; const n = u16(t + off);
+    for (let i = 0; i < n; i++) {
+      const e = t + off + 2 + i * 12, tag = u16(e), type = u16(e + 2), cnt = u32(e + 4);
+      const sz = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 }[type] || 1;
+      const p = sz * cnt > 4 ? t + u32(e + 8) : e + 8;
+      if (type === 2) { let s = ""; for (let k = 0; k < cnt - 1; k++) s += String.fromCharCode(v.getUint8(p + k)); out[tag] = s; }
+      else if (type === 5) { const a = []; for (let k = 0; k < cnt; k++) a.push(u32(p + k * 8) / (u32(p + k * 8 + 4) || 1)); out[tag] = a; }
+      else if (type === 3) out[tag] = u16(p);
+      else if (type === 4) out[tag] = u32(p);
+    }
+    return out;
+  };
+  const i0 = ifd(u32(t + 4));
+  let date = i0[0x0132] || "";
+  if (i0[0x8769]) { const ex = ifd(i0[0x8769]); if (ex[0x9003]) date = ex[0x9003]; }
+  if (!i0[0x8825]) return { date: exifDate(date) };
+  const g = ifd(i0[0x8825]);
+  if (!g[2] || !g[4]) return { date: exifDate(date) };
+  const deg = a => a[0] + a[1] / 60 + a[2] / 3600;
+  let lat = deg(g[2]), lon = deg(g[4]);
+  if (g[1] === "S") lat = -lat; if (g[3] === "W") lon = -lon;
+  if (!isFinite(lat) || !isFinite(lon) || (lat === 0 && lon === 0)) return { date: exifDate(date) };
+  return { lat, lon, date: exifDate(date) };
+}
+const exifDate = s => { const m = /^(\d{4}):(\d{2}):(\d{2})/.exec(s || ""); return m ? `${m[1]}-${m[2]}-${m[3]}` : ""; };
+
+/* --- geography helpers --- */
+const COUNTRY_LIST = COUNTRIES.features.filter(f => f.properties.iso).map(f => ({ iso: f.properties.iso, f, b: d3.geoBounds(f) }));
+function countryOf(lon, lat) {
+  for (const c of COUNTRY_LIST) {
+    const [[x0, y0], [x1, y1]] = c.b;
+    if (lon < x0 - .1 || lon > x1 + .1 || lat < y0 - .1 || lat > y1 + .1) continue;
+    if (d3.geoContains(c.f, [lon, lat])) return c.iso;
+  }
+  return "";
+}
+const isoName = iso => { const c = COUNTRY_LIST.find(x => x.iso === iso); return c ? cName(c.f) : iso; };
+const isoNameTr = iso => { const c = COUNTRY_LIST.find(x => x.iso === iso); return c ? c.f.properties.nm.tr : iso; };
+const km = (a, b) => d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
+function nearestCity(lon, lat) {
+  let best = null, bd = Infinity;
+  for (const c of CITIES) { const d = d3.geoDistance([lon, lat], [c[1], c[2]]) * 6371; if (d < bd) { bd = d; best = c; } }
+  return best ? { name: best[0], lon: best[1], lat: best[2], d: bd } : null;
+}
+const flag = iso => iso && iso.length === 2 ? String.fromCodePoint(...[...iso.toUpperCase()].map(c => 0x1F1A5 + c.charCodeAt(0))) : "";
+
+/* --- state --- */
+let ONB = null;
+const onbReset = () => { ONB = { step: "countries", sel: new Set(), q: "", pts: [], total: 0, scanned: 0, regions: [], others: {}, busy: false, err: "" }; };
+
+function onbLandClick(f) {
+  if (S.panelMode !== "onboard" || !ONB || ONB.step !== "countries" || !f.properties.iso) return false;
+  const iso = f.properties.iso;
+  ONB.sel.has(iso) ? ONB.sel.delete(iso) : ONB.sel.add(iso);
+  onbPaint(); render();
+  return true;
+}
+function onbPaint() {
+  gWorld.selectAll("path.land").classed("picked", d => !!(ONB && S.panelMode === "onboard" && ONB.sel.has(d.properties.iso)));
+}
+
+/* --- clustering --- */
+function onbGroup() {
+  const pts = ONB.pts.filter(p => ONB.sel.has(p.iso));
+  ONB.others = {};
+  ONB.pts.forEach(p => { if (p.iso && !ONB.sel.has(p.iso)) ONB.others[p.iso] = (ONB.others[p.iso] || 0) + 1; });
+  // spots: greedy 250 m clusters over a grid
+  const spots = [], grid = new Map(), G = 0.005;
+  const key = (x, y) => `${Math.floor(x / G)},${Math.floor(y / G)}`;
+  for (const p of pts) {
+    const gx = Math.floor(p.lon / G), gy = Math.floor(p.lat / G);
+    let hit = null;
+    for (let dx = -1; dx <= 1 && !hit; dx++) for (let dy = -1; dy <= 1 && !hit; dy++) {
+      for (const s of grid.get(`${gx + dx},${gy + dy}`) || []) if (km(s, p) < 0.25) { hit = s; break; }
+    }
+    if (!hit) { hit = { lon: p.lon, lat: p.lat, n: 0, sx: 0, sy: 0, days: new Set(), dates: [], iso: p.iso }; spots.push(hit); const k = key(p.lon, p.lat); grid.set(k, [...(grid.get(k) || []), hit]); }
+    hit.n++; hit.sx += p.lon; hit.sy += p.lat; if (p.date) { hit.days.add(p.date); hit.dates.push(p.date); }
+  }
+  spots.forEach(s => { s.lon = s.sx / s.n; s.lat = s.sy / s.n; s.date = s.dates.sort()[0] || ""; s.home = s.days.size >= 20; s.on = false; s.name = ""; s.kind = "yer"; s.near = null;
+    s.existing = S.places.some(q => km(q, s) < 0.3); });
+  // regions: greedy 8 km clusters of spots, named after the nearest known town
+  const regsArr = [];
+  for (const sp of [...spots].sort((a, b) => b.n - a.n)) {
+    let r = regsArr.find(x => x.iso === sp.iso && km(x.seed, sp) < 8);
+    if (!r) {
+      const c = nearestCity(sp.lon, sp.lat), close = c && c.d <= 8;
+      r = { key: sp.iso + "|" + sp.lon.toFixed(3) + sp.lat.toFixed(3), iso: sp.iso, seed: { lon: sp.lon, lat: sp.lat }, spots: [], n: 0, open: false,
+        name: c ? cityName(c.name) + (close ? "" : " " + ot("near_u")) : isoName(sp.iso), city: close ? cityName(c.name) : "",
+        lon: close ? c.lon : sp.lon, lat: close ? c.lat : sp.lat, needName: !close };
+      regsArr.push(r);
+    }
+    r.spots.push(sp); r.n += sp.n;
+  }
+  const regs = new Map(regsArr.map(r => [r.key, r]));
+  ONB.regions = [...regs.values()].map(r => {
+    r.spots.sort((a, b) => b.n - a.n);
+    r.home = r.spots.every(s => s.home);
+    r.existing = S.places.some(q => km(q, r) < 3) || r.spots.every(s => s.existing);
+    r.date = r.spots.map(s => s.date).filter(Boolean).sort()[0] || "";
+    r.on = !r.home && !r.existing;
+    return r;
+  }).sort((a, b) => a.iso.localeCompare(b.iso) || b.n - a.n);
+}
+
+/* --- nearby place names (OpenStreetMap / Overpass) --- */
+const FOOD = new Set(["restaurant", "cafe", "bar", "fast_food", "pub", "ice_cream", "biergarten", "food_court", "bakery", "pastry", "confectionery", "deli"]);
+async function onbNear(s) {
+  if (s.near) return;
+  s.near = "loading"; render();
+  const q = `[out:json][timeout:15];nwr(around:180,${s.lat.toFixed(5)},${s.lon.toFixed(5)})["name"][~"^(amenity|tourism|natural|leisure|historic)$"~"^(restaurant|cafe|bar|fast_food|pub|ice_cream|bakery|museum|attraction|viewpoint|gallery|artwork|beach|bay|cape|park|garden|nature_reserve|marina|castle|monument|ruins|fort|lighthouse|place_of_worship|marketplace)$"];out center 40;`;
+  try {
+    const r = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) });
+    const j = await r.json();
+    const seen = new Set();
+    s.near = (j.elements || []).map(e => {
+      const t = e.tags || {}, lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
+      const cat = t.amenity || t.tourism || t.natural || t.leisure || t.historic || "";
+      return { name: t.name, food: FOOD.has(cat) || FOOD.has(t.shop || ""), d: lat ? km({ lat, lon }, s) * 1000 : 999, cat };
+    }).filter(x => x.name && x.d < 400 && !seen.has(x.name) && seen.add(x.name)).sort((a, b) => a.d - b.d).slice(0, 6);
+  } catch (e) { s.near = []; }
+  render();
+}
+
+async function onbNameRegions() {
+  for (const r of ONB.regions.filter(x => x.needName && !x.named)) {
+    r.named = true;
+    const q = `[out:json][timeout:15];node(around:12000,${r.seed.lat.toFixed(4)},${r.seed.lon.toFixed(4)})[place~"^(city|town|village)$"][name];out 30;`;
+    try {
+      const j = await (await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) })).json();
+      const best = (j.elements || []).map(e => ({ name: e.tags.name, lat: e.lat, lon: e.lon, rank: { city: 0, town: 1, village: 2 }[e.tags.place] ?? 3 }))
+        .sort((a, b) => km(a, r.seed) - km(b, r.seed))[0];
+      if (best && km(best, r.seed) < 6) { r.name = best.name; r.city = best.name; r.lon = best.lon; r.lat = best.lat; render(); }
+    } catch (e) {}
+  }
+}
+
+/* --- scanning --- */
+async function onbScan(files) {
+  const list = [...files].filter(f => /image\//.test(f.type) || /\.(jpe?g|heic|heif|png)$/i.test(f.name));
+  ONB.step = "scan"; ONB.total = list.length; ONB.scanned = 0; ONB.pts = []; render();
+  let i = 0;
+  const worker = async () => {
+    while (i < list.length) {
+      const f = list[i++];
+      const ex = await readExif(f);
+      if (ex && ex.lat != null) ONB.pts.push({ lat: ex.lat, lon: ex.lon, date: ex.date, iso: countryOf(ex.lon, ex.lat) });
+      ONB.scanned++;
+      if (ONB.scanned % 25 === 0) { const b = $("#onb-prog"); if (b) b.textContent = ot("scanning", ONB.scanned, ONB.total); }
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  onbGroup();
+  ONB.step = "results"; render();
+  onbNameRegions();
+  const all = ONB.regions.filter(r => r.on);
+  if (all.length) fitPoints(all);
+}
+function fitPoints(arr) {
+  const ext = d3.extent(arr, r => r.lon), eyt = d3.extent(arr, r => r.lat);
+  const [x0, y0] = projection([ext[0], eyt[1]]), [x1, y1] = projection([ext[1], eyt[0]]);
+  const narrow = matchMedia("(max-width:760px)").matches;
+  const top = narrow ? 70 : 40, availH = (narrow ? H * 0.5 : H) - top - 40, availW = W - 80;
+  const k = Math.max(1, Math.min(30, 0.8 / Math.max((x1 - x0 || 1) / availW, (y1 - y0 || 1) / availH)));
+  const t = d3.zoomIdentity.translate(W / 2, top + availH / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+  svg.transition().duration(700).call(zoom.transform, t);
+}
+
+/* --- adding --- */
+function onbCount() {
+  return ONB.regions.reduce((a, r) => a + (r.on ? 1 : 0) + r.spots.filter(s => s.on).length, 0);
+}
+async function onbAdd() {
+  const rows = [];
+  for (const r of ONB.regions) {
+    if (r.on) rows.push({ user_id: S.me.id, kind: "yer", title: r.city || r.name, city: r.city, country: isoNameTr(r.iso), iso: r.iso, lat: r.lat, lon: r.lon, visited_on: r.date || null });
+    for (const s of r.spots) if (s.on) rows.push({ user_id: S.me.id, kind: s.kind, title: (s.name || "").trim() || ot("unnamed", r.city || r.name), city: r.city, country: isoNameTr(r.iso), iso: r.iso, lat: s.lat, lon: s.lon, visited_on: s.date || null });
+  }
+  if (!rows.length) return;
+  ONB.busy = true; ONB.err = ""; render();
+  const { data, error } = await sb.from("pins").insert(rows).select(PIN_COLS);
+  ONB.busy = false;
+  if (error) { console.error(error); ONB.err = ot("addErr"); render(); return; }
+  ls("mp-onb-done-" + S.me.id, "1");
+  S.places.push(...data.map(fromRow));
+  toast(ot("done", data.length));
+  ONB = null; location.hash = "#/u/" + S.me.username;
+}
+
+/* --- rendering --- */
+function renderOnboard() {
+  if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: ot("t1") }), t("needSignIn"))); return; }
+  if (!ONB) onbReset();
+  body.append(el("div", { class: "eyebrow", text: ot("eyebrow") }));
+  if (ONB.step === "countries") return onbCountries();
+  if (ONB.step === "scan") return onbScanView();
+  return onbResults();
+}
+function onbCountries() {
+  body.append(el("h2", { class: "d-title", text: ot("t1") }), el("p", { class: "onb-p", text: ot("p1") }));
+  const sel = [...ONB.sel];
+  if (sel.length) body.append(el("div", { class: "onb-sel" }, sel.map(iso => el("button", { class: "chip on", type: "button", "aria-pressed": "true", onclick: () => { ONB.sel.delete(iso); onbPaint(); render(); } }, flag(iso) + " " + isoName(iso) + " ✕"))));
+  const input = el("input", { id: "onb-q", type: "search", placeholder: ot("search"), value: ONB.q, oninput: e => { ONB.q = e.target.value; render(); const i = $("#onb-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } });
+  body.append(el("div", { class: "field search" }, input));
+  const q = ONB.q.trim().toLocaleLowerCase(LANG);
+  const list = COUNTRY_LIST.filter(c => !ONB.sel.has(c.iso) && (!q || cName(c.f).toLocaleLowerCase(LANG).includes(q))).sort((a, b) => cName(a.f).localeCompare(cName(b.f), LANG));
+  body.append(el("div", { class: "onb-list" }, list.slice(0, q ? 40 : 60).map(c => el("button", { class: "chip", type: "button", onclick: () => { ONB.sel.add(c.iso); ONB.q = ""; onbPaint(); render(); } }, flag(c.iso) + " " + cName(c.f)))));
+  body.append(el("div", { class: "onb-foot" },
+    el("button", { class: "btn ghost", type: "button", onclick: onbSkip }, ot("skip")),
+    el("button", { class: "btn", type: "button", disabled: !ONB.sel.size, onclick: () => { ONB.step = "photos"; render(); } }, ONB.sel.size ? ot("selected", ONB.sel.size) + " · " + ot("next") : ot("next"))));
+}
+function onbSkip() { if (S.me) ls("mp-onb-done-" + S.me.id, "1"); ONB = null; location.hash = "#/u/" + S.me.username; }
+function onbScanView() {
+  body.append(el("h2", { class: "d-title", text: ot("t2") }));
+  body.append(el("div", { class: "onb-scan" }, el("span", { class: "spinner" }), el("span", { id: "onb-prog", text: ot("scanning", ONB.scanned, ONB.total) })));
+}
+function onbResults() {
+  if (ONB.step === "photos") {
+    body.append(el("button", { class: "back", type: "button", onclick: () => { ONB.step = "countries"; render(); } }, ot("back")));
+    body.append(el("h2", { class: "d-title", text: ot("t2") }), el("p", { class: "onb-p", text: ot("p2") }));
+    body.append(el("div", { class: "notice", text: ot("privacy") }));
+    body.append(el("div", { class: "onb-sel" }, [...ONB.sel].map(iso => el("span", { class: "chip on" }, flag(iso) + " " + isoName(iso)))));
+    const inp = el("input", { type: "file", id: "onb-files", accept: "image/*", multiple: true, class: "vh", onchange: e => onbScan(e.target.files) });
+    body.append(el("label", { class: "btn onb-pick", for: "onb-files" }, "📷 " + ot("pick"), inp), el("p", { class: "hint", text: ot("pickHint") }));
+    body.append(el("div", { class: "onb-foot" }, el("button", { class: "btn ghost", type: "button", onclick: onbSkip }, ot("skip"))));
+    return;
+  }
+  body.append(el("button", { class: "back", type: "button", onclick: () => { ONB.step = "photos"; render(); } }, ot("back")));
+  body.append(el("h2", { class: "d-title", text: ot("t3") }), el("p", { class: "onb-p", text: ot("p3") }));
+  body.append(el("p", { class: "hint", text: ot("stats", ONB.total, ONB.pts.length) }));
+  if (!ONB.regions.length) {
+    body.append(el("div", { class: "empty" }, el("strong", { text: ot("none") }), ot("noneHint")));
+  }
+  let lastIso = null;
+  for (const r of ONB.regions) {
+    if (r.iso !== lastIso) { lastIso = r.iso; body.append(el("div", { class: "group-h" }, flag(r.iso) + " " + isoName(r.iso))); }
+    const row = el("div", { class: "onb-reg" + (r.on ? " on" : "") });
+    row.append(el("label", { class: "onb-check" },
+      el("input", { type: "checkbox", checked: r.on, onchange: e => { r.on = e.target.checked; render(); } }),
+      el("span", { class: "onb-reg-t" }, el("b", { text: r.name }),
+        el("span", { text: [ot("photos", r.n), r.date ? fmtMonth(r.date) : "", r.existing ? ot("already") : ""].filter(Boolean).join(" · ") }))));
+    if (r.home) row.append(el("p", { class: "hint", text: ot("homeFlag") }));
+    if (r.spots.length > 1 || r.spots[0].n > 2) row.append(el("button", { class: "linkbtn", type: "button", onclick: () => { r.open = !r.open; if (r.open) { flyTo(r.spots[0].lon, r.spots[0].lat, 20); r.spots.slice(0, 6).forEach(onbNear); } render(); } }, r.open ? ot("hideSpots") : ot("spots", r.spots.length)));
+    if (r.open) {
+      row.append(el("p", { class: "hint", text: ot("spotHint") }));
+      for (const s of r.spots.slice(0, 12)) {
+        const sp = el("div", { class: "onb-spot" + (s.on ? " on" : "") });
+        sp.append(el("label", { class: "onb-check" }, el("input", { type: "checkbox", checked: s.on, onchange: e => { s.on = e.target.checked; render(); } }),
+          el("span", { class: "onb-reg-t" }, el("b", { text: s.name || ot("asPin") }), el("span", { text: [ot("photos", s.n), s.date ? fmtMonth(s.date) : "", s.existing ? ot("already") : ""].filter(Boolean).join(" · ") }))));
+        if (s.on || s.near) {
+          const near = el("div", { class: "onb-near" });
+          if (s.near === "loading" || s.near === null) near.append(el("span", { class: "hint", text: ot("loadingNear") }));
+          else if (!s.near.length) near.append(el("span", { class: "hint", text: ot("noNear") }));
+          else { near.append(el("span", { class: "hint", text: ot("near") }));
+            s.near.forEach(n => near.append(el("button", { class: "chip" + (s.name === n.name ? " on" : ""), type: "button", "aria-pressed": String(s.name === n.name),
+              onclick: () => { s.name = n.name; s.kind = n.food ? "yemek" : "yer"; s.on = true; render(); } }, (n.food ? "🍴 " : "") + n.name + ` · ${Math.round(n.d)} m`))); }
+          near.append(el("input", { class: "onb-name", type: "text", maxlength: 120, placeholder: ot("namePh"), value: s.name, onchange: e => { s.name = e.target.value; if (s.name) s.on = true; render(); } }));
+          sp.append(near);
+        }
+        row.append(sp);
+      }
+    }
+    body.append(row);
+  }
+  const oth = Object.entries(ONB.others).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  for (const [iso, n] of oth) body.append(el("div", { class: "notice onb-other" }, flag(iso) + " " + ot("others", isoName(iso), n) + " ",
+    el("button", { class: "btn ghost small", type: "button", onclick: () => { ONB.sel.add(iso); onbGroup(); onbPaint(); render(); onbNameRegions(); } }, ot("addCountry"))));
+  if (ONB.err) body.append(el("div", { class: "err", role: "alert", text: ONB.err }));
+  const n = onbCount();
+  body.append(el("div", { class: "onb-foot sticky" },
+    el("button", { class: "btn ghost", type: "button", onclick: onbSkip }, ot("skip")),
+    el("button", { class: "btn", type: "button", disabled: !n || ONB.busy, onclick: onbAdd }, ONB.busy ? ot("adding") : ot("add", n))));
+}
+const fmtMonth = s => { const d = new Date(s + "T12:00:00"); return isNaN(d) ? "" : d.toLocaleDateString(t("locale"), { month: "short", year: "numeric" }); };
 /* ---------------- chrome: brand, account menu ---------------- */
 const avatarEl = (prof, cls = "av") => {
   const box = el("span", { class: cls, "aria-hidden": "true" });
@@ -827,6 +1164,7 @@ function renderChrome() {
     const menu = el("div", { class: "acct-menu", role: "menu", hidden: true },
       el("div", { class: "acct-who" }, el("b", { text: S.me.display_name || S.me.username }), el("span", { text: "@" + S.me.username })),
       el("a", { role: "menuitem", href: "#/u/" + S.me.username }, "🗺️ " + t("myMap")),
+      el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
       el("a", { role: "menuitem", href: "#/people" }, "👥 " + t("people"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null),
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
@@ -1029,6 +1367,8 @@ async function route() {
   const h = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
   const [a, b] = h.split("/");
   S.form = null; S.temp = null; setPicking(false);
+  if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
+  if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
   if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   if (a === "people") { S.panelMode = "people"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   S.panelMode = "map";
