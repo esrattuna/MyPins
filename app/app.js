@@ -811,7 +811,7 @@ const OT = {
     search: "Ülke ara", selected: n => `${n} ülke seçildi`, next: "Devam", skip: "Şimdilik geç",
     t2: "Gittiğin yerleri fotoğraflarından bulalım", p2: "Seçtiğin ülkelerde çektiğin fotoğrafların nerede çekildiğine bakıp gittiğin yerleri listeleriz.",
     privacy: "🔒 Fotoğrafların cihazından çıkmaz ve yüklenmez. Sadece içlerindeki konum ve tarih bilgisini okuruz.",
-    pick: "Fotoğrafları seç", pickHint: "Galeride “Tümünü seç” diyebilirsin. Ne kadar çok fotoğraf, o kadar çok yer.",
+    pick: "Fotoğrafları seç", pickHint: "İpucu: Fotoğraflara tek tek dokunmak yerine parmağını fotoğrafların üzerinde kaydırarak onlarcasını tek hareketle seçebilirsin. Ne kadar çok fotoğraf, o kadar çok yer.",
     scanning: (a, b) => `Fotoğraflar inceleniyor… ${a} / ${b}`, back: "← Geri",
     t3: "Gittiğin yerler", p3: "Eklemek istediklerini işaretle. Fotoğraf ve not eklemeyi sonra yaparsın.",
     stats: (n, l) => `${n} fotoğrafın ${l} tanesinde konum bilgisi vardı.`, none: "Seçtiğin ülkelerde konum bilgisi olan fotoğraf bulamadık.",
@@ -829,7 +829,7 @@ const OT = {
     search: "Search countries", selected: n => `${n} ${n === 1 ? "country" : "countries"} selected`, next: "Continue", skip: "Skip for now",
     t2: "Let's find the places you've been in your photos", p2: "We look at where your photos from the selected countries were taken and list the places you've been.",
     privacy: "🔒 Your photos never leave your device and aren't uploaded. We only read the location and date stored in them.",
-    pick: "Choose photos", pickHint: "You can tap “Select all” in your gallery. More photos, more places.",
+    pick: "Choose photos", pickHint: "Tip: instead of tapping photos one by one, slide your finger across them to select dozens in one move. More photos, more places.",
     scanning: (a, b) => `Looking at photos… ${a} / ${b}`, back: "← Back",
     t3: "Places you've been", p3: "Tick the ones you want to add. You can add photos and notes later.",
     stats: (n, l) => `${l} of ${n} photos had location data.`, none: "We didn't find photos with location data in the selected countries.",
@@ -969,35 +969,80 @@ function onbGroup() {
   }).sort((a, b) => a.iso.localeCompare(b.iso) || b.n - a.n);
 }
 
-/* --- nearby place names (OpenStreetMap / Overpass) --- */
+/* --- place names: OpenStreetMap (Nominatim + Overpass with mirrors) --- */
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
+async function overpass(q) {
+  for (const url of OVERPASS) {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 9000);
+    try {
+      const r = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q), signal: ctl.signal });
+      clearTimeout(tm);
+      if (r.ok) return await r.json();
+    } catch (e) { clearTimeout(tm); }
+  }
+  return { elements: [] };
+}
+let nomQ = Promise.resolve();
+function nominatim(lat, lon, zoom) {
+  // public Nominatim allows ~1 request per second: queue calls
+  const job = nomQ.then(async () => {
+    try {
+      const u = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&zoom=${zoom}&addressdetails=1&namedetails=1&accept-language=${LANG === "tr" ? "tr,en" : "en"}`;
+      const r = await fetch(u); return r.ok ? await r.json() : null;
+    } catch (e) { return null; }
+  });
+  nomQ = job.then(() => new Promise(res => setTimeout(res, 1100)));
+  return job;
+}
+const townOf = a => a ? (a.village || a.town || a.city || a.municipality || a.suburb || a.hamlet || a.county || "") : "";
 const FOOD = new Set(["restaurant", "cafe", "bar", "fast_food", "pub", "ice_cream", "biergarten", "food_court", "bakery", "pastry", "confectionery", "deli"]);
+const KEEP = { amenity: /^(restaurant|cafe|bar|fast_food|pub|ice_cream|biergarten|food_court|marketplace|place_of_worship)$/, tourism: /^(attraction|viewpoint|museum|gallery|artwork|zoo|theme_park|picnic_site)$/,
+  natural: /^(beach|bay|cape|peak|cliff|spring|waterfall|cave_entrance)$/, leisure: /^(park|garden|nature_reserve|marina|beach_resort)$/, historic: /./, shop: /^(bakery|pastry|confectionery|deli|coffee)$/, place: /^(square|islet|locality)$/ };
+async function photonNear(s) {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(`https://photon.komoot.io/reverse?lat=${s.lat.toFixed(5)}&lon=${s.lon.toFixed(5)}&limit=25&radius=0.3&lang=${LANG === "tr" ? "default" : "en"}`, { signal: ctl.signal });
+    clearTimeout(tm);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return (j.features || []).map(f => {
+      const p = f.properties || {}, [lon, lat] = f.geometry.coordinates;
+      return { name: p.name, key: p.osm_key, val: p.osm_value, d: km({ lat, lon }, s) * 1000 };
+    }).filter(x => x.name && KEEP[x.key] && KEEP[x.key].test(x.val)).map(x => ({ name: x.name, food: FOOD.has(x.val), d: x.d, cat: x.val }));
+  } catch (e) { clearTimeout(tm); return null; }
+}
 async function onbNear(s) {
   if (s.near) return;
   s.near = "loading"; render();
-  const q = `[out:json][timeout:15];nwr(around:180,${s.lat.toFixed(5)},${s.lon.toFixed(5)})["name"][~"^(amenity|tourism|natural|leisure|historic)$"~"^(restaurant|cafe|bar|fast_food|pub|ice_cream|bakery|museum|attraction|viewpoint|gallery|artwork|beach|bay|cape|park|garden|nature_reserve|marina|castle|monument|ruins|fort|lighthouse|place_of_worship|marketplace)$"];out center 40;`;
   try {
-    const r = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) });
-    const j = await r.json();
+    let list = await photonNear(s);
+    if (!list || !list.length) {
+      const q = `[out:json][timeout:15];nwr(around:180,${s.lat.toFixed(5)},${s.lon.toFixed(5)})["name"][~"^(amenity|tourism|natural|leisure|historic)$"~"^(restaurant|cafe|bar|fast_food|pub|ice_cream|bakery|museum|attraction|viewpoint|gallery|artwork|beach|bay|cape|park|garden|nature_reserve|marina|castle|monument|ruins|fort|lighthouse|place_of_worship|marketplace)$"];out center 40;`;
+      const j = await overpass(q);
+      list = (j.elements || []).map(e => {
+        const t = e.tags || {}, lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
+        const cat = t.amenity || t.tourism || t.natural || t.leisure || t.historic || "";
+        return { name: t.name, food: FOOD.has(cat), d: lat ? km({ lat, lon }, s) * 1000 : 999, cat };
+      });
+    }
     const seen = new Set();
-    s.near = (j.elements || []).map(e => {
-      const t = e.tags || {}, lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
-      const cat = t.amenity || t.tourism || t.natural || t.leisure || t.historic || "";
-      return { name: t.name, food: FOOD.has(cat) || FOOD.has(t.shop || ""), d: lat ? km({ lat, lon }, s) * 1000 : 999, cat };
-    }).filter(x => x.name && x.d < 400 && !seen.has(x.name) && seen.add(x.name)).sort((a, b) => a.d - b.d).slice(0, 6);
+    s.near = list.filter(x => x.name && x.d < 400 && !seen.has(x.name) && seen.add(x.name)).sort((a, b) => a.d - b.d).slice(0, 6);
+    if (!s.name && s.near.length) { s.name = s.near[0].name; s.kind = s.near[0].food ? "yemek" : "yer"; s.suggested = true; }
   } catch (e) { s.near = []; }
   render();
 }
 
 async function onbNameRegions() {
-  for (const r of ONB.regions.filter(x => x.needName && !x.named)) {
+  for (const r of ONB.regions.filter(x => !x.named)) {
     r.named = true;
+    const j = await nominatim(r.seed.lat, r.seed.lon, 13);
+    const town = townOf(j && j.address);
+    if (town) { r.name = town; r.city = town; render(); continue; }
+    if (!r.needName) continue;
     const q = `[out:json][timeout:15];node(around:12000,${r.seed.lat.toFixed(4)},${r.seed.lon.toFixed(4)})[place~"^(city|town|village)$"][name];out 30;`;
-    try {
-      const j = await (await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) })).json();
-      const best = (j.elements || []).map(e => ({ name: e.tags.name, lat: e.lat, lon: e.lon, rank: { city: 0, town: 1, village: 2 }[e.tags.place] ?? 3 }))
-        .sort((a, b) => km(a, r.seed) - km(b, r.seed))[0];
-      if (best && km(best, r.seed) < 6) { r.name = best.name; r.city = best.name; r.lon = best.lon; r.lat = best.lat; render(); }
-    } catch (e) {}
+    const o = await overpass(q);
+    const best = (o.elements || []).map(e => ({ name: e.tags.name, lat: e.lat, lon: e.lon })).sort((a, b) => km(a, r.seed) - km(b, r.seed))[0];
+    if (best && km(best, r.seed) < 6) { r.name = best.name; r.city = best.name; render(); }
   }
 }
 
@@ -1106,7 +1151,7 @@ function onbResults() {
       el("span", { class: "onb-reg-t" }, el("b", { text: r.name }),
         el("span", { text: [ot("photos", r.n), r.date ? fmtMonth(r.date) : "", r.existing ? ot("already") : ""].filter(Boolean).join(" · ") }))));
     if (r.home) row.append(el("p", { class: "hint", text: ot("homeFlag") }));
-    if (r.spots.length > 1 || r.spots[0].n > 2) row.append(el("button", { class: "linkbtn", type: "button", onclick: () => { r.open = !r.open; if (r.open) { flyTo(r.spots[0].lon, r.spots[0].lat, 20); r.spots.slice(0, 6).forEach(onbNear); } render(); } }, r.open ? ot("hideSpots") : ot("spots", r.spots.length)));
+    if (r.spots.length > 1 || r.spots[0].n > 2) row.append(el("button", { class: "linkbtn", type: "button", onclick: () => { r.open = !r.open; if (r.open) { flyTo(r.spots[0].lon, r.spots[0].lat, 20); r.spots.slice(0, 12).forEach(onbNear); } render(); } }, r.open ? ot("hideSpots") : ot("spots", r.spots.length)));
     if (r.open) {
       row.append(el("p", { class: "hint", text: ot("spotHint") }));
       for (const s of r.spots.slice(0, 12)) {
