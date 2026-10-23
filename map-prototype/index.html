@@ -15,6 +15,7 @@ body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hid
 #stage{position:fixed;inset:0}
 #map{position:absolute;inset:0}
 #off{position:absolute;inset:0;display:grid;place-items:center;background:var(--paper);font-size:15px;text-align:center;padding:20px}
+#off[hidden]{display:none}
 /* dev panel */
 #dev{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));z-index:5;width:min(330px,calc(100% - 20px));
   background:color-mix(in srgb,var(--paper) 94%,transparent);border:1px solid var(--rule);border-radius:10px;box-shadow:0 6px 24px rgba(31,62,70,.18);font-size:12.5px}
