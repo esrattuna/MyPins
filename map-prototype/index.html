@@ -31,6 +31,7 @@ body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hid
 .seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
 .seg button{border:0;background:var(--paper);padding:5px 10px;font:700 12.5px var(--f-body);cursor:pointer;color:var(--pin-ink)}
 .seg button[aria-pressed="true"]{background:var(--pin)}
+.seg button:disabled{opacity:.45;cursor:default}
 .tog{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .tog input{accent-color:var(--pin-ink);width:16px;height:16px}
 .btn{border:1.5px solid var(--pin-ink);background:var(--pin);color:var(--pin-ink);border-radius:6px;padding:6px 10px;font:700 12.5px var(--f-body);cursor:pointer}
@@ -75,6 +76,12 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optCluster"> Clustering</label>
       <label class="tog"><input type="checkbox" id="optPhoto" checked> Fotoğraflı pin</label>
       <label class="tog"><input type="checkbox" id="optSmooth" checked> Yumuşak detay</label></div>
+    <div class="row"><span class="lab">Hız ayarı</span>
+      <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
+      <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label></div>
+    <div class="row"><span class="lab">POI (sade)</span>
+      <span class="seg" id="poiSeg"><button data-poi="off">a) Kaldır</button><button data-poi="street">b) Sokakta</button><button data-poi="select">c) Seçerek</button></span></div>
+    <p class="note" id="cfgNote"></p>
     <div class="stats">
       <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
       <div class="stat"><b id="sP95">–</b><span>kare p95 (ms)</span></div>
@@ -88,6 +95,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     </div>
     <canvas id="spark" width="600" height="72" aria-label="Kare süresi grafiği"></canvas>
     <div class="row">
+      <button class="btn" id="runZoomOut">⏱ Hızlı uzaklaşma testi</button>
       <button class="btn" id="runAll">▶ Senaryoları çalıştır</button>
       <button class="btn ghost" id="toggleScreen">Ekrandan çık</button>
       <button class="btn ghost" id="resetStats">Sıfırla</button>
@@ -118,7 +126,12 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
      photo markers to compare costs. Photo icons are loaded only when visible (styleimagemissing). */
 const $ = s => document.querySelector(s);
 const T0 = performance.now();
-const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true };   // first phone test: 50 pins, photos on, animations off
+const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true,      // first phone test: 50 pins, photos on, animations off
+  workers: 0,          // 0 = MapLibre default; otherwise tile worker count (set before the first map, so changing it reloads the page)
+  lite: false,         // "Sade stil": fewer style layers
+  poi: "street" };     // POI behaviour inside the lite style: off | street | select (provisional until Esra picks)
+const WK = { def: 0, now: 0, on: 4 };
+const LAYER_INFO = { all: 0, used: 0 };
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
   ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
 let map = null, styleJSON = null, BASE = [], PHOTOS = [], photoUrl = new Map();
@@ -167,7 +180,44 @@ function geojson() {
 
 /* ---------- style ---------- */
 async function getStyle() {
-  if (styleJSON) return JSON.parse(JSON.stringify(styleJSON));
+  if (!styleJSON) await buildBaseStyle();
+  return liteStyle(JSON.parse(JSON.stringify(styleJSON)));
+}
+/* ---------- "Sade stil": fewer layers = less work per tile in the worker (bucket building, symbol layout) ----------
+   Selected by source-layer / id pattern so it survives small changes in the upstream style. */
+const FOOD = ["restaurant", "fast_food", "cafe", "bar", "beer", "ice_cream", "bakery", "alcohol_shop"];
+const LITE_DROP_SOURCE = new Set(["housenumber", "aeroway", "aerodrome_label", "building"]);
+const LITE_DROP_ID = /oneway|shield|hatching|cablecar|path|pedestrian|highway-name-minor/;
+function isLegacyFilter(f) {
+  if (!Array.isArray(f)) return false;
+  if (["all", "any", "none"].includes(f[0])) return f.slice(1).some(isLegacyFilter);
+  return typeof f[1] === "string" && ["==", "!=", "<", ">", "<=", ">=", "in", "!in", "!has"].includes(f[0]);
+}
+function addFilter(l, legacy, expr) {
+  if (!l.filter) l.filter = expr;
+  else l.filter = isLegacyFilter(l.filter) ? ["all", l.filter, legacy] : ["all", l.filter, expr];
+}
+function liteStyle(s) {
+  LAYER_INFO.all = s.layers.length;
+  if (OPT.lite) {
+    s.layers = s.layers.filter(l => {
+      const sl = l["source-layer"];
+      if (!sl) return true;                                   // background, own layers
+      if (LITE_DROP_SOURCE.has(sl)) return false;
+      if (sl !== "poi" && LITE_DROP_ID.test(l.id)) return false;
+      if (sl === "poi" && OPT.poi === "off") return false;
+      return true;
+    });
+    for (const l of s.layers) {
+      if (l["source-layer"] !== "poi") continue;
+      if (OPT.poi === "street") l.minzoom = Math.max(l.minzoom || 0, 16);
+      else if (OPT.poi === "select") addFilter(l, ["!in", "class", ...FOOD], ["!", ["in", ["get", "class"], ["literal", FOOD]]]);
+    }
+  }
+  LAYER_INFO.used = s.layers.length;
+  return s;
+}
+async function buildBaseStyle() {
   const [s] = await Promise.all([fetch("https://tiles.openfreemap.org/styles/liberty").then(r => r.json()), loadCountries()]);
   const name = ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   for (const l of s.layers) {
@@ -200,7 +250,6 @@ async function getStyle() {
   s.sources.countries = { type: "geojson", data: COUNTRIES, tolerance: 0.6, buffer: 32 };
   s.layers.splice(bg + 1, 0, { id: "base-land", type: "fill", source: "countries", maxzoom: 7, paint: { "fill-color": C.land, "fill-antialias": false } });
   styleJSON = s;
-  return JSON.parse(JSON.stringify(s));
 }
 /* ---------- countries: coarse outlines (Natural Earth 1:50m, rounded) for the fallback base and tap-to-zoom ---------- */
 let COUNTRIES = null;
@@ -442,19 +491,27 @@ const cls = (v, g, w) => v <= g ? "good" : v <= w ? "warn" : "bad";
    "indirme" = network time of each vector tile (Resource Timing; ~0-5 ms means it came from the browser cache).
    "hazır"   = from MapLibre asking for the tile until it is parsed and drawable (network + worker parsing + queue).
    If "hazır" is close to "indirme", the wait is the network; if it is much larger, it is processing on the phone. */
-const TT = { net: [], ready: [], pending: new Map(), maxPend: 0, cached: 0, total: 0 };
+const TT = { net: [], ready: [], pending: new Map(), maxPend: 0, cached: 0, total: 0, run: null };   // run: uncapped samples during the zoom-out test
 const isVectorTile = e => e.tile && e.sourceId && map.getSource(e.sourceId) && map.getSource(e.sourceId).type === "vector";
-function onTileStart(e) { if (!isVectorTile(e)) return; const k = e.tile.tileID.key; if (!TT.pending.has(k)) TT.pending.set(k, performance.now()); TT.maxPend = Math.max(TT.maxPend, TT.pending.size); }
+function onTileStart(e) {
+  if (!isVectorTile(e)) return; const k = e.tile.tileID.key; if (!TT.pending.has(k)) TT.pending.set(k, performance.now());
+  TT.maxPend = Math.max(TT.maxPend, TT.pending.size); if (TT.run) TT.run.maxPend = Math.max(TT.run.maxPend, TT.pending.size);
+}
 function onTileDone(e) {
   if (!isVectorTile(e)) return; const k = e.tile.tileID.key, t0 = TT.pending.get(k); if (t0 === undefined) return;
-  TT.pending.delete(k); TT.ready.push(performance.now() - t0); if (TT.ready.length > 60) TT.ready.shift();
+  const ms = performance.now() - t0;
+  TT.pending.delete(k); TT.ready.push(ms); if (TT.ready.length > 60) TT.ready.shift();
+  if (TT.run) TT.run.ready.push(ms);
   const rt = (e.tile.resourceTiming || []).find(r => /\.pbf/.test(r.name));
-  if (rt && !e.tile.__timed) { e.tile.__timed = 1; TT.total++; if (rt.duration < 8) TT.cached++; TT.net.push(rt.duration); if (TT.net.length > 60) TT.net.shift(); }
+  if (rt && !e.tile.__timed) { e.tile.__timed = 1; netSample(rt.duration); }
+}
+function netSample(d) {
+  TT.total++; if (d < 8) TT.cached++; TT.net.push(d); if (TT.net.length > 60) TT.net.shift();
+  if (TT.run) { TT.run.net.push(d); if (d < 8) TT.run.cached++; }
 }
 let resObs = null;
 try {
-  resObs = new PerformanceObserver(l => { for (const r of l.getEntries()) if (/\.pbf(\?|$)/.test(r.name) && !/fonts|glyph/.test(r.name)) {
-    TT.total++; if (r.duration < 8) TT.cached++; TT.net.push(r.duration); if (TT.net.length > 60) TT.net.shift(); } });
+  resObs = new PerformanceObserver(l => { for (const r of l.getEntries()) if (/\.pbf(\?|$)/.test(r.name) && !/fonts|glyph/.test(r.name)) netSample(r.duration); });
   resObs.observe({ type: "resource", buffered: false });
 } catch (e) {}
 const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
@@ -502,7 +559,7 @@ async function measure(name, fn) {
 }
 async function runAll() {
   $("#runAll").disabled = true; closeInfo();
-  addRow(`— ${OPT.n} pin · animasyon ${OPT.anim ? "açık" : "kapalı"}${OPT.cluster ? " · clustering" : ""}${OPT.photo ? " · fotoğraflı" : ""} —`, {});
+  addRow(`— ${OPT.n} pin · animasyon ${OPT.anim ? "açık" : "kapalı"}${OPT.cluster ? " · clustering" : ""}${OPT.photo ? " · fotoğraflı" : ""} · ${cfgLabel()} —`, {});
   map.jumpTo({ center: [-9.1, 38.75], zoom: 6 });
   await measure("Sürükleme (pan, 4 sn)", async () => {
     for (let k = 0; k < 8; k++) { map.panBy([k % 2 ? -260 : 260, k % 3 ? 120 : -120], { duration: 500, easing: t => t }); await new Promise(r => map.once("moveend", r)); }
@@ -534,6 +591,30 @@ async function runAll() {
   $("#runAll").disabled = false;
   addRow("✓ Bitti", {});
 }
+/* Scripted fast zoom-out (same gesture every run): Barcelona street level z16 -> z5 in 1.2 s.
+   Reports average "ready" time of tiles requested during the run, max queue, and how long the map
+   needed to fill in after the movement ended ("doluş"). */
+async function zoomOutTest() {
+  if (!map) return;
+  $("#runZoomOut").disabled = true; $("#runAll").disabled = true; closeInfo();
+  map.jumpTo({ center: [2.1734, 41.3851], zoom: 16 });
+  await idle(); await wait(600);
+  TT.pending.clear();                      // at idle anything still listed was cancelled earlier
+  TT.run = { ready: [], net: [], cached: 0, maxPend: 0 };
+  rec = []; const lt0 = stats.longTasks;
+  await new Promise(r => { map.easeTo({ zoom: 5, duration: 1200, easing: t => t }); map.once("moveend", r); });
+  const tMove = performance.now();
+  await idle();
+  const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
+  TT.run = null; rec = null;
+  const r = Math.round;
+  addRow(`Hızlı uzaklaşma 16→5 [${cfgLabel()}] — hazır ort ${r(avg(run.ready))} ms (n=${run.ready.length}), indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+    { ...fr, longs: stats.longTasks - lt0 });
+  $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
+}
+function cfgLabel() {
+  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}`;
+}
 function addRow(name, r) {
   let t = $("#report table");
   if (!t) { $("#report").innerHTML = `<table><thead><tr><th>Senaryo</th><th>FPS</th><th>p95</th><th>maks</th><th>takılma</th></tr></thead><tbody></tbody></table>`; t = $("#report table"); }
@@ -564,10 +645,28 @@ $("#optSmooth").onchange = e => { OPT.smooth = e.target.checked; if (map && map.
 $("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins(); };
 $("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
 $("#runAll").onclick = () => map && runAll();
+$("#runZoomOut").onclick = () => map && zoomOutTest();
+// worker count and style layers are fixed when the map is built: changing them reloads the page with the
+// current settings in the address bar (so the same link reproduces the test)
+function reloadWithOptions() {
+  const q = new URLSearchParams(location.search);
+  q.set("n", OPT.n); for (const k of ["anim", "cluster", "photo", "smooth", "lite"]) q.set(k, OPT[k] ? "1" : "0");
+  if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
+  q.set("poi", OPT.poi);
+  location.search = q.toString();
+}
+$("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
+$("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
+document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
+function paintCfg() {
+  $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
+  document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
+  $("#cfgNote").textContent = `Şu an: ${cfgLabel()} (normal stilde ${LAYER_INFO.all}). Worker ve stil değişince sayfa yeniden yüklenir.`;
+}
 $("#copyReport").onclick = async () => {
   const t = $("#report table") || { rows: [] };
   const tiles = `tile: indirme ort ${Math.round(avg(TT.net))} ms, hazır ort ${Math.round(avg(TT.ready))} ms, en çok bekleyen ${TT.maxPend}, önbellekten ${TT.cached}/${TT.total}`;
-  const txt = [navigator.userAgent, `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, `FPS ${$("#sFps").textContent}, takılma ${stats.jank}`, tiles, ...[...t.rows].map(r => [...r.cells].map(c => c.textContent).join("\t"))].join("\n");
+  const txt = [navigator.userAgent, `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, `ayar: ${cfgLabel()} (varsayılan worker ${WK.def}, çekirdek ${navigator.hardwareConcurrency || "?"})`, `FPS ${$("#sFps").textContent}, takılma ${stats.jank}`, tiles, ...[...t.rows].map(r => [...r.cells].map(c => c.textContent).join("\t"))].join("\n");
   try { await navigator.clipboard.writeText(txt); $("#copyReport").textContent = "Kopyalandı"; } catch (e) { prompt("Sonuçlar:", txt); }
 };
 $("#resetStats").onclick = () => { stats.jank = 0; stats.longTasks = 0; stats.count = 0; $("#report").innerHTML = ""; TT.net = []; TT.ready = []; TT.maxPend = TT.pending.size; TT.cached = 0; TT.total = 0; };
@@ -578,11 +677,24 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   const q = new URLSearchParams(location.search);
   if ([20, 50, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
+  OPT.lite = q.get("lite") === "1";
+  if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
+  // worker pool must be sized before the first map is created
+  const getWC = () => typeof maplibregl.getWorkerCount === "function" ? maplibregl.getWorkerCount() : maplibregl.workerCount;
+  WK.def = getWC() || 0;
+  if (WK.def >= WK.on) WK.on = Math.min(8, WK.def + 2);
+  const w = parseInt(q.get("workers"), 10);
+  if (w >= 1 && w <= 8) {
+    OPT.workers = w;
+    try { if (typeof maplibregl.setWorkerCount === "function") maplibregl.setWorkerCount(w); else maplibregl.workerCount = w; } catch (e) { console.warn(e); }
+  }
+  WK.now = getWC() || WK.def;
   document.body.classList.toggle("anim", OPT.anim);
   await loadData();
   POINTS = makePoints(OPT.n);
   document.querySelectorAll("#counts button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === OPT.n)));
   await createScreen();
+  paintCfg();
   if (innerWidth < 600 && q.get("panel") !== "1") { $("#dev").classList.add("min"); $("#devMin").textContent = "▸"; }
   if (q.get("auto") === "1") { await idle(); await wait(1500); runAll(); }
 })();
