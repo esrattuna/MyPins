@@ -73,7 +73,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">Seçenek</span>
       <label class="tog"><input type="checkbox" id="optAnim"> Animasyon</label>
       <label class="tog"><input type="checkbox" id="optCluster"> Clustering</label>
-      <label class="tog"><input type="checkbox" id="optPhoto" checked> Fotoğraflı pin</label></div>
+      <label class="tog"><input type="checkbox" id="optPhoto" checked> Fotoğraflı pin</label>
+      <label class="tog"><input type="checkbox" id="optSmooth" checked> Yumuşak detay</label></div>
     <div class="stats">
       <div class="stat"><b id="sFps">–</b><span>FPS</span></div>
       <div class="stat"><b id="sP95">–</b><span>kare p95 (ms)</span></div>
@@ -114,7 +115,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
      photo markers to compare costs. Photo icons are loaded only when visible (styleimagemissing). */
 const $ = s => document.querySelector(s);
 const T0 = performance.now();
-const OPT = { n: 50, anim: false, cluster: false, photo: true };   // first phone test: 50 pins, photos on, animations off
+const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true };   // first phone test: 50 pins, photos on, animations off
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a",
   ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
 let map = null, styleJSON = null, BASE = [], PHOTOS = [], photoUrl = new Map();
@@ -232,11 +233,12 @@ async function createMap() {
   $("#off").hidden = true;
   const style = await getStyle();
   map = new maplibregl.Map({ container: "map", style, center: lastCam ? lastCam.center : [10, 42], zoom: lastCam ? lastCam.zoom : 3.2, minZoom: 1.5, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
-    fadeDuration: OPT.anim ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 1200 });
+    fadeDuration: OPT.anim || OPT.smooth ? 300 : 0, attributionControl: { compact: true }, maxTileCacheSize: 1200 });
   map.touchZoomRotate.disableRotation();
   const tLoad = performance.now();
   map.once("idle", () => { const ms = Math.round(performance.now() - tLoad); stats.firstIdle = ms; addRow("İlk açılış (harita hazır)", { note: `${ms} ms` }); });
   map.on("load", () => {
+    captureRamps(); applySmooth();
     map.addImage("pin-yer", pinImg("yer"), { pixelRatio: 2 });
     map.addImage("pin-yemek", pinImg("yemek"), { pixelRatio: 2 });
     addPinLayers();
@@ -332,10 +334,65 @@ function onMapTap(e) {
   }
   if (z < 5.5 && COUNTRIES) {
     const c = countryAt(e.lngLat.lng, e.lngLat.lat);
-    if (c) { const b = c.properties.b; OPT.anim ? map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, duration: 700, maxZoom: 7.5 }) : map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, animate: false, maxZoom: 7.5 }); }
+    if (c) { const b = c.properties.b, cam = map.cameraForBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, maxZoom: 7.5 }); if (cam) camera({ center: cam.center, zoom: cam.zoom }); }
   }
 }
-function camera(opts) { OPT.anim ? map.easeTo({ ...opts, duration: 600 }) : map.jumpTo(opts); }
+function camera(opts) {
+  if (OPT.smooth) { prefetchView(opts.center, opts.zoom); map.flyTo({ ...opts, duration: 1000, curve: 1.3, essential: true }); }
+  else if (OPT.anim) map.easeTo({ ...opts, duration: 600 });
+  else map.jumpTo(opts);
+}
+
+/* ---------- smooth detail ----------
+   1) layers that start at a zoom (buildings, minor roads, small labels) fade in over ~0.8 zoom instead of popping;
+   2) taps fly to the target so intermediate zooms load progressively;
+   3) the target's tiles are requested when the flight starts (HTTP cache), so they are ready on arrival;
+   4) labels fade (fadeDuration). */
+const OPACITY_PROPS = { fill: ["fill-opacity"], line: ["line-opacity"], symbol: ["text-opacity", "icon-opacity"], circle: ["circle-opacity"] };
+const OWN_LAYERS = new Set(["base-land", "dot", "pin", "sel", "cl", "cl-n"]);
+let RAMPS = [];
+function captureRamps() {
+  RAMPS = [];
+  for (const l of map.getStyle().layers) {
+    if (OWN_LAYERS.has(l.id) || !(l.minzoom > 0) || !OPACITY_PROPS[l.type]) continue;
+    for (const prop of OPACITY_PROPS[l.type]) {
+      const orig = map.getPaintProperty(l.id, prop);
+      if (orig !== undefined && typeof orig !== "number") continue;   // already zoom-driven: leave it alone
+      const v = orig === undefined ? 1 : orig;
+      RAMPS.push({ id: l.id, prop, orig, ramp: ["interpolate", ["linear"], ["zoom"], l.minzoom, 0, l.minzoom + 0.8, v] });
+    }
+  }
+}
+function applySmooth() {
+  if (!map) return;
+  for (const r of RAMPS) map.setPaintProperty(r.id, r.prop, OPT.smooth ? r.ramp : r.orig);
+  if ("_fadeDuration" in map) map._fadeDuration = OPT.anim || OPT.smooth ? 300 : 0;
+}
+let TILE_TPL = null, TILE_MAX = 14;
+async function tileTemplate() {
+  if (TILE_TPL !== null) return TILE_TPL;
+  TILE_TPL = "";
+  try {
+    const src = Object.values(styleJSON.sources).find(x => x.type === "vector" && x.url);
+    const tj = await (await fetch(src.url)).json();
+    TILE_TPL = tj.tiles[0]; TILE_MAX = tj.maxzoom || 14;
+  } catch (e) {}
+  return TILE_TPL;
+}
+async function prefetchView(center, zoom) {
+  const tpl = await tileTemplate(); if (!tpl || !center) return;
+  const c = Array.isArray(center) ? center : [center.lng, center.lat];
+  const tz = Math.max(0, Math.min(TILE_MAX, Math.floor(zoom))), n = 2 ** tz;
+  const x = (c[0] + 180) / 360 * n, lr = c[1] * Math.PI / 180, y = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
+  const span = 512 * 2 ** (zoom - tz), rect = map.getContainer().getBoundingClientRect();
+  const hx = rect.width / 2 / span + 0.5, hy = rect.height / 2 / span + 0.5;
+  const urls = [];
+  for (let ty = Math.floor(y - hy); ty <= Math.floor(y + hy); ty++) for (let tx = Math.floor(x - hx); tx <= Math.floor(x + hx); tx++) {
+    if (ty < 0 || ty >= n) continue;
+    urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
+  }
+  urls.slice(0, 24).forEach(u => fetch(u, { mode: "cors", credentials: "same-origin" }).catch(() => {}));
+}
 
 /* ---------- info panel (plain DOM; opening it never touches the map) ---------- */
 function openInfo(i, probe) {
@@ -471,7 +528,8 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopM
 
 /* ---------- controls ---------- */
 document.querySelectorAll("#counts button").forEach(b => b.onclick = () => setCount(+b.dataset.n));
-$("#optAnim").onchange = e => { OPT.anim = e.target.checked; document.body.classList.toggle("anim", OPT.anim); if (map && "_fadeDuration" in map) map._fadeDuration = OPT.anim ? 300 : 0; };
+$("#optAnim").onchange = e => { OPT.anim = e.target.checked; document.body.classList.toggle("anim", OPT.anim); if (map && "_fadeDuration" in map) map._fadeDuration = OPT.anim || OPT.smooth ? 300 : 0; };
+$("#optSmooth").onchange = e => { OPT.smooth = e.target.checked; if (map && map.isStyleLoaded()) applySmooth(); };
 $("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins(); };
 $("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
 $("#runAll").onclick = () => map && runAll();
@@ -487,7 +545,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   // URL options for repeatable phone tests, e.g. ?n=500&photo=1&anim=0&auto=1
   const q = new URLSearchParams(location.search);
   if ([20, 50, 100, 500].includes(+q.get("n"))) OPT.n = +q.get("n");
-  for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
+  for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   document.body.classList.toggle("anim", OPT.anim);
   await loadData();
   POINTS = makePoints(OPT.n);
