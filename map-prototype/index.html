@@ -74,7 +74,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">Seçenek</span>
       <label class="tog"><input type="checkbox" id="optAnim"> Animasyon</label>
       <label class="tog"><input type="checkbox" id="optCluster"> Clustering</label>
-      <label class="tog"><input type="checkbox" id="optPhoto" checked> Fotoğraflı pin</label>
+      <label class="tog"><input type="checkbox" id="optPhoto"> Fotoğraflı pin</label>
       <label class="tog"><input type="checkbox" id="optSmooth" checked> Yumuşak detay</label></div>
     <div class="row"><span class="lab">Hız ayarı</span>
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
@@ -127,7 +127,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
      photo markers to compare costs. Photo icons are loaded only when visible (styleimagemissing). */
 const $ = s => document.querySelector(s);
 const T0 = performance.now();
-const OPT = { n: 50, anim: false, cluster: false, photo: true, smooth: true,      // first phone test: 50 pins, photos on, animations off
+const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,     // 50 pins, animations off; pins without photos (decision: photo only in the panel on tap)
   workers: 0,          // 0 = MapLibre default; otherwise tile worker count (set before the first map, so changing it reloads the page)
   lite: false,         // "Sade stil": fewer style layers
   poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
