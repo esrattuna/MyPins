@@ -195,6 +195,8 @@ async function getStyle() {
   // colors at continent scale (<= z7). Above z7 the background is land as before.
   const bg = s.layers.findIndex(l => l.type === "background");
   s.layers[bg].paint["background-color"] = ["step", ["zoom"], C.sea, 7, C.land];
+  // ask the tile worker to report each tile's network timing (Resource Timing lives in the worker otherwise)
+  for (const src of Object.values(s.sources)) if (src.type === "vector") src.collectResourceTiming = true;
   s.sources.countries = { type: "geojson", data: COUNTRIES, tolerance: 0.6, buffer: 32 };
   s.layers.splice(bg + 1, 0, { id: "base-land", type: "fill", source: "countries", maxzoom: 7, paint: { "fill-color": C.land, "fill-antialias": false } });
   styleJSON = s;
@@ -446,6 +448,8 @@ function onTileStart(e) { if (!isVectorTile(e)) return; const k = e.tile.tileID.
 function onTileDone(e) {
   if (!isVectorTile(e)) return; const k = e.tile.tileID.key, t0 = TT.pending.get(k); if (t0 === undefined) return;
   TT.pending.delete(k); TT.ready.push(performance.now() - t0); if (TT.ready.length > 60) TT.ready.shift();
+  const rt = (e.tile.resourceTiming || []).find(r => /\.pbf/.test(r.name));
+  if (rt && !e.tile.__timed) { e.tile.__timed = 1; TT.total++; if (rt.duration < 8) TT.cached++; TT.net.push(rt.duration); if (TT.net.length > 60) TT.net.shift(); }
 }
 let resObs = null;
 try {
