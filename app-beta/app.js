@@ -27,7 +27,7 @@ const I18N = {
     sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda (Türkçe)", sBioEn: "Hakkımda (İngilizce)", sPhoto: "Profil fotoğrafı",
     sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
-    requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.",
+    requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.", peopleBtn: "👥 Kişiler", backProfile: "← Haritama dön",
     searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı", shareMap: "Haritamı paylaş", shareText: n => `${n} · MyPins haritası`,
     ateT: "🍴 Burada ne yedim", addFood: "+ Ne yedim ekle", noFood: "Henüz bir sofra eklenmemiş.", foodLocPlace: n => `📍 ${n} (yerin konumu)`, foodLocSet: "📍 Mekânın konumu seçildi",
     foodLocSearch: "Mekânın adresini ara", backTo: n => `← ${n}`, delQFoods: n => `Bu yerin ${n} sofrası da silinecek.`, foodsN: n => `🍴 ${n}`,
@@ -78,7 +78,7 @@ const I18N = {
     sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me (Turkish)", sBioEn: "About me (English)", sPhoto: "Profile photo",
     sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
-    requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.",
+    requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.", peopleBtn: "👥 People", backProfile: "← Back to my map",
     searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied", shareMap: "Share my map", shareText: n => `${n} · MyPins map`,
     ateT: "🍴 What I ate here", addFood: "+ Add what I ate", noFood: "No food spots added yet.", foodLocPlace: n => `📍 ${n} (the place's location)`, foodLocSet: "📍 Venue location set",
     foodLocSearch: "Find the venue's address", backTo: n => `← ${n}`, delQFoods: n => `Its ${n} food ${n === 1 ? "spot" : "spots"} will be deleted too.`, foodsN: n => `🍴 ${n}`,
@@ -1616,10 +1616,15 @@ function profileCard() {
     el("div", { class: "pcx-main" },
       el("b", { class: "pcx-name", text: o.display_name || o.username }),
       el("span", { class: "pcx-user", text: "@" + o.username }),
-      el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
+      S.canEdit
+        ? el("span", { class: "pcx-counts" },
+            el("a", { href: "#/people/followers" }, t("followers", S.counts.followers)), " · ",
+            el("a", { href: "#/people/following" }, t("following", S.counts.following)))
+        : el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
-    acts.append(el("a", { class: "btn ghost small", href: "#/settings" }, t("editProfile")));
+    acts.append(el("a", { class: "btn ghost small", href: "#/settings" }, t("editProfile")),
+      el("a", { class: "btn ghost small", href: "#/people" }, t("peopleBtn"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null));
   } else if (S.rel === "accepted") {
     acts.append(el("button", { class: "btn ghost small", type: "button", onclick: unfollow }, t("followingBtn")));
   } else if (S.rel === "pending") {
@@ -1712,7 +1717,7 @@ async function uploadAvatar(file) {
 }
 
 /* ---------------- people: search, requests, followers ---------------- */
-let PEOPLE = { q: "", results: null, requests: [], followers: [], following: [], loaded: false };
+let PEOPLE = { q: "", results: null, requests: [], followers: [], following: [], loaded: false, view: "search" };
 async function loadPeople() {
   if (!S.me) return;
   const sel = k => `${k},status,created_at,profiles!follows_${k}_fkey(id,username,display_name,avatar_path,visibility)`;
@@ -1736,31 +1741,36 @@ function personRow(p, extra) {
     extra || null);
 }
 function renderPeople() {
-  body.append(el("div", { class: "eyebrow", text: "MyPins" }), el("h2", { class: "d-title", text: t("people") }));
-  const input = el("input", { id: "p-search", type: "search", placeholder: t("searchPh"), value: PEOPLE.q, autocapitalize: "none", oninput: e => {
-    PEOPLE.q = e.target.value; clearTimeout(searchT);
-    searchT = setTimeout(async () => {
-      const q = PEOPLE.q.trim().replace(/[%,()]/g, "");
-      if (q.length < 2) { PEOPLE.results = null; render(); focusSearch(); return; }
-      const { data } = await sb.from("profiles").select("id,username,display_name,avatar_path,visibility").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
-      PEOPLE.results = (data || []).filter(p => !S.me || p.id !== S.me.id);
-      await signPhotos(PEOPLE.results.map(p => p.avatar_path));
-      render(); focusSearch();
-    }, 280);
-  } });
-  body.append(el("div", { class: "field search" }, input));
-  if (PEOPLE.results) {
-    body.append(PEOPLE.results.length ? el("ul", { class: "people" }, PEOPLE.results.map(p => personRow(p))) : el("p", { class: "hint", text: t("searchNone") }));
+  // three screens: #/people = search, #/people/followers, #/people/following
+  const v = PEOPLE.view || "search";
+  if (S.me) body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, t("backProfile")));
+  body.append(el("div", { class: "eyebrow", text: "MyPins" }), el("h2", { class: "d-title", text: v === "followers" ? t("followersT") : v === "following" ? t("followingT") : t("people") }));
+  if (v === "search") {
+    const input = el("input", { id: "p-search", type: "search", placeholder: t("searchPh"), value: PEOPLE.q, autocapitalize: "none", enterkeyhint: "search", oninput: e => {
+      PEOPLE.q = e.target.value; clearTimeout(searchT);
+      searchT = setTimeout(async () => {
+        const q = PEOPLE.q.trim().replace(/[%,()]/g, "");
+        if (q.length < 2) { PEOPLE.results = null; render(); focusSearch(); return; }
+        const { data } = await sb.from("profiles").select("id,username,display_name,avatar_path,visibility").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
+        PEOPLE.results = (data || []).filter(p => !S.me || p.id !== S.me.id);
+        await signPhotos(PEOPLE.results.map(p => p.avatar_path));
+        render(); focusSearch();
+      }, 280);
+    } });
+    body.append(el("div", { class: "field search" }, input));
+    if (PEOPLE.results) body.append(PEOPLE.results.length ? el("ul", { class: "people" }, PEOPLE.results.map(p => personRow(p))) : el("p", { class: "hint", text: t("searchNone") }));
+    if (!PEOPLE.q) setTimeout(focusSearch, 0);
   }
   if (!S.me) { body.append(el("p", { class: "hint", text: t("needSignIn") })); return; }
   if (!PEOPLE.loaded) { loadPeople().then(render); return; }
-  const sec = (title, arr, extra) => body.append(el("section", { class: "rel" }, el("h3", { text: title + (arr.length ? ` (${arr.length})` : "") }),
-    arr.length ? el("ul", { class: "people" }, arr.map(p => personRow(p, extra && extra(p)))) : el("p", { class: "hint", text: title === t("requests") ? t("noRequests") : t("nobody") })));
-  if (S.me.visibility === "private" || PEOPLE.requests.length) sec(t("requests"), PEOPLE.requests, p => el("span", { class: "person-acts" },
-    el("button", { class: "btn small", type: "button", onclick: () => answerRequest(p.id, true) }, t("accept")),
-    el("button", { class: "btn ghost small", type: "button", onclick: () => answerRequest(p.id, false) }, t("decline"))));
-  sec(t("followingT"), PEOPLE.following, p => p._status === "pending" ? el("span", { class: "hint", text: t("requested") }) : null);
-  if (S.me.visibility !== "ghost") sec(t("followersT"), PEOPLE.followers);
+  const list = (arr, extra) => body.append(arr.length ? el("ul", { class: "people" }, arr.map(p => personRow(p, extra && extra(p)))) : el("p", { class: "hint", text: t("nobody") }));
+  if (v === "followers") { list(S.me.visibility === "ghost" ? [] : PEOPLE.followers); return; }
+  if (v === "following") { list(PEOPLE.following, p => p._status === "pending" ? el("span", { class: "hint", text: t("requested") }) : null); return; }
+  // search screen: pending follow requests stay reachable here
+  if (S.me.visibility === "private" || PEOPLE.requests.length) body.append(el("section", { class: "rel" }, el("h3", { text: t("requests") + (PEOPLE.requests.length ? ` (${PEOPLE.requests.length})` : "") }),
+    PEOPLE.requests.length ? el("ul", { class: "people" }, PEOPLE.requests.map(p => personRow(p, el("span", { class: "person-acts" },
+      el("button", { class: "btn small", type: "button", onclick: () => answerRequest(p.id, true) }, t("accept")),
+      el("button", { class: "btn ghost small", type: "button", onclick: () => answerRequest(p.id, false) }, t("decline")))))) : el("p", { class: "hint", text: t("noRequests") })));
 }
 const focusSearch = () => { const i = $("#p-search"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } };
 async function answerRequest(followerId, ok) {
@@ -1805,7 +1815,7 @@ async function route() {
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
   if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
-  if (a === "people") { S.panelMode = "people"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
+  if (a === "people") { S.panelMode = "people"; PEOPLE.view = b === "followers" || b === "following" ? b : "search"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   S.panelMode = "map";
   if (a === "u" && b) { if (!S.owner || S.owner.username.toLowerCase() !== b.toLowerCase() || S.ownerState !== "ok") await loadOwner(b); else render(); return; }
   if (S.me) { location.replace("#/u/" + S.me.username); return; }

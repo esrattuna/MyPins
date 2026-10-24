@@ -388,3 +388,6 @@ a.btn{text-decoration:none}
 .food-t span{font-size:12.5px;color:var(--muted)}
 .food-loc{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted);margin-bottom:4px}
 .food-loc .linkbtn{padding:2px 0 0;align-self:flex-start}
+/* own profile: follower / following counts open their lists */
+.pcx-counts a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.pcx-counts a:hover{color:var(--ink)}
