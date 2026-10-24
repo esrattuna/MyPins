@@ -34,9 +34,11 @@ const I18N = {
     aboutP1: "Bu blogu, büyük şehirlere seyahat ederken etrafındaki daha lokal bölgeleri, kasabaları, doğal alanları, manzaraları ve adresleri keşfetmek isteyen benim gibi insanlar için açtım.",
     aboutP2: "Eğer seyahat ederken amacınız bir ülkedeki doğayı ve lokal hayatı deneyimlemek ve farklı bir realitenin parçası olabilmekse, burada hoşunuza gidecek yerler keşfetmenizi umuyorum.",
     tagline: "Seyir notları · yerler · sofralar", zoomIn: "Yakınlaştır", zoomOut: "Uzaklaştır", zoomHome: "Tüm haritayı göster",
-    pickHint: "Haritada notun yerine dokun", cancel: "Vazgeç", mapLabel: "Akdeniz ve Avrupa haritası", sheet: "Paneli büyüt veya küçült",
+    pickHint: "Haritada pinin yerine dokun", cancel: "Vazgeç", mapLabel: "Akdeniz ve Avrupa haritası", sheet: "Paneli büyüt veya küçült",
     close: "Kapat", prev: "Önceki", next: "Sonraki",
-    kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Not ekle",
+    kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Pin ekle",
+    addPinT: "Pin ekle", addPinPh: "Adres ya da yer adı yaz", addPinMap: "ya da haritada yerine dokun", addPinNone: "Sonuç bulunamadı. Başka bir yazım dene ya da haritada dokun.",
+    addPinErr: "Adres araması şu an çalışmıyor; haritada dokunarak ekleyebilirsin.", addPinHint: "Örnek: Rua Augusta 24 Lizbon, Kardeşim Mantı Emirgan, Sintra",
     tally: (a, b, c) => `${a} yer · ${b} sofra · ${c} ülke`,
     noDb: "Notlar bu görünümde açılamıyor. Görmek için claude.ai hesabınla oturum açman gerekiyor.", dbErr: "Notlar yüklenemedi. Sayfayı yenileyip tekrar dene.",
     filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar", f_wish: "Belki bir gün",
@@ -81,9 +83,11 @@ const I18N = {
     aboutP1: "I started this blog for people like me who, when traveling to big cities, also want to discover the more local areas around them: small towns, nature, views and good addresses.",
     aboutP2: "If your goal when traveling is to experience a country's nature and local life, and to become part of a different reality, I hope you'll find places here you'll love.",
     tagline: "Travel notes · places · tables", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomHome: "Show the whole map",
-    pickHint: "Tap the map where your note belongs", cancel: "Cancel", mapLabel: "Map of the Mediterranean and Europe", sheet: "Expand or collapse the panel",
+    pickHint: "Tap the map where your pin belongs", cancel: "Cancel", mapLabel: "Map of the Mediterranean and Europe", sheet: "Expand or collapse the panel",
     close: "Close", prev: "Previous", next: "Next",
-    kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add note",
+    kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add pin",
+    addPinT: "Add a pin", addPinPh: "Type an address or place name", addPinMap: "or tap its spot on the map", addPinNone: "No results. Try another spelling or tap the map.",
+    addPinErr: "Address search isn't working right now; you can tap the map instead.", addPinHint: "e.g. Rua Augusta 24 Lisbon, Kardeşim Mantı Emirgan, Sintra",
     tally: (a, b, c) => `${a} ${a === 1 ? "place" : "places"} · ${b} food ${b === 1 ? "spot" : "spots"} · ${c} ${c === 1 ? "country" : "countries"}`,
     noDb: "Notes can't load in this view. Sign in with a claude.ai account to see them.", dbErr: "Notes didn't load. Refresh the page and try again.",
     filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food", f_wish: "Someday List",
@@ -531,6 +535,7 @@ function render() {
   else if (S.ownerState === "notfound") renderNotFound();
   else if (S.view === "detail") renderDetail();
   else if (S.view === "form") renderForm();
+  else if (S.view === "addpin") renderAddPin();
   else renderList();
   drawOverlay();
 }
@@ -550,7 +555,7 @@ function renderList() {
   if (S.ownerState === "locked") { body.append(lockedBox()); return; }
   const head = el("div", { class: "ph" },
     el("div", {}, el("div", { class: "eyebrow", text: t("eyebrowList") }), el("h2", { text: S.canEdit ? t("listTitle") : t("listTitleOther") })),
-    S.canEdit ? el("button", { class: "btn", type: "button", onclick: () => { S.temp = null; setPicking(true); } }, t("addNote")) : null);
+    S.canEdit ? el("button", { class: "btn", type: "button", onclick: openAddPin }, t("addNote")) : null);
   body.append(head);
   if (S.canEdit && S.owner.visibility === "ghost") body.append(el("div", { class: "notice", text: t("ghostNote") }));
   if (S.canEdit && S.owner.visibility === "private") body.append(el("div", { class: "notice", text: t("privateNote") }));
@@ -681,10 +686,11 @@ function renderDetail() {
 }
 
 /* ---------------- form ---------------- */
-function startForm(p, at) {
+function startForm(p, at, prefill) {
   const base = p ? { ...p, photos: [...(p.photos || [])] } : (() => {
     const w = whereIs(at.lon, at.lat);
-    return { kind: "yer", title: "", city: w.city, country: w.country, iso: w.iso, lon: at.lon, lat: at.lat, date: new Date().toISOString().slice(0, 10), note: "", dish: "", rating: 0, price: "", photos: [] };
+    return { kind: "yer", title: "", city: w.city, country: w.country, iso: w.iso, lon: at.lon, lat: at.lat, date: new Date().toISOString().slice(0, 10), note: "", dish: "", rating: 0, price: "", photos: [],
+      ...(prefill || {}) };
   })();
   S.form = { data: base, editingId: p ? p.id : null, newFiles: [], removed: [], busy: false, err: "" };
   S.view = "form"; S.selId = p ? p.id : null;
@@ -908,6 +914,64 @@ async function loadOwner(username, quiet) {
   renderChrome(); render(); lastFitOwner = null; fitPins();
   maybeAutoIntro();
   if (!quiet && S.canEdit && !S.places.length && !ls("mp-onb-done-" + S.me.id)) location.hash = "#/start";
+}
+
+/* ---------------- "Pin ekle": type an address or a place name (Photon search), or tap the map ---------------- */
+let ADDPIN = { q: "", results: null, err: false };
+let addPinTimer = 0, addPinCtl = null;
+function openAddPin() { S.temp = null; setPicking(false); ADDPIN = { q: "", results: null, err: false }; S.view = "addpin"; S.selId = null; setSheet(""); render(); const i = $("#addpin-q"); if (i) i.focus(); }
+function renderAddPin() {
+  body.append(el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
+  body.append(el("h2", { class: "d-title", text: t("addPinT") }));
+  const input = el("input", { id: "addpin-q", type: "search", placeholder: t("addPinPh"), value: ADDPIN.q, autocomplete: "off", enterkeyhint: "search",
+    oninput: e => { ADDPIN.q = e.target.value; clearTimeout(addPinTimer); addPinTimer = setTimeout(searchAddress, 350); },
+    onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(addPinTimer); searchAddress(); } } });
+  body.append(el("div", { class: "field search" }, input), el("p", { class: "hint", text: t("addPinHint") }));
+  body.append(el("div", { id: "addpin-res" }));
+  body.append(el("button", { class: "linkbtn", type: "button", onclick: () => { S.view = "list"; render(); setPicking(true); } }, "📍 " + t("addPinMap")));
+  paintAddPinResults();
+}
+function paintAddPinResults() {
+  const box = $("#addpin-res"); if (!box) return;
+  box.replaceChildren();
+  if (ADDPIN.err) { box.append(el("p", { class: "notice", text: t("addPinErr") })); return; }
+  if (!ADDPIN.results) return;
+  if (!ADDPIN.results.length) { box.append(el("p", { class: "hint", text: t("addPinNone") })); return; }
+  box.append(el("ul", { class: "addr-list" }, ADDPIN.results.map(r => el("li", {},
+    el("button", { class: "addr", type: "button", onclick: () => chooseAddress(r) }, el("b", { text: r.main }), r.sub ? el("span", { text: r.sub }) : null)))));
+}
+async function searchAddress() {
+  const q = ADDPIN.q.trim();
+  if (q.length < 3) { ADDPIN.results = null; ADDPIN.err = false; paintAddPinResults(); return; }
+  if (addPinCtl) addPinCtl.abort();
+  const ctl = addPinCtl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+  // results near the current map view first
+  const c = mapReady ? map.getCenter() : null;
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lang=${LANG === "en" ? "en" : "default"}` + (c ? `&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}` : "");
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    const js = await r.json();
+    if (ctl !== addPinCtl) return;
+    ADDPIN.err = false;
+    ADDPIN.results = (js.features || []).map(f => {
+      const pr = f.properties || {}, [lon, lat] = f.geometry.coordinates;
+      const street = [pr.street, pr.housenumber].filter(Boolean).join(" ");
+      const town = pr.city || pr.town || pr.village || pr.district || "";
+      const main = pr.name || street || town || pr.state || pr.country || "";
+      const sub = [pr.name && street ? street : "", town !== main ? town : "", pr.country !== main ? pr.country : ""].filter(Boolean).join(", ");
+      return { main, sub, lon: +lon.toFixed(5), lat: +lat.toFixed(5), name: pr.name || "", town, iso: (pr.countrycode || "").toUpperCase(), type: pr.type || "" };
+    }).filter(r => r.main);
+  } catch (e) { if (ctl !== addPinCtl) return; ADDPIN.err = true; }   // a newer search replaced this one: ignore; otherwise failed or timed out
+  finally { clearTimeout(timer); }
+  if (ctl === addPinCtl) paintAddPinResults();
+}
+function chooseAddress(r) {
+  const at = { lon: r.lon, lat: r.lat }, w = whereIs(at.lon, at.lat);
+  S.temp = at;
+  startForm(null, at, { title: r.name || "", city: w.city || r.town || "", country: w.country, iso: w.iso || r.iso });
+  // close enough to see the exact spot: a house or a street much closer than a whole town
+  const z = ({ house: 17, street: 16, locality: 15, district: 14, village: 14, town: 13, city: 12, county: 10, state: 8, country: 6 })[r.type] || 16;
+  if (mapReady) camera({ center: [at.lon, at.lat], zoom: z });
 }
 
 /* ---------------- "Belki bir gün" (Someday List) ---------------- */
