@@ -49,6 +49,10 @@ body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hid
 #report th:first-child,#report td:first-child{text-align:left}
 .note{font-size:11px;color:var(--muted);line-height:1.45}
 /* info panel */
+.lvl{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(34px + env(safe-area-inset-bottom,0px));z-index:4;width:48px;height:48px;border-radius:50%;
+  border:1.5px solid var(--pin-ink);background:var(--paper);color:var(--pin-ink);font:700 22px var(--f-body);box-shadow:0 4px 14px rgba(31,62,70,.25);cursor:pointer}
+.lvl.wait{background:var(--pin)}
+.lvl:disabled{opacity:.45}
 #info{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;width:min(320px,calc(100% - 24px));
   background:var(--paper);border-radius:12px;box-shadow:0 10px 30px rgba(31,62,70,.25);overflow:hidden;transform:translateY(0);opacity:1}
 body.anim #info{transition:transform .22s ease,opacity .22s ease}
@@ -64,7 +68,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
 </style>
 </head>
 <body>
-<div id="stage"><div id="map" aria-label="Harita"></div><div id="off" hidden>Harita kapatıldı (ekrandan çıkıldı).<br>Kaynaklar temizlendi. “Ekrana geri dön” ile yeniden aç.</div></div>
+<div id="stage"><div id="map" aria-label="Harita"></div><button id="levelUp" class="lvl" aria-label="Üst seviyeye çık" title="Üst seviye">⤒</button><div id="off" hidden>Harita kapatıldı (ekrandan çıkıldı).<br>Kaynaklar temizlendi. “Ekrana geri dön” ile yeniden aç.</div></div>
 
 <section id="dev">
   <header id="devHead"><h1>Harita prototipi</h1><span class="hstat" id="hStat"></span><span id="devMin">▾</span></header>
@@ -80,7 +84,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
       <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
       <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
-      <label class="tog"><input type="checkbox" id="optBase"> Yedek zemin</label></div>
+      <label class="tog"><input type="checkbox" id="optBase"> Yedek zemin</label>
+      <label class="tog"><input type="checkbox" id="optLuPre" checked> Üst seviyede önce indir</label></div>
     <div class="row"><span class="lab">Ön yükleme</span>
       <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
@@ -103,6 +108,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <canvas id="spark" width="600" height="72" aria-label="Kare süresi grafiği"></canvas>
     <div class="row">
       <button class="btn" id="runZoomOut">⏱ Uzaklaşma testi</button>
+      <button class="btn" id="runLevelUp">⏱ Üst seviye testi</button>
       <button class="btn" id="runAll">▶ Senaryoları çalıştır</button>
       <button class="btn ghost" id="toggleScreen">Ekrandan çık</button>
       <button class="btn ghost" id="resetStats">Sıfırla</button>
@@ -140,7 +146,8 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
   prefetch: "",        // zoom-out prefetch: "" off | "light" mid scale only (z<=12) | "full" every coarser level
   tiles: "ofm",        // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
-  base: false };       // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7
+  base: false,         // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7 (dropped 24 Oct)
+  luPre: true };       // level-up button: download the target level's tiles first, then jump
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
 function mapTilerKey() {
@@ -574,7 +581,28 @@ async function prefetchView(center, zoom) {
     if (ty < 0 || ty >= n) continue;
     urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
   }
-  urls.slice(0, 24).forEach(u => fetch(u, { mode: "cors", credentials: "same-origin" }).catch(() => {}));
+  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).catch(() => {})));
+}
+/* ---------- "Üst seviye": jump out by one level instead of pinching through every zoom ----------
+   Measured on iPhone: a pinch zoom-out requests every intermediate level and about half the tiles arrive too late
+   (the random land-coloured squares over the sea: OpenMapTiles has no land polygons, so a missing tile shows the
+   land-coloured background). A single jump (first 16->5 test) requested only 4-7 tiles and no queue formed.
+   The button jumps to the next level down (city 13, region 10.5, country part 8, country 5.5, continent 3.5).
+   With "önce indir" it first downloads exactly the target view's tiles (the ones the jump would need anyway, so no
+   extra data), waits up to 1.5 s, then jumps: the new view should appear already filled. */
+const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1500;
+const LU = { busy: false };
+async function levelUp() {
+  if (!map || LU.busy) return null;
+  const z = map.getZoom(), target = LEVELS.find(l => l < z - 0.25);
+  if (target === undefined) return null;
+  LU.busy = true; $("#levelUp").classList.add("wait");
+  const t0 = performance.now(), center = map.getCenter();
+  if (OPT.luPre) await Promise.race([prefetchView(center, target), wait(LU_MAX)]);
+  const waited = performance.now() - t0;
+  map.jumpTo({ center, zoom: target });
+  LU.busy = false; $("#levelUp").classList.remove("wait");
+  return waited;
 }
 
 /* ---------- info panel (plain DOM; opening it never touches the map) ---------- */
@@ -782,13 +810,36 @@ async function zoomOutTest() {
     { ...fr, longs: stats.longTasks - lt0 });
   $("#runZoomOut").disabled = false; $("#runAll").disabled = false;
 }
+async function levelUpTest() {
+  if (!map) return;
+  for (const id of ["#runZoomOut", "#runLevelUp", "#runAll"]) $(id).disabled = true;
+  closeInfo(); clearTileMemory();
+  const city = OPT.cold ? nextColdCity() : ["Barcelona", 2.1734, 41.3851];
+  map.jumpTo({ center: [city[1], city[2]], zoom: 16 });
+  await idle(); await wait(600);
+  TT.pending.clear();
+  TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
+  rec = []; const lt0 = stats.longTasks, waits = [];
+  for (let k = 0; k < 3; k++) {                       // 16 -> 13 -> 10.5 -> 8, like the pinch test
+    waits.push(await levelUp());
+    if (k < 2) await wait(250);
+  }
+  const tMove = performance.now();
+  await idle();
+  const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
+  TT.run = null; rec = null;
+  const r = Math.round, w = waits.filter(x => x != null);
+  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen zıpla"}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+    { ...fr, longs: stats.longTasks - lt0 });
+  for (const id of ["#runZoomOut", "#runLevelUp", "#runAll"]) $(id).disabled = false;
+}
 // prefetch cost of this round (includes downloads that finished during the zoom-out), per level in KB
 function pfText(pf0) {
   const lv = Object.keys(PF.byLevel).map(Number).sort((a, b) => b - a).map(z => `z${z} ${Math.round(PF.byLevel[z] / 1024)}`).join(", ");
   return `${PF.tiles - pf0.t} tile, ${Math.round((PF.bytes - pf0.b) / 1024)} KB${lv ? ` (${lv})` : ""}`;
 }
 function cfgLabel() {
-  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? ` · ön yükleme ${OPT.prefetch === "light" ? "hafif" : "tam"}` : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}${OPT.base ? " · yedek zemin" : ""}`;
+  return `worker ${WK.now || "?"}${WK.auto ? " (otomatik)" : OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? ` · ön yükleme ${OPT.prefetch === "light" ? "hafif" : "tam"}` : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}${OPT.base ? " · yedek zemin" : ""}`;
 }
 function addRow(name, r) {
   let t = $("#report table");
@@ -821,20 +872,24 @@ $("#optCluster").onchange = e => { OPT.cluster = e.target.checked; rebuildPins()
 $("#optPhoto").onchange = e => { OPT.photo = e.target.checked; rebuildPins(); };
 $("#runAll").onclick = () => map && runAll();
 $("#runZoomOut").onclick = () => map && zoomOutTest();
+$("#runLevelUp").onclick = () => map && levelUpTest();
+$("#levelUp").onclick = () => levelUp();
+$("#optLuPre").onchange = e => { OPT.luPre = e.target.checked; paintCfg(); };
 // worker count and style layers are fixed when the map is built: changing them reloads the page with the
 // current settings in the address bar (so the same link reproduces the test)
 function reloadWithOptions() {
   const q = new URLSearchParams(location.search);
   q.set("n", OPT.n); for (const k of ["anim", "cluster", "photo", "smooth", "lite"]) q.set(k, OPT[k] ? "1" : "0");
-  if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
+  if (OPT.workers && !WK.auto) q.set("workers", OPT.workers); else q.delete("workers");   // automatic count stays automatic
   q.set("poi", OPT.poi);
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   if (OPT.base) q.set("base", "1"); else q.delete("base");
+  if (!OPT.luPre) q.set("lupre", "0"); else q.delete("lupre");
   if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
 }
-$("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
+$("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : (WK.auto ? WK.def || 1 : 0); WK.auto = 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
 $("#optBase").onchange = e => { OPT.base = e.target.checked; reloadWithOptions(); };   // style change: reload
@@ -843,7 +898,7 @@ document.querySelectorAll("#tileSeg button").forEach(b => b.onclick = () => { if
 document.querySelectorAll("#pfSeg button").forEach(b => b.onclick = () => { OPT.prefetch = b.dataset.pf; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); });
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
-  $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#optBase").checked = OPT.base; $("#wkOn").textContent = OPT.workers || WK.on;
+  $("#optWorkers").checked = OPT.workers > WK.def; $("#optLite").checked = OPT.lite; $("#optBase").checked = OPT.base; $("#wkOn").textContent = OPT.workers || WK.on;
   document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
   document.querySelectorAll("#tileSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tiles === OPT.tiles)));
   document.querySelectorAll("#pfSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pf === OPT.prefetch)));
@@ -866,6 +921,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   OPT.lite = q.get("lite") === "1";
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   OPT.base = q.get("base") === "1";
+  OPT.luPre = q.get("lupre") !== "0"; $("#optLuPre").checked = OPT.luPre;
   const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
   if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
@@ -874,6 +930,15 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   WK.def = getWC() || 0;
   if (WK.def >= WK.on) WK.on = Math.min(8, WK.def + 2);
   const w = parseInt(q.get("workers"), 10);
+  // Desktop Chrome gets 1 tile worker by default (iPhone Chrome 2). Where the default is below 2 and no count is
+  // given, use min(4, CPU cores) automatically. ?workers=1 forces the old single worker for comparison.
+  if (!(w >= 1 && w <= 8) && WK.def > 0 && WK.def < 2) {
+    WK.auto = Math.min(4, navigator.hardwareConcurrency || 4);
+    if (WK.auto > WK.def) {
+      OPT.workers = WK.auto;
+      try { if (typeof maplibregl.setWorkerCount === "function") maplibregl.setWorkerCount(WK.auto); else maplibregl.workerCount = WK.auto; } catch (e) { console.warn(e); }
+    } else WK.auto = 0;
+  }
   if (w >= 1 && w <= 8) {
     OPT.workers = w;
     try { if (typeof maplibregl.setWorkerCount === "function") maplibregl.setWorkerCount(w); else maplibregl.workerCount = w; } catch (e) { console.warn(e); }
