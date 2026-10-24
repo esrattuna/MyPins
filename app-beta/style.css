@@ -377,3 +377,14 @@ a.btn{text-decoration:none}
 .addr b{font-size:14.5px}
 .addr span{font-size:12.5px;color:var(--muted)}
 .addr:hover{border-color:var(--ink)}
+/* "Burada ne yedim": food spots inside a place */
+.foods .food-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.food{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;font:inherit;color:var(--ink)}
+.food:hover{border-color:var(--ink)}
+.food img,.food .food-ic{width:44px;height:44px;border-radius:3px;object-fit:cover;flex:none}
+.food .food-ic{display:grid;place-items:center;background:var(--tint);font-size:18px}
+.food-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.food-t b{font-size:14.5px;overflow-wrap:anywhere}
+.food-t span{font-size:12.5px;color:var(--muted)}
+.food-loc{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted);margin-bottom:4px}
+.food-loc .linkbtn{padding:2px 0 0;align-self:flex-start}

@@ -29,6 +29,8 @@ const I18N = {
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
     requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.",
     searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı",
+    ateT: "🍴 Burada ne yedim", addFood: "+ Ne yedim ekle", noFood: "Henüz bir sofra eklenmemiş.", foodLocPlace: n => `📍 ${n} (yerin konumu)`, foodLocSet: "📍 Mekânın konumu seçildi",
+    foodLocSearch: "Mekânın adresini ara", backTo: n => `← ${n}`, delQFoods: n => `Bu yerin ${n} sofrası da silinecek.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Burada nerede yedim", nearbyFood: "🍴 Yakınındaki diğer sofralar", nearbyPlaces: "🌍 Yakınındaki yerler",
     home: "Yaşadığım şehir", siteName: "MyPins", about: "Hakkında",  explore: "Haritayı keşfet", photoUp: "Fotoğrafını yükle", photoChange: "Fotoğrafı değiştir", photoSaving: "Yükleniyor…", photoErr: "Fotoğraf yüklenemedi. Tekrar dene.",
     aboutP1: "Bu blogu, büyük şehirlere seyahat ederken etrafındaki daha lokal bölgeleri, kasabaları, doğal alanları, manzaraları ve adresleri keşfetmek isteyen benim gibi insanlar için açtım.",
@@ -78,6 +80,8 @@ const I18N = {
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
     requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.",
     searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied",
+    ateT: "🍴 What I ate here", addFood: "+ Add what I ate", noFood: "No food spots added yet.", foodLocPlace: n => `📍 ${n} (the place's location)`, foodLocSet: "📍 Venue location set",
+    foodLocSearch: "Find the venue's address", backTo: n => `← ${n}`, delQFoods: n => `Its ${n} food ${n === 1 ? "spot" : "spots"} will be deleted too.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Where I ate here", nearbyFood: "🍴 Other food spots nearby", nearbyPlaces: "🌍 Nearby places",
     home: "Where I live", siteName: "MyPins", about: "About",  explore: "Explore the map", photoUp: "Upload your photo", photoChange: "Change photo", photoSaving: "Uploading…", photoErr: "The photo didn't upload. Try again.",
     aboutP1: "I started this blog for people like me who, when traveling to big cities, also want to discover the more local areas around them: small towns, nature, views and good addresses.",
@@ -169,7 +173,7 @@ const S = {
   canEdit: false, canUpload: false,
   me: null, session: null, owner: null, ownerState: "loading", // loading | ok | locked | notfound | landing
   rel: null, counts: { followers: 0, following: 0 }, panelMode: "map", // map | settings | people
-  view: "list", selId: null, filter: ["yer", "yemek", "wish"].includes(ls("ad-filter")) ? ls("ad-filter") : "yer",
+  view: "list", selId: null, filter: ls("ad-filter") === "wish" ? "wish" : "yer",
   wish: [], wishState: "ok", wishSel: null, wishForm: null, pickMode: "pin", mineSrc: new Map(),   // "Belki bir gün" list
   picking: false, temp: null, form: null, lb: null,
 };
@@ -319,13 +323,19 @@ async function initMap() {
     map.addLayer({ id: "countries-picked", type: "fill", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "fill-color": C.pin, "fill-opacity": 0.55 } });
     map.addLayer({ id: "countries-picked-line", type: "line", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "line-color": C.pinInk, "line-width": 1.2 } });
     map.addSource("pins", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "pins-dot", type: "circle", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["!=", ["get", "sel"], 1],
+    map.addLayer({ id: "pins-dot", type: "circle", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["all", ["!=", ["get", "sel"], 1], ["!=", ["get", "icon"], "fooddot"]],
       paint: { "circle-radius": 5, "circle-color": ["case", ["==", ["get", "icon"], "wish"], C.halo, C.pin], "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6 } });
-    map.addLayer({ id: "pins-pin", type: "symbol", source: "pins", minzoom: DOT_ZOOM_GL - 0.01,
+    map.addLayer({ id: "pins-pin", type: "symbol", source: "pins", minzoom: DOT_ZOOM_GL - 0.01, filter: ["!=", ["get", "icon"], "fooddot"],
       layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": ["case", ["==", ["get", "sel"], 1], 1.25, 1], "icon-allow-overlap": true,
         "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -2.9], "text-anchor": "bottom", "text-optional": true, "symbol-sort-key": ["case", ["==", ["get", "sel"], 1], 0, 1] },
       paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.8 } });
-    map.addLayer({ id: "pins-sel", type: "symbol", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["==", ["get", "sel"], 1],
+    // food spots of the open place: small ink dots, names when zoomed in
+    map.addLayer({ id: "food-dots", type: "circle", source: "pins", filter: ["==", ["get", "icon"], "fooddot"],
+      paint: { "circle-radius": ["case", ["==", ["get", "sel"], 1], 6.5, 4.5], "circle-color": C.pinInk, "circle-stroke-color": C.halo, "circle-stroke-width": 1.8 } });
+    map.addLayer({ id: "food-labels", type: "symbol", source: "pins", minzoom: 12, filter: ["==", ["get", "icon"], "fooddot"],
+      layout: { "text-field": ["concat", "🍴 ", ["get", "title"]], "text-font": ["Noto Sans Bold"], "text-size": 11.5, "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
+      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.6 } });
+    map.addLayer({ id: "pins-sel", type: "symbol", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["all", ["==", ["get", "sel"], 1], ["!=", ["get", "icon"], "fooddot"]],
       layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": 1.25, "icon-allow-overlap": true, "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -3.4], "text-anchor": "bottom" },
       paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.8 } });
     for (const id of PIN_LAYERS) {
@@ -341,7 +351,7 @@ async function initMap() {
   map.on("mousemove", e => { const r = $("#readout"); if (r) r.textContent = fmtCoord(e.lngLat.lng, e.lngLat.lat); });
 }
 const DOT_ZOOM_GL = 6;
-const PIN_LAYERS = ["pins-dot", "pins-pin", "pins-sel"];
+const PIN_LAYERS = ["pins-dot", "pins-pin", "pins-sel", "food-dots"];
 
 /* --- taps --- */
 // Order: add-place mode, onboarding country picking, pin, then tap-to-zoom (neighbouring country, place label / island, country).
@@ -415,9 +425,11 @@ function drawOverlay() {
     map.getSource("pins").setData({ type: "FeatureCollection", features: feats });
     return;
   }
-  const shown = S.places.filter(p => p.kind === S.filter || p.id === S.selId);
-  const feats = shown.map(p => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-    properties: { id: p.id, title: L(p, "title"), icon: p.home ? "home" : p.kind === "yemek" ? "yemek" : "yer", sel: p.id === S.selId ? 1 : 0 } }));
+  const sel = S.places.find(p => p.id === S.selId), focus = sel ? (parentOf(sel) || sel) : null;
+  const feats = S.places.filter(isTop).map(p => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+    properties: { id: p.id, title: L(p, "title"), icon: p.home ? "home" : p.kind === "yemek" ? "yemek" : "yer", sel: focus && p.id === focus.id ? 1 : 0 } }));
+  if (focus) for (const f of foodsOf(focus.id)) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [f.lon, f.lat] },
+    properties: { id: f.id, title: L(f, "title"), icon: "fooddot", sel: f.id === S.selId ? 1 : 0 } });
   if (S.temp) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [S.temp.lon, S.temp.lat] }, properties: { id: "__temp", title: "", icon: "temp", sel: 1 } });
   map.getSource("pins").setData({ type: "FeatureCollection", features: feats });
 }
@@ -451,7 +463,7 @@ function zoomToCountry(f) {
    3) the target's tiles are requested when the flight starts (HTTP cache), so they are ready on arrival;
    4) labels fade (fadeDuration). */
 const OPACITY_PROPS = { fill: ["fill-opacity"], line: ["line-opacity"], symbol: ["text-opacity", "icon-opacity"], circle: ["circle-opacity"] };
-const OWN_LAYERS = new Set(["base-land", "countries-hit", "countries-picked", "countries-picked-line", ...PIN_LAYERS]);
+const OWN_LAYERS = new Set(["base-land", "countries-hit", "countries-picked", "countries-picked-line", "food-labels", ...PIN_LAYERS]);
 let RAMPS = [];
 function captureRamps() {
   RAMPS = [];
@@ -547,7 +559,7 @@ function stars(n) {
 }
 
 function renderList() {
-  const yer = S.places.filter(p => p.kind === "yer").length;
+  const yer = S.places.filter(p => p.kind === "yer" && isTop(p)).length;
   const yemek = S.places.filter(p => p.kind === "yemek").length;
   const countries = new Set(S.places.map(p => p.iso || p.country).filter(Boolean)).size;
   if (!S.owner) { body.append(el("div", { class: "empty" }, el("strong", { text: t("loadingT") }), t("loadingB"))); return; }
@@ -569,7 +581,7 @@ function renderList() {
   }
 
   const chips = el("div", { class: "chips", role: "group", "aria-label": t("filter") });
-  for (const [k, lab] of [["yer", t("f_yer")], ["yemek", t("f_yemek")], ["wish", t("f_wish")]]) {
+  for (const [k, lab] of [["yer", t("f_yer")], ["wish", t("f_wish")]]) {
     chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
       el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }), lab));
   }
@@ -577,7 +589,7 @@ function renderList() {
   if (S.filter === "wish") { renderWish(); return; }
 
 
-  const items = S.places.filter(p => p.kind === S.filter);
+  const items = S.places.filter(isTop);
   if (!S.loaded && S.dbState === "pending") {
     body.append(el("div", { class: "empty" }, el("strong", { text: t("loadingT") }), t("loadingB")));
     return;
@@ -602,7 +614,8 @@ function renderList() {
       if (p.example) ph.append(el("span", { class: "tag-ex on-ph", text: t("example") }));
       const sub = el("span", { class: "pc-s" }, el("i", { class: "sw " + p.kind }),
         p.home ? "🏠 " + t("home") : p.kind === "yemek" && p.rating ? stars(p.rating) : KIND_LABEL(p.kind),
-        p.city && p.city !== p.title ? " · " + cityName(p.city) : "");
+        p.city && p.city !== p.title ? " · " + cityName(p.city) : "",
+        foodsOf(p.id).length ? " · " + t("foodsN", foodsOf(p.id).length) : "");
       ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openDetail(p.id, true) }, ph,
         el("b", { class: "pc-t", text: L(p, "title") }), sub,
         p.date ? el("span", { class: "pc-d", text: fmtDate(p.date) }) : null)));
@@ -620,14 +633,32 @@ function relRow(q) {
   return el("li", {}, el("button", { class: "rel-row", type: "button", onclick: () => openDetail(q.id, true) }, th,
     el("div", { style: "min-width:0" }, el("div", { class: "rel-t", text: L(q, "title") }), el("div", { class: "rel-s" }, ...sub.filter(Boolean)))));
 }
+function renderFoods(p) {
+  const foods = foodsOf(p.id);
+  const sec = el("section", { class: "rel foods" }, el("h3", { text: t("ateT") }));
+  if (foods.length) sec.append(el("ul", { class: "food-list" }, foods.map(f => el("li", {},
+    el("button", { class: "food", type: "button", onclick: () => openDetail(f.id, true) },
+      f.photos && f.photos.length ? el("img", { src: blobUrl(f.photos[0]), alt: "", loading: "lazy" }) : el("span", { class: "food-ic", "aria-hidden": "true", text: "🍴" }),
+      el("span", { class: "food-t" }, el("b", { text: L(f, "title") }),
+        L(f, "dish") ? el("span", { text: L(f, "dish") }) : null,
+        f.rating ? el("span", { class: "food-r" }, stars(f.rating)) : null))))));
+  else if (!S.canEdit) return;
+  else sec.append(el("p", { class: "hint", text: t("noFood") }));
+  if (S.canEdit && HAS_PARENT) sec.append(el("button", { class: "btn ghost small", type: "button", onclick: () => startFoodForm(p) }, t("addFood")));
+  body.append(sec);
+}
+function startFoodForm(place) {
+  startForm(null, { lon: place.lon, lat: place.lat }, { kind: "yemek", parent_id: place.id, city: place.city || "", country: place.country || "", iso: place.iso || "" });
+}
 function renderRelated(p) {
+  if (!isTop(p)) return;
   const R = p.home ? 35 : 15;
-  const near = S.places.filter(q => q.id !== p.id && distKm(p, q) <= R).sort((a, b) => distKm(p, a) - distKm(p, b));
+  const near = S.places.filter(q => q.id !== p.id && isTop(q) && distKm(p, q) <= R).sort((a, b) => distKm(p, a) - distKm(p, b));
   const food = near.filter(q => q.kind === "yemek");
   const spots = near.filter(q => q.kind !== "yemek");
   const block = (title, arr) => { if (!arr.length) return; body.append(el("section", { class: "rel" }, el("h3", { text: title }), el("ul", {}, arr.map(relRow)))); };
   if (p.kind === "yemek") { block(t("nearbyFood"), food); block(t("nearbyPlaces"), spots); }
-  else { block(t("eatHere"), food); block(t("nearbyPlaces"), spots); }
+  else { if (!HAS_PARENT) block(t("eatHere"), food); block(t("nearbyPlaces"), spots); }
 }
 
 function openDetail(id, fly) {
@@ -643,7 +674,9 @@ function backToList() { S.view = "list"; S.selId = null; S.temp = null; render()
 function renderDetail() {
   const p = S.places.find(x => x.id === S.selId);
   if (!p) { S.view = "list"; renderList(); return; }
-  body.append(el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
+  const parent = parentOf(p);
+  body.append(parent ? el("button", { class: "back", type: "button", onclick: () => openDetail(parent.id, true) }, t("backTo", L(parent, "title")))
+    : el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
   body.append(el("div", { class: "kind-line eyebrow" }, el("span", { class: "sw " + p.kind }), p.home ? "🏠 " + t("home") : KIND_LABEL(p.kind), p.example ? el("span", { class: "tag-ex", text: t("example") }) : null));
   body.append(el("h2", { class: "d-title", text: L(p, "title") }));
   body.append(el("p", { class: "d-place", text: [p.city && cityName(p.city), placeCountry(p)].filter(Boolean).join(", ") }));
@@ -665,6 +698,7 @@ function renderDetail() {
   }
   if (facts.children.length) body.append(facts);
   if (p.note) body.append(el("div", { class: "note", text: L(p, "note") }));
+  if (isTop(p) && p.kind === "yer") renderFoods(p);
   if (!S.canEdit && S.wishState !== "missing") {
     const on = S.mineSrc.has(p.id);
     body.append(el("div", { class: "d-wish" }, el("button", { class: "btn " + (on ? "wish-on" : "ghost"), type: "button", "aria-pressed": String(on), onclick: () => toggleWishFromPin(p) }, on ? t("wishOn") : t("wishBtn"))));
@@ -677,7 +711,8 @@ function renderDetail() {
       act.append(el("button", { class: "btn ghost", type: "button", onclick: () => startForm(p) }, t("edit")),
         el("button", { class: "btn ghost", type: "button", onclick: () => { S.confirmDel = true; render(); } }, t("del")));
     } else {
-      act.append(el("div", { class: "confirm" }, t("delQ"),
+      const nf = foodsOf(p.id).length;
+      act.append(el("div", { class: "confirm" }, t("delQ") + (nf ? " " + t("delQFoods", nf) : ""),
         el("button", { class: "btn danger small", type: "button", onclick: () => deletePlace(p) }, t("delYes")),
         el("button", { class: "btn ghost small", type: "button", onclick: () => { S.confirmDel = false; render(); } }, t("cancel"))));
     }
@@ -708,9 +743,11 @@ function renderForm() {
   const form = el("form", { class: "form", onsubmit: e => { e.preventDefault(); savePlace(); } });
   const bind = (key) => e => { d[key] = e.target.value; };
 
-  const seg = el("div", { class: "seg", role: "group", "aria-label": t("type") });
-  for (const k of ["yer", "yemek"]) seg.append(el("button", { type: "button", "aria-pressed": String(d.kind === k), onclick: () => { d.kind = k; render(); } }, el("span", { class: "sw " + k }), t("t_" + k)));
-  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("type") }), seg));
+  // places come from "+ Pin ekle", food spots from a place's "+ Ne yedim ekle": no Yer/Sofra switch
+  const par = d.parent_id ? S.places.find(x => x.id === d.parent_id) : null;
+  if (par) form.append(el("div", { class: "food-loc" },
+    el("span", { text: d.lon === par.lon && d.lat === par.lat ? t("foodLocPlace", L(par, "title")) : t("foodLocSet") }),
+    el("button", { class: "linkbtn", type: "button", onclick: () => openAddPin("food") }, t("foodLocSearch"))));
 
   form.append(el("div", { class: "field" }, el("label", { for: "f-title", text: d.kind === "yemek" ? t("venue") : t("titleL") }),
     el("input", { id: "f-title", required: true, maxlength: 120, value: d.title, placeholder: d.kind === "yemek" ? t("phVenue") : t("phTitle"), oninput: bind("title") })));
@@ -798,13 +835,22 @@ async function shrink(file) {
 }
 
 /* ---------------- data (Supabase) ---------------- */
-const PIN_COLS = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,photos,created_at";
+const PIN_COLS_BASE = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,photos,created_at";
+let HAS_PARENT = true;   // false until supabase/07_sofra_yere_bagla.sql has added pins.parent_id
+const pinCols = () => HAS_PARENT ? PIN_COLS_BASE + ",parent_id" : PIN_COLS_BASE;
+const PIN_COLS = PIN_COLS_BASE + ",parent_id";
+const missingParentCol = e => !!e && /parent_id/.test(e.message || "") && (e.code === "42703" || e.code === "PGRST204" || /does not exist|could not find/i.test(e.message || ""));
+// food spots ("Sofra") belong to a place: top-level pins are places (and old food pins not attached yet)
+const isTop = p => !p.parent_id;
+const foodsOf = id => S.places.filter(x => x.parent_id === id).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+const parentOf = p => p && p.parent_id ? S.places.find(x => x.id === p.parent_id) : null;
 const fromRow = r => ({
   id: r.id, user_id: r.user_id, kind: r.kind, home: r.home, title: r.title, title_en: r.title_en, city: r.city, country: r.country, iso: r.iso,
   lat: r.lat, lon: r.lon, date: r.visited_on || "", note: r.note, note_en: r.note_en, dish: r.dish, dish_en: r.dish_en,
-  rating: r.rating, price: r.price, photos: r.photos || [], createdAt: Date.parse(r.created_at) || 0,
+  rating: r.rating, price: r.price, photos: r.photos || [], createdAt: Date.parse(r.created_at) || 0, parent_id: r.parent_id || null,
 });
 const toRow = d => ({
+  ...(HAS_PARENT ? { parent_id: d.parent_id || null } : {}),
   kind: d.kind, home: !!d.home, title: d.title.trim(), title_en: (d.title_en || "").trim(),
   city: (d.city || "").trim(), country: (d.country || "").trim(), iso: d.iso || "", lat: d.lat, lon: d.lon,
   visited_on: d.date || null, note: d.note || "", note_en: d.note_en || "",
@@ -845,8 +891,8 @@ async function savePlace() {
     F.progress = t("saving"); render();
     const row = toRow({ ...d, photos: ids });
     const q = F.editingId
-      ? sb.from("pins").update(row).eq("id", F.editingId).select(PIN_COLS).single()
-      : sb.from("pins").insert({ ...row, user_id: S.me.id }).select(PIN_COLS).single();
+      ? sb.from("pins").update(row).eq("id", F.editingId).select(pinCols()).single()
+      : sb.from("pins").insert({ ...row, user_id: S.me.id }).select(pinCols()).single();
     const { data, error } = await q;
     if (error) throw error;
     await removePhotos(F.removed);
@@ -855,7 +901,7 @@ async function savePlace() {
     S.form = null; S.temp = null;
     upsertLocal(fromRow(data));
     toast(wasEdit ? t("updated") : t("added"));
-    openDetail(data.id, false);
+    openDetail(data.parent_id || data.id, false);
   } catch (e) {
     console.error(e);
     F.busy = false; F.progress = "";
@@ -871,7 +917,7 @@ async function deletePlace(p) {
   const { error } = await sb.from("pins").delete().eq("id", p.id);
   if (error) { toast(t("delErr")); return; }
   await removePhotos(p.photos || []);
-  S.places = S.places.filter(x => x.id !== p.id);
+  S.places = S.places.filter(x => x.id !== p.id && x.parent_id !== p.id);   // its food spots are deleted with it
   toast(t("deleted")); backToList();
 }
 
@@ -905,7 +951,8 @@ async function loadOwner(username, quiet) {
   ]);
   S.counts = { followers: fol.count || 0, following: fing.count || 0 };
   if (!allowed) { S.ownerState = "locked"; S.loaded = true; await signPhotos([prof.avatar_path]); renderChrome(); render(); return; }
-  const { data: pins, error: pe } = await sb.from("pins").select(PIN_COLS).eq("user_id", prof.id);
+  let { data: pins, error: pe } = await sb.from("pins").select(pinCols()).eq("user_id", prof.id);
+  if (missingParentCol(pe)) { HAS_PARENT = false; ({ data: pins, error: pe } = await sb.from("pins").select(pinCols()).eq("user_id", prof.id)); }
   if (pe) { S.dbState = "error"; } else { S.dbState = "ok"; }
   S.places = (pins || []).map(fromRow);
   await Promise.all([signPhotos([prof.avatar_path, ...S.places.flatMap(p => p.photos)]), loadWish(prof.id)]);
@@ -917,18 +964,26 @@ async function loadOwner(username, quiet) {
 }
 
 /* ---------------- "Pin ekle": type an address or a place name (Photon search), or tap the map ---------------- */
-let ADDPIN = { q: "", results: null, err: false };
+let ADDPIN = { q: "", results: null, err: false, mode: "pin" };
 let addPinTimer = 0, addPinCtl = null;
-function openAddPin() { S.temp = null; setPicking(false); ADDPIN = { q: "", results: null, err: false }; S.view = "addpin"; S.selId = null; setSheet(""); render(); const i = $("#addpin-q"); if (i) i.focus(); }
+function openAddPin(mode = "pin") {
+  setPicking(false);
+  ADDPIN = { q: mode === "food" && S.form ? S.form.data.title || "" : "", results: null, err: false, mode };
+  if (mode === "pin") { S.temp = null; S.selId = null; }
+  S.view = "addpin"; setSheet(""); render(); const i = $("#addpin-q"); if (i) i.focus();
+  if (ADDPIN.q.length >= 3) searchAddress();
+}
 function renderAddPin() {
-  body.append(el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
-  body.append(el("h2", { class: "d-title", text: t("addPinT") }));
+  const food = ADDPIN.mode === "food" && S.form;
+  body.append(food ? el("button", { class: "back", type: "button", onclick: () => { S.view = "form"; render(); } }, t("backCancel"))
+    : el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
+  body.append(el("h2", { class: "d-title", text: food ? t("foodLocSearch") : t("addPinT") }));
   const input = el("input", { id: "addpin-q", type: "search", placeholder: t("addPinPh"), value: ADDPIN.q, autocomplete: "off", enterkeyhint: "search",
     oninput: e => { ADDPIN.q = e.target.value; clearTimeout(addPinTimer); addPinTimer = setTimeout(searchAddress, 350); },
     onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(addPinTimer); searchAddress(); } } });
   body.append(el("div", { class: "field search" }, input), el("p", { class: "hint", text: t("addPinHint") }));
   body.append(el("div", { id: "addpin-res" }));
-  body.append(el("button", { class: "linkbtn", type: "button", onclick: () => { S.view = "list"; render(); setPicking(true); } }, "📍 " + t("addPinMap")));
+  if (!food) body.append(el("button", { class: "linkbtn", type: "button", onclick: () => { S.view = "list"; render(); setPicking(true); } }, "📍 " + t("addPinMap")));
   paintAddPinResults();
 }
 function paintAddPinResults() {
@@ -967,6 +1022,12 @@ async function searchAddress() {
 }
 function chooseAddress(r) {
   const at = { lon: r.lon, lat: r.lat }, w = whereIs(at.lon, at.lat);
+  if (ADDPIN.mode === "food" && S.form) {        // a food spot's venue: only its position (and name if still empty) change
+    const d = S.form.data; d.lon = at.lon; d.lat = at.lat; if (!d.title && r.name) d.title = r.name;
+    S.temp = at; S.view = "form"; render();
+    if (mapReady) camera({ center: [at.lon, at.lat], zoom: 16 });
+    return;
+  }
   S.temp = at;
   startForm(null, at, { title: r.name || "", city: w.city || r.town || "", country: w.country, iso: w.iso || r.iso });
   // close enough to see the exact spot: a house or a street much closer than a whole town
@@ -1045,13 +1106,13 @@ async function removeWish(w) {
 }
 // "Gittim": becomes a pin on my map (note and photos can be added later), and leaves the list
 async function wentWish(w) {
-  const row = { user_id: S.me.id, kind: w.kind, home: false, title: w.title, title_en: w.title_en || "", city: w.city || "", country: w.country || "", iso: w.iso || "",
+  const row = { user_id: S.me.id, kind: "yer", home: false, title: w.title, title_en: w.title_en || "", city: w.city || "", country: w.country || "", iso: w.iso || "",
     lat: w.lat, lon: w.lon, note: "", note_en: "", dish: "", dish_en: "", rating: 0, price: "", photos: [] };
-  const { data, error } = await sb.from("pins").insert(row).select(PIN_COLS).single();
+  const { data, error } = await sb.from("pins").insert(row).select(pinCols()).single();
   if (error) { toast(t("wishErr")); return; }
   await sb.from("wishlist").delete().eq("id", w.id);
   S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
-  upsertLocal(fromRow(data)); S.wishSel = null; S.filter = w.kind; ls("ad-filter", w.kind);
+  upsertLocal(fromRow(data)); S.wishSel = null; S.filter = "yer"; ls("ad-filter", "yer");
   toast(t("wishWentT")); openDetail(data.id, false);
 }
 function renderWish() {
@@ -1408,7 +1469,7 @@ async function onbAdd() {
   }
   if (!rows.length) return;
   ONB.busy = true; ONB.err = ""; render();
-  const { data, error } = await sb.from("pins").insert(rows).select(PIN_COLS);
+  const { data, error } = await sb.from("pins").insert(rows).select(pinCols());
   ONB.busy = false;
   if (error) { console.error(error); ONB.err = ot("addErr"); render(); return; }
   ls("mp-onb-done-" + S.me.id, "1");
