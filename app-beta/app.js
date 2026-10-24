@@ -672,10 +672,37 @@ function renderRelated(p) {
 function openDetail(id, fly) {
   const p = S.places.find(x => x.id === id); if (!p) return;
   S.selId = id; S.view = "detail"; S.temp = null; S.confirmDel = false;
+  perfStart();
   if (panel.classList.contains("collapsed")) setSheet(null);
   render();
   if (fly) flyTo(p.lon, p.lat, 28);
   $("#panelBody").scrollTop = 0;
+}
+/* ---------------- ?perf=1: time to first photo and photo bytes after opening a place (nothing shows otherwise) ---------------- */
+const PERF = /[?&]perf=1/.test(location.search) ? { id: 0, t0: 0, first: null } : null;
+if (PERF) {
+  try { performance.setResourceTimingBufferSize(5000); } catch (e) {}
+  body.addEventListener("load", e => {
+    if (e.target.tagName === "IMG" && PERF.t0 && PERF.first == null) { PERF.first = performance.now() - PERF.t0; perfShow(); }
+  }, true);
+}
+function perfStart() {
+  if (!PERF) return;
+  const id = ++PERF.id; PERF.t0 = performance.now(); PERF.first = null;
+  [300, 1500, 4000, 10000].forEach(ms => setTimeout(() => { if (id === PERF.id) perfShow(); }, ms));
+  perfShow();
+}
+function perfShow() {
+  if (!PERF) return;
+  let box = document.getElementById("mpPerf");
+  if (!box) { box = document.createElement("div"); box.id = "mpPerf"; box.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.78);color:#fff;font:12px/1.3 ui-monospace,monospace;padding:4px 7px;border-radius:6px;pointer-events:none;white-space:pre"; document.body.append(box); }
+  const ph = performance.getEntriesByType("resource").filter(r => r.startTime >= PERF.t0 - 5 && /\/storage\/v1\/object\//.test(r.name));
+  const net = ph.reduce((a, r) => a + (r.transferSize || 0), 0), known = ph.some(r => r.encodedBodySize > 0 || r.transferSize > 0);
+  const cached = ph.filter(r => r.transferSize === 0 && r.encodedBodySize > 0).length;
+  const hasImg = !!body.querySelector("img");
+  const first = PERF.first != null ? Math.round(PERF.first) + " ms" : hasImg ? "…" : "–";
+  const size = !ph.length ? "0 KB" : known ? (net >= 1e6 ? (net / 1e6).toFixed(2) + " MB" : Math.round(net / 1e3) + " KB") : "?";
+  box.textContent = `ilk foto ${first} · ${size} · ${ph.length} dosya${cached ? ` (${cached} önbellek)` : ""}`;
 }
 function backToList() { S.view = "list"; S.selId = null; S.temp = null; render(); }
 
