@@ -7,11 +7,13 @@ export const MAX_TEXT = 4000;       // characters per message
 export const NEAR_KM = 200;         // "Belki bir gün" places this close to the place in view are pointed out
 
 export type Msg = { role: "user" | "assistant"; text: string };
-export type Pin = { title: string; title_en?: string; city?: string; country?: string; iso?: string; kind?: string; home?: boolean; lat: number; lon: number; visited_on?: string | null; parent_id?: string | null; note?: string };
+export type Pin = { id?: string; title: string; title_en?: string; city?: string; country?: string; iso?: string; kind?: string; home?: boolean; lat: number; lon: number; visited_on?: string | null; parent_id?: string | null; note?: string; note_en?: string; dish?: string; dish_en?: string; rating?: number; price?: string };
 export type Wish = { title: string; city?: string; country?: string; lat: number; lon: number };
 export type Profile = { username?: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string };
-export type Focus = { kind: "pin" | "wish"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean };
-export type Ctx = { lang: "tr" | "en"; today: string; me: Profile; pins: Pin[]; wish: Wish[]; focus: Focus | null };
+export type Focus = { kind: "pin" | "wish" | "map"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean };
+// the map being looked at when it is someone else's: their profile and pins (only what the viewer may see)
+export type Friend = { username: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string; pins: Pin[] };
+export type Ctx = { lang: "tr" | "en"; today: string; me: Profile; pins: Pin[]; wish: Wish[]; focus: Focus | null; friend?: Friend | null };
 export type PinProposal = { title: string; city?: string; country?: string; kind: "yer" | "yemek"; date?: string; note?: string; search: string };
 export type Reply = { text: string; sources: { url: string; title: string }[]; pins: PinProposal[] };
 
@@ -68,7 +70,8 @@ export function buildSystem(c: Ctx): string {
     recent ? "Places they've been (newest first):\n" + recent : "",
     wish ? "Their Someday list:\n" + wish : "Their Someday list is empty.",
   ];
-  if (c.focus) {
+  if (c.friend) lines.push(friendSection(c.friend, c.lang, c.focus && c.focus.kind === "pin" ? c.focus.title : ""));
+  if (c.focus && c.focus.kind !== "map") {
     const f = c.focus;
     lines.push(`Place they are looking at now: ${clean(f.title, 100)}${where(f) ? " — " + where(f) : ""} (lat ${f.lat.toFixed(4)}, lon ${f.lon.toFixed(4)})` +
       (f.kind === "wish" ? ", from their own Someday list." : f.mine ? ", a pin on their own map." : `, a pin on ${f.owner ? "@" + clean(f.owner, 40) + "'s" : "a friend's"} map.`));
@@ -80,6 +83,7 @@ export function buildSystem(c: Ctx): string {
   lines.push("</data>", "",
     "How to help:",
     "- Questions are usually about the place they are looking at. \"Here\", \"there\", \"burası\", \"oraya\" mean that place.",
+    "- When they are looking at someone else's map, questions like \"what did she like\", \"neyden memnun kalmış\", \"where should I eat\" are about that person's pins: answer from their notes, food ratings and dishes, and name the places. Say so when the notes don't tell. Don't invent opinions they didn't write.",
     "- Getting there: assume they start from home unless they say otherwise. Give a concrete route, step by step: which airport to fly from and to (airline or route if known), then how to get from the airport into town and on to the place: train or bus line, operator, the station or stop to board at and to get off at, rough journey time and frequency. Prefer trains, buses and ferries; mention a hire car only when it is clearly the practical option or they ask.",
     "- Prices: approximate ranges in EUR (TRY too for flights from Turkey when useful). Say they are approximate and what period they refer to. Never invent exact fares, timetables or stop names.",
     "- Use web search for anything that changes: current routes, regional bus and train lines, stop and station names, seasonal services, typical fares. Small towns and villages especially need it. Search efficiently, a few targeted queries, and do not narrate the searching.",
@@ -90,6 +94,33 @@ export function buildSystem(c: Ctx): string {
     "- Format for a phone: short paragraphs and simple lists, **bold** for key names. No tables, no big headings. Keep it under about 250 words unless they ask for a full plan.",
   );
   return lines.filter(l => l !== "").join("\n").replace(/\n(How to help:)/, "\n\n$1");
+}
+
+function friendSection(fr: Friend, lang: "tr" | "en", focusTitle: string): string {
+  const pick = (p: Pin, f: "note" | "dish") => clean(lang === "en" && p[(f + "_en") as "note_en" | "dish_en"] ? p[(f + "_en") as "note_en" | "dish_en"] : p[f], 220);
+  const byId = new Map(fr.pins.filter(p => p.id).map(p => [p.id as string, p]));
+  const name = "@" + clean(fr.username, 40) + (fr.display_name ? ` (${clean(fr.display_name, 60)})` : "");
+  // places first (newest first), each followed by its food spots; then food spots not attached to a place
+  const places = fr.pins.filter(p => !p.parent_id && p.kind !== "yemek" && !p.home)
+    .sort((a, b) => String(b.visited_on || "").localeCompare(String(a.visited_on || "")));
+  const foodsOf = (id?: string) => fr.pins.filter(p => id && p.parent_id === id);
+  const loose = fr.pins.filter(p => (p.kind === "yemek" && !p.parent_id) || (p.parent_id && !byId.has(p.parent_id)));
+  const food = (p: Pin) => `  - food: ${clean(p.title, 80)}${p.rating ? ` ★${p.rating}/5` : ""}${pick(p, "dish") ? `, had ${pick(p, "dish")}` : ""}${p.price ? `, price ${clean(p.price, 6)}` : ""}${pick(p, "note") ? ` — note: ${pick(p, "note")}` : ""}`;
+  const rows: string[] = []; let n = 0;
+  for (const p of places) {
+    if (n >= 70) break;
+    rows.push(`- ${clean(p.title, 80)}${where(p) ? " — " + where(p) : ""}${p.visited_on ? ` (${String(p.visited_on).slice(0, 7)})` : ""}${pick(p, "note") ? ` — note: ${pick(p, "note")}` : ""}`); n++;
+    for (const f of foodsOf(p.id).slice(0, 8)) { rows.push(food(f)); n++; }
+  }
+  for (const f of loose.slice(0, 20)) rows.push(food(f).replace(/^  - food:/, "- food:") + (where(f) ? ` (${where(f)})` : ""));
+  const home = fr.pins.find(p => p.home);
+  return [
+    `Map they are looking at: ${name}'s map${focusTitle ? `, with the pin "${clean(focusTitle, 80)}" open` : ""}.`,
+    fr.tagline ? `${name} bio: ${clean(fr.tagline, 200)}` : "",
+    clean(lang === "en" && fr.bio_en ? fr.bio_en : fr.bio, 500) ? `${name} about: ${clean(lang === "en" && fr.bio_en ? fr.bio_en : fr.bio, 500)}` : "",
+    home ? `${name} lives in ${where(home) || clean(home.title, 60)}.` : "",
+    rows.length ? `${name}'s pins (places with their notes, food spots with ratings):\n` + rows.join("\n") : `${name} has no pins yet.`,
+  ].filter(Boolean).join("\n");
 }
 
 export const ADD_PIN_TOOL = {

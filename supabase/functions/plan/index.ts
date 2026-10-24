@@ -5,12 +5,12 @@
 // Everything is read with the caller's own sign-in, so the assistant sees only what they can see in the app.
 //
 // Request:  POST { "messages": [{ "role": "user"|"assistant", "text": "..." }, ...],
-//                  "lang": "tr"|"en", "focus": { "kind": "pin"|"wish", "id": "..." } | null }
+//                  "lang": "tr"|"en", "focus": { "kind": "pin"|"wish", "id": "..." } | { "kind": "map", "id": "<username>" } | null }
 // Response: { "text": "...", "sources": [{ "url", "title" }], "pins": [{ title, city, country, kind, date, note, search }],
 //             "left": <questions left today> }
 //           errors: { "error": "limit" | "no_key" | "no_limit_table" | "bad_request" | "upstream" | ... }
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { buildSystem, cleanHistory, converse, tools, type Ctx, type Focus } from "./lib.ts";
+import { buildSystem, cleanHistory, converse, tools, type Ctx, type Focus, type Friend } from "./lib.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +20,7 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "content-type": "application/json" } });
 const PIN_COLS = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,parent_id";
+const FRIEND_COLS = "id,kind,home,title,city,country,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,parent_id";
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -49,7 +50,14 @@ export async function handle(req: Request): Promise<Response> {
     sb.from("wishlist").select("id,title,city,country,lat,lon").eq("user_id", uid).limit(200),
   ]);
 
-  let focus: Focus | null = null;
+  let focus: Focus | null = null, friend: Friend | null = null;
+  // someone else's map: their profile and pins, read with the viewer's own sign-in (a private or hidden map comes back empty)
+  const loadFriend = async (ownerId: string) => {
+    const { data: pr } = await sb.from("profiles").select("id,username,display_name,tagline,bio,bio_en").eq("id", ownerId).maybeSingle();
+    if (!pr) return;
+    const { data: fp } = await sb.from("pins").select(FRIEND_COLS).eq("user_id", ownerId).limit(400);
+    friend = { username: pr.username, display_name: pr.display_name, tagline: pr.tagline, bio: pr.bio, bio_en: pr.bio_en, pins: fp || [] };
+  };
   const f = body.focus;
   if (f && typeof f.id === "string" && f.kind === "pin") {
     const { data: p } = await sb.from("pins").select(PIN_COLS).eq("id", f.id).maybeSingle();
@@ -57,10 +65,14 @@ export async function handle(req: Request): Promise<Response> {
       let owner = "";
       if (p.user_id !== uid) owner = (await sb.from("profiles").select("username").eq("id", p.user_id).maybeSingle()).data?.username || "";
       focus = { kind: "pin", title: p.title, city: p.city, country: p.country, lat: p.lat, lon: p.lon, note: p.note, owner, mine: p.user_id === uid };
+      if (p.user_id !== uid) await loadFriend(p.user_id);
     }
   } else if (f && typeof f.id === "string" && f.kind === "wish") {
     const w = (wish.data || []).find(x => x.id === f.id);
     if (w) focus = { kind: "wish", title: w.title, city: w.city, country: w.country, lat: w.lat, lon: w.lon, mine: true };
+  } else if (f && typeof f.id === "string" && f.kind === "map") {
+    const { data: pr } = await sb.from("profiles").select("id").ilike("username", f.id.replace(/[%_\\]/g, "\\$&")).maybeSingle();
+    if (pr && pr.id !== uid) await loadFriend(pr.id);
   }
 
   const myPins = pins.data || [];
@@ -71,6 +83,7 @@ export async function handle(req: Request): Promise<Response> {
     pins: myPins,
     wish: wish.data || [],
     focus,
+    friend,
   };
   const home = myPins.find(p => p.home);
 

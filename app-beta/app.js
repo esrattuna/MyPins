@@ -53,9 +53,10 @@ const I18N = {
     askPlace: "✦ Bu yerle ilgili sor", askWish: "✦ Planla", askTop: "Planla", chatT: "Planla", chatBack: "Haritaya dön", chatNew: "Yeni sohbet",
     chatPh: "Bir şey sor…", chatSend: "Gönder", chatThinking: "Bakıyorum…", chatCtxOff: "Bu yeri sohbetten çıkar",
     chatErr: "Cevap alınamadı. Tekrar dene.", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
-    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
+    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
     chatSuggPlace: ["Buraya nasıl giderim?", "Yakınında listemden neresi var?", "Burası için 3 günlük plan çıkar"],
     chatSuggFree: ["Belki bir gün listemden bir rota çıkar", "Gittiğim bir yeri haritama ekle", "Bütçe dostu bir hafta sonu öner"],
+    chatSuggMap: ["En çok nereyi sevmiş?", "Nerede ne yemiş, neyi beğenmiş?", "Haritasından bana uyan yerler hangileri?"],
     pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
     pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
     wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
@@ -114,9 +115,10 @@ const I18N = {
     askPlace: "✦ Ask about this place", askWish: "✦ Plan", askTop: "Plan", chatT: "Plan", chatBack: "Back to the map", chatNew: "New chat",
     chatPh: "Ask something…", chatSend: "Send", chatThinking: "Looking into it…", chatCtxOff: "Remove this place from the chat",
     chatErr: "No answer came back. Try again.", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
-    chatLeft: n => `${n} questions left today.`, chatSources: "Sources", chatRetry: "Try again",
+    chatLeft: n => `${n} questions left today.`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
     chatSuggPlace: ["How do I get here?", "What's near here from my list?", "Plan 3 days around here"],
     chatSuggFree: ["Make a route from my Someday List", "Add a place I've been to my map", "Suggest a budget weekend"],
+    chatSuggMap: ["Which places did they love most?", "Where did they eat and what did they like?", "Which of their places suit me?"],
     pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
     pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
     wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
@@ -1315,21 +1317,41 @@ function renderWish() {
    Knows the place you're looking at (a pin on any map, or a place on your Someday list), your own pins and your list.
    It can prepare places to add to your map; nothing is added until you confirm in the usual add form.
    The conversation lives only in this browser tab (sessionStorage). */
-const CHAT_KEY = "mp-chat-v1";
+// One conversation per context (a place, a place on your list, someone's map, or nothing), so going back to
+// Barcelona brings back the Barcelona chat. The context always follows what is on screen when the chat opens.
+const CHAT_KEY = "mp-chat-v2";
 let CHAT = (() => {
-  try { const c = JSON.parse(sessionStorage.getItem(CHAT_KEY) || "null"); if (c && Array.isArray(c.msgs)) return { ...c, busy: false, err: "" }; } catch (e) {}
-  return { msgs: [], focus: null, left: null, draft: "", busy: false, err: "", uid: null };
+  try { const c = JSON.parse(sessionStorage.getItem(CHAT_KEY) || "null"); if (c && Array.isArray(c.msgs) && c.threads) return { ...c, busy: false, err: "" }; } catch (e) {}
+  return { msgs: [], focus: null, threads: {}, left: null, draft: "", busy: false, err: "", uid: null };
 })();
-function chatSave() { try { const { busy, err, ...keep } = CHAT; sessionStorage.setItem(CHAT_KEY, JSON.stringify(keep)); } catch (e) {} }
+const chatKey = f => f ? f.kind + ":" + f.id : "free";
+function chatSave() {
+  try {
+    const { busy, err, ...keep } = CHAT;
+    keep.threads = { ...CHAT.threads, [chatKey(CHAT.focus)]: { msgs: CHAT.msgs, focus: CHAT.focus } };
+    // keep the 12 most recent conversations
+    const keys = Object.keys(keep.threads); if (keys.length > 12) keys.slice(0, keys.length - 12).forEach(k => delete keep.threads[k]);
+    sessionStorage.setItem(CHAT_KEY, JSON.stringify(keep));
+  } catch (e) {}
+}
+function chatSwitch(focus) {
+  if (chatKey(focus) === chatKey(CHAT.focus)) { if (focus) CHAT.focus = focus; return; }
+  CHAT.threads[chatKey(CHAT.focus)] = { msgs: CHAT.msgs, focus: CHAT.focus };
+  const k = chatKey(focus), th = CHAT.threads[k];
+  delete CHAT.threads[k];                                   // re-added last, so it counts as most recent
+  CHAT.msgs = th ? th.msgs : []; CHAT.focus = focus; CHAT.err = ""; CHAT.draft = "";
+}
 function currentFocus() {
-  if (S.panelMode === "map" && S.view === "detail" && S.selId) { const p = S.places.find(x => x.id === S.selId); if (p) return { kind: "pin", id: p.id, label: L(p, "title") }; }
-  if (S.panelMode === "map" && S.filter === "wish" && S.wishSel && S.canEdit) { const w = S.wish.find(x => x.id === S.wishSel); if (w) return { kind: "wish", id: w.id, label: L(w, "title") }; }
+  if (S.panelMode !== "map" || S.view === "form" || S.view === "addpin") return CHAT.focus;   // mid-edit (e.g. adding a place the chat prepared): back to that chat
+  if (S.view === "detail" && S.selId) { const p = S.places.find(x => x.id === S.selId); if (p) return { kind: "pin", id: p.id, label: L(p, "title") }; }
+  if (S.filter === "wish" && S.wishSel && S.canEdit) { const w = S.wish.find(x => x.id === S.wishSel); if (w) return { kind: "wish", id: w.id, label: L(w, "title") }; }
+  if (S.owner && S.ownerState === "ok" && S.me && S.owner.id !== S.me.id) return { kind: "map", id: S.owner.username, label: "@" + S.owner.username };
   return null;
 }
 function openChat(focus) {
   if (!S.me) return signIn();
-  if (CHAT.uid !== S.me.id) CHAT = { msgs: [], focus: null, left: null, draft: "", busy: false, err: "", uid: S.me.id };
-  if (focus) CHAT.focus = focus;
+  if (CHAT.uid !== S.me.id) CHAT = { msgs: [], focus: null, threads: {}, left: null, draft: "", busy: false, err: "", uid: S.me.id };
+  chatSwitch(focus);
   S.panelMode = "chat"; setPicking(false);
   if (narrowView()) setSheet("tall");
   chatSave(); render();
@@ -1378,8 +1400,8 @@ function renderChat() {
     el("button", { class: "back", type: "button", onclick: closeChat }, "← " + t("chatBack")),
     CHAT.msgs.length ? el("button", { class: "linkbtn", type: "button", onclick: () => { CHAT.msgs = []; CHAT.err = ""; chatSave(); render(); } }, t("chatNew")) : null);
   body.append(top, el("h2", { class: "d-title chat-h" }, el("span", { class: "chat-spark", "aria-hidden": "true", text: "✦" }), t("chatT")));
-  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: "📍 " + CHAT.focus.label }),
-    el("button", { type: "button", class: "chat-ctx-x", "aria-label": t("chatCtxOff"), title: t("chatCtxOff"), onclick: () => { CHAT.focus = null; chatSave(); render(); } }, "✕")));
+  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: (CHAT.focus.kind === "map" ? "🗺️ " : CHAT.focus.kind === "wish" ? "☆ " : "📍 ") + CHAT.focus.label }),
+    el("button", { type: "button", class: "chat-ctx-x", "aria-label": t("chatCtxOff"), title: t("chatCtxOff"), onclick: () => { chatSwitch(null); chatSave(); render(); } }, "✕")));
   body.append(el("div", { class: "chat-log", id: "chat-log", "aria-live": "polite" }));
   const ta = el("textarea", { id: "chat-in", rows: "1", maxlength: "2000", placeholder: t("chatPh"), enterkeyhint: "send",
     oninput: e => { CHAT.draft = e.target.value; autoGrow(e.target); },
@@ -1395,8 +1417,8 @@ function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.
 function paintChat() {
   const log = $("#chat-log"); if (!log) return;
   log.replaceChildren();
-  if (!CHAT.msgs.length && !CHAT.busy) {
-    const sugg = CHAT.focus ? t("chatSuggPlace") : t("chatSuggFree");
+  if (!CHAT.msgs.length && CHAT.busy !== chatKey(CHAT.focus)) {
+    const sugg = !CHAT.focus ? t("chatSuggFree") : CHAT.focus.kind === "map" ? t("chatSuggMap") : t("chatSuggPlace");
     log.append(el("div", { class: "chat-sugg" }, sugg.map(q => el("button", { class: "chip", type: "button", onclick: () => chatSend(q) }, q))));
   }
   CHAT.msgs.forEach((m, mi) => {
@@ -1407,11 +1429,11 @@ function paintChat() {
       el("ul", {}, m.sources.map(x => el("li", {}, el("a", { href: x.url, target: "_blank", rel: "noopener noreferrer", text: x.title }))))));
     log.append(b);
   });
-  if (CHAT.busy) log.append(el("div", { class: "msg ai typing" }, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")), t("chatThinking")));
+  if (CHAT.busy === chatKey(CHAT.focus)) log.append(el("div", { class: "msg ai typing" }, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")), t("chatThinking")));
   if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err,
     CHAT.err === t("chatErr") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
   if (CHAT.left != null && CHAT.left <= 3 && !CHAT.err) log.append(el("p", { class: "chat-left", text: t("chatLeft", CHAT.left) }));
-  const go = $("#chat-go"); if (go) go.disabled = CHAT.busy;
+  const go = $("#chat-go"); if (go) go.disabled = !!CHAT.busy;
   const sc = $("#panelBody"); if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
 }
 // what goes back to the assistant with the next question: the text, plus what happened to the places it prepared
@@ -1432,11 +1454,13 @@ async function chatSend(q) {
 }
 async function chatRetry() { if (CHAT.msgs.length && CHAT.msgs[CHAT.msgs.length - 1].role === "user") await chatAsk(); }
 async function chatAsk() {
-  CHAT.busy = true; CHAT.err = ""; chatSave(); paintChat();
+  // the answer goes to the conversation it was asked in, even if another one is open by the time it arrives
+  const key = chatKey(CHAT.focus), thread = CHAT.msgs, history = chatHistory();
+  CHAT.busy = key; CHAT.err = ""; chatSave(); paintChat();
   const focus = CHAT.focus ? { kind: CHAT.focus.kind, id: CHAT.focus.id } : null;
   let data = null, code = "";
   try {
-    const r = await sb.functions.invoke("plan", { body: { messages: chatHistory(), lang: LANG, focus } });
+    const r = await sb.functions.invoke("plan", { body: { messages: history, lang: LANG, focus } });
     if (r.error) {
       const ctx = r.error.context;
       try { code = (await ctx.json()).error || ""; } catch (e) {}
@@ -1445,14 +1469,16 @@ async function chatAsk() {
     } else data = r.data;
   } catch (e) { code = "network"; }
   CHAT.busy = false;
+  const here = key === chatKey(CHAT.focus);
   if (data && (data.text || (data.pins && data.pins.length))) {
-    CHAT.msgs.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
+    thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
     if (typeof data.left === "number") CHAT.left = data.left;
-  } else {
+  } else if (here) {
     CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady") : t("chatErr");
     if (code === "limit") CHAT.left = 0;
   }
   chatSave(); paintChat();
+  if (!here && data) toast(t("chatAnswered", (CHAT.threads[key] && CHAT.threads[key].focus && CHAT.threads[key].focus.label) || t("chatT")));
 }
 
 // a place the assistant prepared: found on the map with Photon, then added through the usual form (so it can be checked)
