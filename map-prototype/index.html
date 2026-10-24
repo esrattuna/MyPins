@@ -86,7 +86,9 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
       <label class="tog"><input type="checkbox" id="optBase"> Yedek zemin</label>
       <label class="tog"><input type="checkbox" id="optLuPre" checked> Üst seviyede önce indir</label>
-      <label class="tog"><input type="checkbox" id="optLuAnim" checked> Üst seviyede animasyon</label></div>
+      <label class="tog"><input type="checkbox" id="optLuReady"> Düğmeyi hazırla</label></div>
+    <div class="row"><span class="lab">⤒ geçiş</span>
+      <span class="seg" id="luSeg"><button data-lu="jump">Zıplama</button><button data-lu="short">Kısa</button><button data-lu="full">Tam</button></span></div>
     <div class="row"><span class="lab">Ön yükleme</span>
       <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
@@ -149,7 +151,8 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   tiles: "ofm",        // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
   base: false,         // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7 (dropped 24 Oct)
   luPre: true,         // level-up button: download the target level's tiles first, then jump
-  luAnim: true };      // level-up button: short ease through pre-downloaded levels instead of a cut
+  luMode: "short",     // level-up transition: jump | short | full
+  luReady: false };    // level-up: pre-download the next level when the map rests
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
 function mapTilerKey() {
@@ -395,10 +398,11 @@ async function createMap() {
   map.on("styleimagemissing", onMissing);
   map.on("idle", updateCounts);
   map.on("idle", onIdlePrefetch);
+  map.on("idle", onIdleReady);
   map.on("click", onMapTap);
   map.on("dataloading", onTileStart); map.on("data", onTileDone);
   cleanups.push(() => { map.off("dataloading", onTileStart); map.off("data", onTileDone); TT.pending.clear();
-    map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.off("idle", onIdlePrefetch); clearTimeout(PF.timer); map.remove(); map = null; pendingImg.clear(); });
+    map.off("click", onMapTap); lastCam = { center: map.getCenter(), zoom: map.getZoom() }; map.off("styleimagemissing", onMissing); map.off("idle", updateCounts); map.off("idle", onIdlePrefetch); map.off("idle", onIdleReady); clearTimeout(PF.timer); clearTimeout(LU.timer); map.remove(); map = null; pendingImg.clear(); });
 }
 const pendingImg = new Set();
 let lastCam = null;   // camera survives leaving and returning, like a real screen
@@ -571,7 +575,7 @@ async function tileTemplate() {
   } catch (e) {}
   return TILE_TPL;
 }
-async function prefetchView(center, zoom) {
+async function prefetchView(center, zoom, key = "bytes") {
   const tpl = await tileTemplate(); if (!tpl || !center) return;
   const c = Array.isArray(center) ? center : [center.lng, center.lat];
   const tz = Math.max(0, Math.min(TILE_MAX, Math.floor(zoom))), n = 2 ** tz;
@@ -583,7 +587,7 @@ async function prefetchView(center, zoom) {
     if (ty < 0 || ty >= n) continue;
     urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
   }
-  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).then(b => { LU.bytes += b.byteLength; }).catch(() => {})));
+  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).then(b => { LU[key] += b.byteLength; }).catch(() => {})));
 }
 /* ---------- "Üst seviye": jump out by one level instead of pinching through every zoom ----------
    Measured on iPhone: a pinch zoom-out requests every intermediate level and about half the tiles arrive too late
@@ -592,29 +596,47 @@ async function prefetchView(center, zoom) {
    The button jumps to the next level down (city 13, region 10.5, country part 8, country 5.5, continent 3.5).
    With "önce indir" it first downloads exactly the target view's tiles (the ones the jump would need anyway, so no
    extra data), waits up to 1.5 s, then jumps: the new view should appear already filled. */
-const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1500, LU_ANIM = 450;
-const LU = { busy: false, bytes: 0 };
-/* 24 Oct, iPhone: with "önce indir" the random land squares were gone, but the cut (no animation) plus the short
-   wait felt choppy, while a pinch felt smooth. "Animasyonlu" (default) also pre-downloads every level the animation
-   passes through (each at its widest view), then eases out in 450 ms, so the motion is continuous and every level
-   it shows is already loaded. Those intermediate levels are what a pinch requests anyway. ?luanim=0 = old jump. */
+const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1000, LU_ANIM = 450, LU_SHORT = 350;
+const LU = { busy: false, bytes: 0, readyBytes: 0, timer: 0 };
+const nextLevel = z => LEVELS.find(l => l < z - 0.25);
+/* Transition modes (24 Oct, iPhone):
+   - "zıplama" (jump): download the target view, then cut. No squares, but the cut + wait felt choppy.
+   - "tam" (full): also download every level the animation passes through, then ease 450 ms. Smooth and no squares,
+     but 4.6-14.6 MB per 3 presses (the zoom 9-12 levels are heavy) and 1-1.5 s before anything moved.
+   - "kısa" (short, default): download only the target view (same data as the jump), jump to just inside the
+     target's tile level (target + up to 0.6 zoom) and ease the last bit in 350 ms. That last bit stays on the
+     target's tile level, so it needs no extra tiles.
+   The wait limit is 1 s (was 1.5 s). */
 async function levelUp() {
   if (!map || LU.busy) return null;
-  const z = map.getZoom(), target = LEVELS.find(l => l < z - 0.25);
+  const z = map.getZoom(), target = nextLevel(z);
   if (target === undefined) return null;
   LU.busy = true; $("#levelUp").classList.add("wait");
-  const t0 = performance.now(), center = map.getCenter();
+  const t0 = performance.now(), center = map.getCenter(), mode = OPT.luMode;
   if (OPT.luPre) {
     const jobs = [];
-    if (OPT.luAnim) for (let L = Math.ceil(z) - 1; L > Math.floor(target); L--) jobs.push(prefetchView(center, L));
+    if (mode === "full") for (let L = Math.ceil(z) - 1; L > Math.floor(target); L--) jobs.push(prefetchView(center, L));
     jobs.push(prefetchView(center, target));
     await Promise.race([Promise.all(jobs), wait(LU_MAX)]);
   }
   const waited = performance.now() - t0;
-  if (OPT.luAnim) await new Promise(r => { map.easeTo({ center, zoom: target, duration: LU_ANIM, easing: t => 1 - (1 - t) * (1 - t) }); map.once("moveend", r); });
-  else map.jumpTo({ center, zoom: target });
+  const ease = (zoom, duration) => new Promise(r => { map.easeTo({ center, zoom, duration, easing: t => 1 - (1 - t) * (1 - t) }); map.once("moveend", r); });
+  if (mode === "full") await ease(target, LU_ANIM);
+  else if (mode === "short") {
+    const d = Math.min(0.6, Math.floor(target) + 0.98 - target);
+    map.jumpTo({ center, zoom: target + d });
+    await ease(target, LU_SHORT);
+  } else map.jumpTo({ center, zoom: target });
   LU.busy = false; $("#levelUp").classList.remove("wait");
   return waited;
+}
+/* "Düğmeyi hazırla" (experiment, off by default): when the map has rested 0.8 s, download the next level's target
+   view in the background so a press can move at once. Costs data even if the button is never pressed. */
+function onIdleReady() { clearTimeout(LU.timer); if (OPT.luReady) LU.timer = setTimeout(readyNext, 800); }
+function readyNext() {
+  if (!map || !OPT.luReady || LU.busy || map.isMoving()) return Promise.resolve();
+  const target = nextLevel(map.getZoom());
+  return target === undefined ? Promise.resolve() : prefetchView(map.getCenter(), target, "readyBytes");
 }
 
 /* ---------- info panel (plain DOM; opening it never touches the map) ---------- */
@@ -831,8 +853,9 @@ async function levelUpTest() {
   await idle(); await wait(600);
   TT.pending.clear();
   TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
-  rec = []; const lt0 = stats.longTasks, waits = [], b0 = LU.bytes;
+  rec = []; const lt0 = stats.longTasks, waits = [], b0 = LU.bytes, rb0 = LU.readyBytes;
   for (let k = 0; k < 3; k++) {                       // 16 -> 13 -> 10.5 -> 8, like the pinch test
+    if (OPT.luReady) { await idle(); await Promise.race([readyNext(), wait(2000)]); }   // a person looks before pressing
     waits.push(await levelUp());
     if (k < 2) await wait(250);
   }
@@ -841,7 +864,7 @@ async function levelUpTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round, w = waits.filter(x => x != null);
-  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen"}, ${OPT.luAnim ? "animasyonlu" : "zıplama"}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), önceden indirilen ${r((LU.bytes - b0) / 1024)} KB, istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen"}, ${({ jump: "zıplama", short: "kısa", full: "tam" })[OPT.luMode]}${OPT.luReady ? ", hazırla" : ""}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), önceden indirilen ${r((LU.bytes - b0) / 1024)} KB${OPT.luReady ? `, hazırlanan ${r((LU.readyBytes - rb0) / 1024)} KB` : ""}, istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   for (const id of ["#runZoomOut", "#runLevelUp", "#runAll"]) $(id).disabled = false;
 }
@@ -887,7 +910,8 @@ $("#runZoomOut").onclick = () => map && zoomOutTest();
 $("#runLevelUp").onclick = () => map && levelUpTest();
 $("#levelUp").onclick = () => levelUp();
 $("#optLuPre").onchange = e => { OPT.luPre = e.target.checked; paintCfg(); };
-$("#optLuAnim").onchange = e => { OPT.luAnim = e.target.checked; paintCfg(); };
+$("#optLuReady").onchange = e => { OPT.luReady = e.target.checked; paintCfg(); if (OPT.luReady) readyNext(); };
+document.querySelectorAll("#luSeg button").forEach(b => b.onclick = () => { OPT.luMode = b.dataset.lu; paintCfg(); });
 // worker count and style layers are fixed when the map is built: changing them reloads the page with the
 // current settings in the address bar (so the same link reproduces the test)
 function reloadWithOptions() {
@@ -898,7 +922,8 @@ function reloadWithOptions() {
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   if (OPT.base) q.set("base", "1"); else q.delete("base");
   if (!OPT.luPre) q.set("lupre", "0"); else q.delete("lupre");
-  if (!OPT.luAnim) q.set("luanim", "0"); else q.delete("luanim");
+  if (OPT.luMode !== "short") q.set("lumode", OPT.luMode); else q.delete("lumode");
+  if (OPT.luReady) q.set("luready", "1"); else q.delete("luready");
   if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
@@ -916,6 +941,7 @@ function paintCfg() {
   document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
   document.querySelectorAll("#tileSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tiles === OPT.tiles)));
   document.querySelectorAll("#pfSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pf === OPT.prefetch)));
+  document.querySelectorAll("#luSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lu === OPT.luMode)));
   $("#cfgNote").textContent = `Şu an: ${cfgLabel()} (normal stilde ${LAYER_INFO.all}). Worker ve stil değişince sayfa yeniden yüklenir.`;
 }
 $("#copyReport").onclick = async () => {
@@ -936,7 +962,9 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   OPT.base = q.get("base") === "1";
   OPT.luPre = q.get("lupre") !== "0"; $("#optLuPre").checked = OPT.luPre;
-  OPT.luAnim = q.get("luanim") !== "0"; $("#optLuAnim").checked = OPT.luAnim;
+  if (["jump", "short", "full"].includes(q.get("lumode"))) OPT.luMode = q.get("lumode");
+  else if (q.get("luanim") === "0") OPT.luMode = "jump";
+  OPT.luReady = q.get("luready") === "1"; $("#optLuReady").checked = OPT.luReady;
   const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
   if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
