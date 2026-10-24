@@ -728,13 +728,24 @@ async function runAll() {
 const PINCHES = [[13, 700], [10.5, 700], [8, 800]];
 // "Soğuk" runs start each time in a city this phone has not loaded yet (far apart so z8 tiles do not overlap),
 // so tiles come from the internet, like a first visit. The position is remembered across reloads.
-const COLD_CITIES = [["Lyon", 4.835, 45.764], ["Kraków", 19.945, 50.065], ["Porto", -8.611, 41.149], ["Napoli", 14.268, 40.852],
-  ["Gdańsk", 18.646, 54.352], ["Sevilla", -5.984, 37.389], ["Zagreb", 15.98, 45.815], ["Bordeaux", -0.579, 44.838],
-  ["Palermo", 13.361, 38.116], ["Praha", 14.42, 50.088], ["Valencia", -0.376, 39.47], ["Thessaloniki", 22.944, 40.64],
-  ["Nantes", -1.554, 47.218], ["Bari", 16.871, 41.117], ["Wrocław", 17.038, 51.108], ["Málaga", -4.421, 36.721]];
+// The first list (16 cities) was used up on 23 Oct: after it wrapped, about half the tiles came from the browser
+// cache, so "cold" rounds were no longer cold. Cities used so far are skipped; the list below is new, each city at
+// least ~2 degrees from the others so the zoom-8 views do not share tiles. When it runs out the report says so.
+const USED_COLD = ["Lyon", "Kraków", "Porto", "Napoli", "Gdańsk", "Sevilla", "Zagreb", "Bordeaux", "Palermo", "Praha",
+  "Valencia", "Thessaloniki", "Nantes", "Bari", "Wrocław", "Málaga"];
+const COLD_CITIES = [["Bilbao", -2.935, 43.263], ["Marseille", 5.370, 43.296], ["Wien", 16.373, 48.208], ["Heraklion", 25.144, 35.338],
+  ["Edinburgh", -3.188, 55.953], ["Budapest", 19.040, 47.498], ["Cagliari", 9.110, 39.224], ["İzmir", 27.142, 38.423],
+  ["Hamburg", 9.994, 53.551], ["Sofia", 23.322, 42.698], ["Tunis", 10.181, 36.806], ["Rennes", -1.678, 48.117],
+  ["Tallinn", 24.754, 59.437], ["Genova", 8.934, 44.407], ["Lviv", 24.031, 49.842], ["Fès", -5.008, 34.018],
+  ["Venezia", 12.316, 45.440], ["Tirana", 19.819, 41.327], ["Bruxelles", 4.352, 50.847], ["Konya", 32.485, 37.871],
+  ["Göteborg", 11.975, 57.709], ["Cluj-Napoca", 23.600, 46.770], ["Valletta", 14.514, 35.899], ["Toulouse", 1.444, 43.605],
+  ["Leipzig", 12.374, 51.340], ["Sarajevo", 18.413, 43.856], ["Patras", 21.735, 38.246], ["Cork", -8.476, 51.898],
+  ["Vilnius", 25.280, 54.687], ["Ajaccio", 8.738, 41.919], ["București", 26.103, 44.426], ["Zürich", 8.541, 47.377],
+  ["Lefkoşa", 33.365, 35.185], ["Poznań", 16.925, 52.406], ["Clermont-Ferrand", 3.087, 45.778], ["Alexandria", 29.919, 31.200],
+  ["Riga", 24.105, 56.950], ["Skopje", 21.431, 41.998], ["Ankara", 32.854, 39.920], ["München", 11.582, 48.135]];
 function nextColdCity() {
   let i = 0;
-  try { i = (+localStorage.getItem("mp-cold-i") || 0) % COLD_CITIES.length; localStorage.setItem("mp-cold-i", String(i + 1)); } catch (e) { i = Math.floor(Math.random() * COLD_CITIES.length); }
+  try { const k = +localStorage.getItem("mp-cold-v2") || 0; i = k % COLD_CITIES.length; localStorage.setItem("mp-cold-v2", String(k + 1)); if (k >= COLD_CITIES.length) return [COLD_CITIES[i][0] + " (liste bitti, önbellekte olabilir)", COLD_CITIES[i][1], COLD_CITIES[i][2]]; } catch (e) { i = Math.floor(Math.random() * COLD_CITIES.length); }
   return COLD_CITIES[i];
 }
 // drop the tiles the map keeps in memory, otherwise a second run on the same page requests nothing
