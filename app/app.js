@@ -24,7 +24,7 @@ const I18N = {
     ghostNote: "Hayalet moddasın: haritan sadece sana görünür. Başkaları seni bulamaz ve takip edemez.", privateNote: "Gizli profil: haritanı sadece onayladığın takipçiler görür.",
     welcomeT: "MyPins'e hoş geldin", welcomeP1: "Gezdiğin yerleri, yemek yediğin güzel adresleri ve notlarını kendi haritanda topla.", welcomeP2: "Arkadaşlarını takip et, onların haritalarında yeni yerler keşfet.", browseFirst: "Önce etrafa göz at",
     hello: n => `Merhaba, ben ${n}.`, noBio: "Henüz bir tanıtım yazısı yok.",
-    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
+    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sTagline: "Bio", bioMissing: "Bio henüz kurulmadı (veritabanı güncellemesi bekleniyor).", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
     sLang: "Dil", sAccount: "Hesap", delT: "Hesabı sil", delBtn: "Hesabımı sil", delWarn: "Bu işlem geri alınamaz. Haritan, pinlerin, fotoğrafların, Belki bir gün listen ve takiplerin kalıcı olarak silinir.",
     delType: n => `Onaylamak için kullanıcı adını yaz: ${n}`, delGo: "Kalıcı olarak sil", delDone: "Hesabın silindi.", delErr: "Hesap silinemedi, tekrar dene.", delMissing: "Hesap silme henüz kurulmadı (veritabanı güncellemesi bekleniyor).", deleting: "Siliniyor…",
     sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
@@ -77,7 +77,7 @@ const I18N = {
     ghostNote: "You're in ghost mode: your map is visible only to you. Others can't find or follow you.", privateNote: "Private profile: only followers you approve can see your map.",
     welcomeT: "Welcome to MyPins", welcomeP1: "Collect the places you've been, the good spots you've eaten at and your notes on your own map.", welcomeP2: "Follow your friends and discover new places on their maps.", browseFirst: "Look around first",
     hello: n => `Hi, I'm ${n}.`, noBio: "No introduction yet.",
-    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
+    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sTagline: "Bio", bioMissing: "Bio isn't set up yet (database update pending).", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
     sLang: "Language", sAccount: "Account", delT: "Delete account", delBtn: "Delete my account", delWarn: "This can't be undone. Your map, pins, photos, Someday List and follows are deleted permanently.",
     delType: n => `To confirm, type your username: ${n}`, delGo: "Delete permanently", delDone: "Your account was deleted.", delErr: "Couldn't delete the account, try again.", delMissing: "Account deletion isn't set up yet (database update pending).", deleting: "Deleting…",
     sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
@@ -1778,6 +1778,8 @@ function profileCard() {
             el("a", { href: "#/people/followers" }, t("followers", S.counts.followers)), " · ",
             el("a", { href: "#/people/following" }, t("following", S.counts.following)))
         : el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
+  const bio = (o.tagline || "").trim();   // shown exactly as written, in any language (never translated)
+  if (bio) card.append(el("p", { class: "pcx-bio", text: bio }));
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
     acts.append(el("a", { class: "btn ghost small", href: "#/profile" }, t("editProfile")),
@@ -1820,8 +1822,8 @@ let SETMODE = "account";   // "profile" = Profili düzenle (photo, name, about) 
 function renderSettings() {
   if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: t("settings") }), t("needSignIn"), el("div", { style: "margin-top:12px" }, el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn"))))); return; }
   const prof = SETMODE === "profile";
-  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "";
-    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, visibility: S.me.visibility }, busy: false, err: "", msg: "", del: null }; }
+  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "", tag = S.me.tagline || "";
+    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, tag, tag0: tag, visibility: S.me.visibility }, busy: false, err: "", msg: "", del: null }; }
   const d = SET.d;
   body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, "← " + t("myMap")));
   body.append(el("h2", { class: "d-title", text: prof ? t("editProfile") : t("settings") }));
@@ -1834,6 +1836,9 @@ function renderSettings() {
           el("input", { type: "file", id: "s-photo", accept: "image/*", class: "vh", onchange: e => uploadAvatar(e.target.files[0]) })),
         el("span", { class: "hint", id: "s-photo-msg" }))));
     form.append(el("div", { class: "field" }, el("label", { for: "s-name", text: t("sName") }), el("input", { id: "s-name", maxlength: 60, value: d.display_name, oninput: bind("display_name") })));
+    const cnt = el("span", { class: "char-count", text: `${(d.tag || "").length}/150` });
+    form.append(el("div", { class: "field" }, el("label", { for: "s-tag", text: t("sTagline") }),
+      el("textarea", { id: "s-tag", class: "tag-box", maxlength: 150, rows: 2, oninput: e => { d.tag = e.target.value; cnt.textContent = `${d.tag.length}/150`; } }, d.tag), cnt));
     form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about)));
   } else {
     form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
@@ -1921,6 +1926,8 @@ async function saveSettings() {
   const upd = prof ? { display_name: d.display_name.trim() } : { username: d.username, visibility: d.visibility };
   let transFailed = false;
   const about = (d.about || "").trim();
+  const tag = (d.tag || "").trim();
+  if (prof && tag !== (d.tag0 || "").trim()) upd.tagline = tag;   // bio: saved as written, not translated
   if (prof && about !== (d.about0 || "").trim()) {
     if (!about) { upd.bio = ""; upd.bio_en = ""; }
     else {
@@ -1933,7 +1940,10 @@ async function saveSettings() {
   }
   const { data, error } = await sb.from("profiles").update(upd).eq("id", S.me.id).select("*").single();
   SET.busy = false;
-  if (error) { SET.err = error.code === "23505" ? t("sUserTaken") : t("saveErr"); render(); return; }
+  if (error) {
+    SET.err = error.code === "23505" ? t("sUserTaken") : /tagline/.test(error.message || "") ? t("bioMissing") : t("saveErr");
+    render(); return;
+  }
   S.me = data; if (S.owner && S.owner.id === data.id) S.owner = { ...S.owner, ...data };
   SET = null; toast(transFailed ? t("sTransFail") : t("sSaved"));
   renderChrome(); render();
