@@ -391,3 +391,9 @@ a.btn{text-decoration:none}
 /* own profile: follower / following counts open their lists */
 .pcx-counts a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .pcx-counts a:hover{color:var(--ink)}
+/* language lives in the account menu and in Settings; no switch on the map screen */
+.topbar .lang{display:none}
+.acct-lang{display:flex;align-items:center;gap:8px;padding:6px 10px}
+.lang-seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
+.lang-seg button{border:0;background:transparent;padding:5px 14px;font:600 13px var(--f-body);cursor:pointer;color:var(--ink)}
+.lang-seg button[aria-pressed="true"]{background:var(--pin);color:var(--pin-ink)}

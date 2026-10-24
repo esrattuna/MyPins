@@ -25,7 +25,7 @@ const I18N = {
     welcomeT: "MyPins'e hoş geldin", welcomeP1: "Gezdiğin yerleri, yemek yediğin güzel adresleri ve notlarını kendi haritanda topla.", welcomeP2: "Arkadaşlarını takip et, onların haritalarında yeni yerler keşfet.", browseFirst: "Önce etrafa göz at",
     hello: n => `Merhaba, ben ${n}.`, noBio: "Henüz bir tanıtım yazısı yok.",
     sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
-    sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
+    sLang: "Dil", sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
     requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.", peopleBtn: "👥 Kişiler", backProfile: "← Haritama dön",
     searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı", shareMap: "Haritamı paylaş", shareText: n => `${n} · MyPins haritası`,
@@ -76,7 +76,7 @@ const I18N = {
     welcomeT: "Welcome to MyPins", welcomeP1: "Collect the places you've been, the good spots you've eaten at and your notes on your own map.", welcomeP2: "Follow your friends and discover new places on their maps.", browseFirst: "Look around first",
     hello: n => `Hi, I'm ${n}.`, noBio: "No introduction yet.",
     sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
-    sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
+    sLang: "Language", sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
     requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.", peopleBtn: "👥 People", backProfile: "← Back to my map",
     searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied", shareMap: "Share my map", shareText: n => `${n} · MyPins map`,
@@ -149,7 +149,11 @@ function applyLang() {
   if (typeof applyMapLang === "function") applyMapLang();
   if (typeof renderChrome === "function") renderChrome();
 }
-document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { LANG = b.dataset.lang; ls("ad-lang", LANG); applyLang(); render(); });
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+// language: chosen in the account menu or in Settings (the top-bar switch is hidden); visitors get the browser's language
+function setLang(l) { if (l === LANG) return; LANG = l; ls("ad-lang", LANG); applyLang(); render(); }
+const langSeg = (cls) => el("div", { class: cls, role: "group", "aria-label": "Dil / Language" },
+  ["tr", "en"].map(l => el("button", { type: "button", "aria-pressed": String(LANG === l), onclick: e => { e.stopPropagation(); setLang(l); } }, l.toUpperCase())));
 function dms(v, pos, neg) {
   const a = Math.abs(v), d = Math.floor(a), m = Math.round((a - d) * 60);
   const dd = m === 60 ? d + 1 : d, mm = m === 60 ? 0 : m;
@@ -1591,9 +1595,9 @@ function renderChrome() {
       el("div", { class: "acct-who" }, el("b", { text: S.me.display_name || S.me.username }), el("span", { text: "@" + S.me.username })),
       el("a", { role: "menuitem", href: "#/u/" + S.me.username }, "🗺️ " + t("myMap")),
       el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
-      el("a", { role: "menuitem", href: "#/people" }, "👥 " + t("people"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null),
       S.me.visibility !== "ghost" ? el("button", { role: "menuitem", type: "button", onclick: shareMyMap }, "🔗 " + t("shareMap")) : null,
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
+      el("div", { class: "acct-lang" }, el("span", { text: "🌐" }), langSeg("seg lang-seg")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); };
     menu.addEventListener("click", () => { menu.hidden = true; });
@@ -1686,6 +1690,7 @@ function renderSettings() {
       el("span", { class: "mode-d", text: t("m_" + m + "D") })));
   }
   form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
+  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sLang") }), langSeg("seg lang-seg")));
   if (SET.err) form.append(el("div", { class: "err", role: "alert", text: SET.err }));
   form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? (SET.busy === "tr" ? t("translating") : t("saving")) : t("save"))));
   body.append(form);
