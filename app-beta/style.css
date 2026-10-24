@@ -222,8 +222,8 @@ button,input,textarea,select{font:inherit;color:inherit}
 .pc-s .stars{letter-spacing:0;font-size:11px}
 .pc-d{font-size:11px;color:var(--muted);margin:2px 3px 0;opacity:.85}
 
-/* travel log background artwork: content sits on paper "cut-outs" so the collage shows between them */
-.panel{background:var(--paper) url("log-bg.jpg") center top/cover no-repeat}
+/* plain paper panel (the personal background artwork was removed) */
+.panel{background:var(--paper)}
 .panel-scroll[data-view="detail"],.panel-scroll[data-view="form"]{background:var(--paper)}
 .panel-scroll[data-view="list"] .ph{background:var(--paper);border-radius:10px;padding:12px 14px;box-shadow:0 2px 10px var(--shadow)}
 .panel-scroll[data-view="list"] .stat{background:var(--paper);box-shadow:0 2px 8px var(--shadow)}
