@@ -1733,9 +1733,10 @@ const mapLink = u => location.origin + location.pathname + "#/u/" + encodeURICom
 
 function renderChrome() {
   const o = S.owner;
-  $("#brandName").textContent = o ? (o.display_name || o.username) : t("siteName");
+  // Kıyı: the corner always shows the MyPins logo; the owner's name is in the profile card
+  $("#brandName").textContent = t("siteName");
   $("#brandSub").textContent = o ? "@" + o.username + " · MyPins" : t("tagline");
-  $("#aboutBtn").hidden = !o;
+  $("#aboutBtn").hidden = true; // "Hakkında" lives in the profile card now
   document.title = o ? `${o.display_name || o.username} · MyPins` : "MyPins";
   const acct = $("#acct");
   acct.replaceChildren();
@@ -1788,6 +1789,7 @@ function profileCard() {
   } else {
     acts.append(el("button", { class: "btn small", type: "button", onclick: follow }, t("follow")));
   }
+  acts.append(el("button", { class: "btn ghost small", type: "button", onclick: () => openIntro("about") }, t("about")));
   card.append(acts);
   return card;
 }

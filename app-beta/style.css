@@ -531,3 +531,6 @@ body{font-size:15px;line-height:1.5}
 .set-out,.set-del,.onb-foot{border-top:1px solid var(--rule)}
 .intro-card{border-radius:24px}
 .intro-card h2{font-size:28px}
+/* corner brand: pin logo + MyPins (owner name lives in the profile card) */
+.brand h1.brand-t{display:flex;align-items:center;gap:7px}
+.map .brand svg.brand-logo{flex:none;display:block;width:22px;height:26px;cursor:default}
