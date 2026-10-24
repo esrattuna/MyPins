@@ -39,7 +39,12 @@ const I18N = {
     kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Not ekle",
     tally: (a, b, c) => `${a} yer · ${b} sofra · ${c} ülke`,
     noDb: "Notlar bu görünümde açılamıyor. Görmek için claude.ai hesabınla oturum açman gerekiyor.", dbErr: "Notlar yüklenemedi. Sayfayı yenileyip tekrar dene.",
-    filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar",
+    filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar", f_wish: "Belki bir gün",
+    wishBtn: "Belki bir gün giderim", wishOn: "Belki bir gün ✓", wishNew: "+ Yer ekle", wishWent: "Gittim", wishRemove: "Kaldır",
+    wishEmptyOwn: "Henüz bir yer yok. Arkadaşlarının pinlerinden ya da haritadan ekleyebilirsin.", wishEmptyOther: "Bu listede henüz bir yer yok.",
+    wishPick: "Haritada gitmek istediğin yere dokun", wishName: "Yerin adı", wishSave: "Listeye ekle",
+    wishAddedT: "Belki bir gün listene eklendi", wishRemovedT: "Listeden çıkarıldı", wishWentT: "Haritana eklendi",
+    wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
     exNotice: n => `Örnek olarak ${n} not ekledim, nasıl göründüğünü görebilmen için. `, exRemove: "Örnekleri kaldır", example: "örnek",
     loadingT: "Defter açılıyor…", loadingB: "Notların yükleniyor.", emptyFilter: "Bu filtrede not yok", emptyAll: "Defter henüz boş",
     emptyEdit: "“Not ekle”ye bas, sonra haritada gittiğin yere dokun. Fotoğraf, not ve yemek puanı ekleyebilirsin.", emptyView: "Henüz paylaşılmış bir not yok.",
@@ -81,7 +86,12 @@ const I18N = {
     kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add note",
     tally: (a, b, c) => `${a} ${a === 1 ? "place" : "places"} · ${b} food ${b === 1 ? "spot" : "spots"} · ${c} ${c === 1 ? "country" : "countries"}`,
     noDb: "Notes can't load in this view. Sign in with a claude.ai account to see them.", dbErr: "Notes didn't load. Refresh the page and try again.",
-    filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food",
+    filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food", f_wish: "Someday List",
+    wishBtn: "Maybe someday", wishOn: "Someday ✓", wishNew: "+ Add a place", wishWent: "Been there", wishRemove: "Remove",
+    wishEmptyOwn: "No places yet. Add them from friends' pins or from the map.", wishEmptyOther: "No places on this list yet.",
+    wishPick: "Tap the map where you'd like to go", wishName: "Place name", wishSave: "Add to list",
+    wishAddedT: "Added to your Someday List", wishRemovedT: "Removed from the list", wishWentT: "Added to your map",
+    wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
     exNotice: n => `I added ${n} example notes so you can see how things look. `, exRemove: "Remove examples", example: "example",
     loadingT: "Opening the notebook…", loadingB: "Loading your notes.", emptyFilter: "No notes for this filter", emptyAll: "The notebook is empty",
     emptyEdit: "Press “Add note”, then tap the map where you went. You can add photos, notes and a food rating.", emptyView: "No notes have been shared yet.",
@@ -103,7 +113,7 @@ const I18N = {
 let LANG = (() => { const s = ls("ad-lang"); if (s === "tr" || s === "en") return s; return (navigator.language || "").toLowerCase().startsWith("tr") ? "tr" : "en"; })();
 const t = (k, ...a) => { const v = I18N[LANG][k] ?? I18N.tr[k]; return typeof v === "function" ? v(...a) : v; };
 const KIND_LABEL = k => t("kind_" + k);
-const ICON = { yer: "🌍", yemek: "🍴" };
+const ICON = { yer: "🌍", yemek: "🍴", wish: "☆" };
 const REGION = {};
 for (const lg of ["tr", "en"]) { try { REGION[lg] = new Intl.DisplayNames([lg], { type: "region" }); } catch (e) { REGION[lg] = null; } }
 const regionName = (iso, lg = LANG) => { if (!iso || !REGION[lg]) return ""; try { const n = REGION[lg].of(iso); return n && n !== iso ? n : ""; } catch (e) { return ""; } };
@@ -155,7 +165,8 @@ const S = {
   canEdit: false, canUpload: false,
   me: null, session: null, owner: null, ownerState: "loading", // loading | ok | locked | notfound | landing
   rel: null, counts: { followers: 0, following: 0 }, panelMode: "map", // map | settings | people
-  view: "list", selId: null, filter: ls("ad-filter") || "all",
+  view: "list", selId: null, filter: ["yer", "yemek", "wish"].includes(ls("ad-filter")) ? ls("ad-filter") : "yer",
+  wish: [], wishState: "ok", wishSel: null, wishForm: null, pickMode: "pin", mineSrc: new Map(),   // "Belki bir gün" list
   picking: false, temp: null, form: null, lb: null,
 };
 const sb = supabase.createClient(MYPINS.supabaseUrl, MYPINS.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" } });
@@ -261,15 +272,22 @@ function restyle(s) {
   return s;
 }
 
+// "Belki bir gün" marker: paper-coloured (not yet visited) pin with a small star
+function star(g, cx, cy, R, r) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; g.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); }
+  g.closePath(); g.fill();
+}
 const pinImg = (kind) => {
   const s = 2, w = 22 * s, h = 30 * s, c = document.createElement("canvas"); c.width = w; c.height = h;
   const g = c.getContext("2d"); g.scale(s, s);
   g.beginPath(); g.moveTo(11, 29); g.bezierCurveTo(8, 23, 2, 19, 2, 12); g.arc(11, 11, 9, Math.PI, 0); g.bezierCurveTo(20, 19, 14, 23, 11, 29); g.closePath();
-  g.fillStyle = C.pin; g.fill(); g.lineWidth = 1.5; g.strokeStyle = C.pinInk; g.stroke();
+  g.fillStyle = kind === "wish" ? C.halo : C.pin; g.fill(); g.lineWidth = kind === "wish" ? 1.8 : 1.5; g.strokeStyle = C.pinInk; g.stroke();
   g.fillStyle = C.pinInk; g.strokeStyle = C.pinInk;
   if (kind === "yemek") { g.lineWidth = 1.3; g.lineCap = "round"; g.beginPath(); g.moveTo(8, 6); g.lineTo(8, 16); g.moveTo(6.5, 6); g.lineTo(6.5, 10); g.moveTo(9.5, 6); g.lineTo(9.5, 10); g.moveTo(14, 16); g.lineTo(14, 6); g.quadraticCurveTo(16, 8, 14, 11); g.stroke(); }
   else if (kind === "home") { g.font = "11px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("🏠", 11, 11.5); }
   else if (kind === "temp") { g.beginPath(); g.arc(11, 11, 3.4, 0, Math.PI * 2); g.fill(); }
+  else if (kind === "wish") { star(g, 11, 11, 4.6, 2); }
   else { g.beginPath(); g.arc(11, 11, 3.4, 0, Math.PI * 2); g.fill(); }
   return { width: w, height: h, data: g.getImageData(0, 0, w, h).data };
 };
@@ -292,13 +310,13 @@ async function initMap() {
   map.touchZoomRotate.disableRotation();
   map.on("load", () => {
     captureRamps(); applySmooth();
-    for (const k of ["yer", "yemek", "home", "temp"]) map.addImage("pin-" + k, pinImg(k), { pixelRatio: 2 });
+    for (const k of ["yer", "yemek", "home", "temp", "wish"]) map.addImage("pin-" + k, pinImg(k), { pixelRatio: 2 });
     map.addLayer({ id: "countries-hit", type: "fill", source: "countries", paint: { "fill-color": "#000", "fill-opacity": 0 } });
     map.addLayer({ id: "countries-picked", type: "fill", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "fill-color": C.pin, "fill-opacity": 0.55 } });
     map.addLayer({ id: "countries-picked-line", type: "line", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "line-color": C.pinInk, "line-width": 1.2 } });
     map.addSource("pins", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addLayer({ id: "pins-dot", type: "circle", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["!=", ["get", "sel"], 1],
-      paint: { "circle-radius": 5, "circle-color": C.pin, "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6 } });
+      paint: { "circle-radius": 5, "circle-color": ["case", ["==", ["get", "icon"], "wish"], C.halo, C.pin], "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6 } });
     map.addLayer({ id: "pins-pin", type: "symbol", source: "pins", minzoom: DOT_ZOOM_GL - 0.01,
       layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": ["case", ["==", ["get", "sel"], 1], 1.25, 1], "icon-allow-overlap": true,
         "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -2.9], "text-anchor": "bottom", "text-optional": true, "symbol-sort-key": ["case", ["==", ["get", "sel"], 1], 0, 1] },
@@ -327,6 +345,7 @@ function onPinTap(e) {
   const f = e.features[0];
   if (!f || f.properties.id === "__temp" || S.picking) return;
   e.originalEvent._pin = true;
+  if (String(f.properties.id).startsWith("w:")) { selectWish(f.properties.id.slice(2)); return; }
   openDetail(f.properties.id, false);
   const z = map.getZoom();
   camera({ center: f.geometry.coordinates, zoom: z < 12 ? Math.max(12, z + 3) : z });
@@ -351,7 +370,11 @@ function visibleCenterPoint() {
 }
 function onMapTap(e) {
   if (e.originalEvent._pin) return;
-  if (S.picking) { setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) }; startForm(null, S.temp); return; }
+  if (S.picking) {
+    const mode = S.pickMode; setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) };
+    if (mode === "wish") startWishForm(e.point, S.temp); else startForm(null, S.temp);
+    return;
+  }
   const tapped = countryAtPoint(e.point);
   if (tapped && typeof onbLandClick === "function" && onbLandClick(tapped)) return;
   const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
@@ -381,7 +404,14 @@ function camera(opts) {
 }
 function drawOverlay() {
   if (!mapReady) return;
-  const shown = S.places.filter(p => S.filter === "all" || p.kind === S.filter || p.id === S.selId);
+  if (S.filter === "wish") {
+    const feats = S.wish.map(w => ({ type: "Feature", geometry: { type: "Point", coordinates: [w.lon, w.lat] },
+      properties: { id: "w:" + w.id, title: L(w, "title"), icon: "wish", sel: w.id === S.wishSel ? 1 : 0 } }));
+    if (S.temp) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [S.temp.lon, S.temp.lat] }, properties: { id: "__temp", title: "", icon: "temp", sel: 1 } });
+    map.getSource("pins").setData({ type: "FeatureCollection", features: feats });
+    return;
+  }
+  const shown = S.places.filter(p => p.kind === S.filter || p.id === S.selId);
   const feats = shown.map(p => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
     properties: { id: p.id, title: L(p, "title"), icon: p.home ? "home" : p.kind === "yemek" ? "yemek" : "yer", sel: p.id === S.selId ? 1 : 0 } }));
   if (S.temp) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [S.temp.lon, S.temp.lat] }, properties: { id: "__temp", title: "", icon: "temp", sel: 1 } });
@@ -457,8 +487,9 @@ async function prefetchView(center, zoom) {
 }
 
 function layout() { if (map) map.resize(); }
-function setPicking(on) {
-  S.picking = on; mapEl.classList.toggle("picking", on); $("#pickBanner").hidden = !on;
+function setPicking(on, mode = "pin") {
+  S.picking = on; S.pickMode = on ? mode : "pin"; mapEl.classList.toggle("picking", on); $("#pickBanner").hidden = !on;
+  if (on) $("#pickBanner span").textContent = t(mode === "wish" ? "wishPick" : "pickHint");
   if (map) map.getCanvas().style.cursor = on ? "crosshair" : "";
   if (on) setSheet("collapsed");
 }
@@ -533,14 +564,15 @@ function renderList() {
   }
 
   const chips = el("div", { class: "chips", role: "group", "aria-label": t("filter") });
-  for (const [k, lab] of [["all", t("f_all")], ["yer", t("f_yer")], ["yemek", t("f_yemek")]]) {
-    chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); render(); } },
-      k !== "all" ? el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }) : null, lab));
+  for (const [k, lab] of [["yer", t("f_yer")], ["yemek", t("f_yemek")], ["wish", t("f_wish")]]) {
+    chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
+      el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }), lab));
   }
   body.append(chips);
+  if (S.filter === "wish") { renderWish(); return; }
 
 
-  const items = S.places.filter(p => S.filter === "all" || p.kind === S.filter);
+  const items = S.places.filter(p => p.kind === S.filter);
   if (!S.loaded && S.dbState === "pending") {
     body.append(el("div", { class: "empty" }, el("strong", { text: t("loadingT") }), t("loadingB")));
     return;
@@ -628,6 +660,10 @@ function renderDetail() {
   }
   if (facts.children.length) body.append(facts);
   if (p.note) body.append(el("div", { class: "note", text: L(p, "note") }));
+  if (!S.canEdit && S.wishState !== "missing") {
+    const on = S.mineSrc.has(p.id);
+    body.append(el("div", { class: "d-wish" }, el("button", { class: "btn " + (on ? "wish-on" : "ghost"), type: "button", "aria-pressed": String(on), onclick: () => toggleWishFromPin(p) }, on ? t("wishOn") : t("wishBtn"))));
+  }
   renderRelated(p);
 
   if (S.canEdit) {
@@ -844,6 +880,7 @@ async function fetchMe() {
 
 async function loadOwner(username, quiet) {
   S.ownerState = "loading"; S.owner = null; S.places = []; S.loaded = false; S.rel = null; S.view = "list"; S.selId = null;
+  S.wish = []; S.wishSel = null; S.wishForm = null;
   render();
   const { data: prof, error } = await sb.from("profiles").select("*").ilike("username", username).maybeSingle();
   if (error) { S.dbState = "error"; S.ownerState = "notfound"; render(); return; }
@@ -865,11 +902,120 @@ async function loadOwner(username, quiet) {
   const { data: pins, error: pe } = await sb.from("pins").select(PIN_COLS).eq("user_id", prof.id);
   if (pe) { S.dbState = "error"; } else { S.dbState = "ok"; }
   S.places = (pins || []).map(fromRow);
-  await signPhotos([prof.avatar_path, ...S.places.flatMap(p => p.photos)]);
+  await Promise.all([signPhotos([prof.avatar_path, ...S.places.flatMap(p => p.photos)]), loadWish(prof.id)]);
+  await loadMineSrc();
   S.ownerState = "ok"; S.loaded = true;
   renderChrome(); render(); lastFitOwner = null; fitPins();
   maybeAutoIntro();
   if (!quiet && S.canEdit && !S.places.length && !ls("mp-onb-done-" + S.me.id)) location.hash = "#/start";
+}
+
+/* ---------------- "Belki bir gün" (Someday List) ---------------- */
+const WISH_COLS = "id,user_id,kind,title,title_en,city,country,iso,lat,lon,source_pin,source_user,created_at";
+// table not created yet in Supabase (03_wishlist.sql not run): show a note instead of an error
+const wishTableMissing = e => !!e && (e.code === "42P01" || e.code === "PGRST205" || /wishlist/i.test(e.message || "") && /not find|does not exist|schema cache/i.test(e.message || ""));
+async function loadWish(ownerId) {
+  const { data, error } = await sb.from("wishlist").select(WISH_COLS).eq("user_id", ownerId).order("created_at", { ascending: false });
+  S.wishState = error ? (wishTableMissing(error) ? "missing" : "error") : "ok";
+  S.wish = error ? [] : (data || []).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+}
+// which of the pins on screen are already on MY list (to show "Belki bir gün ✓" on someone else's pin)
+async function loadMineSrc() {
+  S.mineSrc = new Map();
+  if (!S.me || S.wishState === "missing") return;
+  const rows = S.canEdit ? S.wish : ((await sb.from("wishlist").select("id,source_pin").eq("user_id", S.me.id)).data || []);
+  for (const r of rows) if (r.source_pin) S.mineSrc.set(r.source_pin, r.id);
+}
+async function toggleWishFromPin(p) {
+  if (!S.me) return signIn();
+  const have = S.mineSrc.get(p.id);
+  if (have) {
+    const { error } = await sb.from("wishlist").delete().eq("id", have);
+    if (error) { toast(t("wishErr")); return; }
+    S.mineSrc.delete(p.id); toast(t("wishRemovedT")); render(); return;
+  }
+  const row = { user_id: S.me.id, kind: p.kind, title: p.title, title_en: p.title_en || "", city: p.city || "", country: p.country || "", iso: p.iso || "",
+    lat: p.lat, lon: p.lon, source_pin: p.id, source_user: p.user_id || (S.owner && S.owner.id) || null };
+  const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
+  if (error) { toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); return; }
+  S.mineSrc.set(p.id, data.id); toast(t("wishAddedT")); render();
+}
+function selectWish(id) {
+  const w = S.wish.find(x => x.id === id); if (!w) return;
+  S.wishSel = id; S.view = "list"; S.filter = "wish"; render();
+  const z = map ? map.getZoom() : 0;
+  if (mapReady) camera({ center: [w.lon, w.lat], zoom: z < 12 ? 12 : z });
+  const row = document.querySelector(`[data-wish="${id}"]`); if (row) row.scrollIntoView({ block: "nearest" });
+}
+// name for a tapped spot: the nearest place / island label on the map, otherwise the nearest known city
+function labelNear(pt) {
+  if (!mapReady) return "";
+  const r = 40, feats = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]])
+    .filter(f => f.layer.type === "symbol" && f.sourceLayer === "place" && f.properties.class !== "country" && f.properties.class !== "continent");
+  let best = null, bd = Infinity;
+  for (const f of feats) { const q = map.project(f.geometry.coordinates), d = (q.x - pt.x) ** 2 + (q.y - pt.y) ** 2; if (d < bd) { bd = d; best = f; } }
+  if (!best) return "";
+  const pr = best.properties;
+  return (LANG === "en" ? pr["name:en"] || pr.name_en : pr["name:tr"]) || pr["name:latin"] || pr.name || "";
+}
+function startWishForm(pt, at) {
+  const w = whereIs(at.lon, at.lat);
+  S.wishForm = { lon: at.lon, lat: at.lat, title: labelNear(pt) || w.city || "", city: w.city, country: w.country, iso: w.iso, busy: false };
+  S.filter = "wish"; S.view = "list"; setSheet(""); render();
+  const i = $("#wish-name"); if (i) { i.focus(); i.select(); }
+}
+async function saveWishForm() {
+  const F = S.wishForm; if (!F || F.busy) return;
+  const title = ($("#wish-name").value || "").trim(); if (!title) { $("#wish-name").focus(); return; }
+  F.busy = true; render();
+  const row = { user_id: S.me.id, kind: "yer", title, city: F.city || "", country: F.country || "", iso: F.iso || "", lat: F.lat, lon: F.lon };
+  const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
+  if (error) { F.busy = false; toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); render(); return; }
+  S.wish.unshift(data); S.wishForm = null; S.temp = null; S.wishSel = data.id; toast(t("wishAddedT")); render();
+}
+async function removeWish(w) {
+  const { error } = await sb.from("wishlist").delete().eq("id", w.id);
+  if (error) { toast(t("wishErr")); return; }
+  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  if (S.wishSel === w.id) S.wishSel = null; toast(t("wishRemovedT")); render();
+}
+// "Gittim": becomes a pin on my map (note and photos can be added later), and leaves the list
+async function wentWish(w) {
+  const row = { user_id: S.me.id, kind: w.kind, home: false, title: w.title, title_en: w.title_en || "", city: w.city || "", country: w.country || "", iso: w.iso || "",
+    lat: w.lat, lon: w.lon, note: "", note_en: "", dish: "", dish_en: "", rating: 0, price: "", photos: [] };
+  const { data, error } = await sb.from("pins").insert(row).select(PIN_COLS).single();
+  if (error) { toast(t("wishErr")); return; }
+  await sb.from("wishlist").delete().eq("id", w.id);
+  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  upsertLocal(fromRow(data)); S.wishSel = null; S.filter = w.kind; ls("ad-filter", w.kind);
+  toast(t("wishWentT")); openDetail(data.id, false);
+}
+function renderWish() {
+  if (S.wishState === "missing") { body.append(el("div", { class: "notice", text: t("wishMissing") })); return; }
+  if (S.wishState === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
+  if (S.canEdit && !S.wishForm) body.append(el("div", { class: "wish-head" },
+    el("button", { class: "btn small", type: "button", onclick: () => { S.temp = null; setPicking(!S.picking || S.pickMode !== "wish" ? true : false, "wish"); } }, t("wishNew"))));
+  if (S.wishForm) {
+    const F = S.wishForm;
+    body.append(el("form", { class: "wish-form", onsubmit: e => { e.preventDefault(); saveWishForm(); } },
+      el("label", { class: "field" }, el("span", { class: "lab", text: t("wishName") }), el("input", { id: "wish-name", type: "text", maxlength: "120", value: F.title, autocomplete: "off" })),
+      F.city || F.country ? el("p", { class: "wish-where", text: [F.city, F.country].filter(Boolean).join(", ") }) : null,
+      el("div", { class: "wish-acts" },
+        el("button", { class: "btn", type: "submit", disabled: F.busy ? "" : null }, t("wishSave")),
+        el("button", { class: "btn ghost", type: "button", onclick: () => { S.wishForm = null; S.temp = null; render(); } }, t("cancel")))));
+  }
+  if (!S.wish.length) { if (!S.wishForm) body.append(el("div", { class: "empty", text: S.canEdit ? t("wishEmptyOwn") : t("wishEmptyOther") })); return; }
+  const ul = el("ul", { class: "wlist" });
+  for (const w of S.wish) {
+    const on = w.id === S.wishSel;
+    const li = el("li", { class: on ? "on" : "", "data-wish": w.id },
+      el("button", { class: "wrow", type: "button", "aria-pressed": String(on), onclick: () => selectWish(w.id) }, el("span", { class: "wstar", "aria-hidden": "true", text: "☆" }), L(w, "title")));
+    if (on && S.canEdit) li.append(el("div", { class: "wacts" },
+      el("button", { class: "btn small", type: "button", onclick: () => wentWish(w) }, t("wishWent")),
+      el("button", { class: "btn ghost small", type: "button", onclick: () => removeWish(w) }, t("wishRemove"))));
+    ul.append(li);
+  }
+  body.append(ul);
 }
 
 async function follow() {
@@ -1521,7 +1667,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#intro
 async function route() {
   const h = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
   const [a, b] = h.split("/");
-  S.form = null; S.temp = null; setPicking(false);
+  S.form = null; S.temp = null; S.wishForm = null; setPicking(false);
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
   if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }

@@ -357,3 +357,17 @@ a.btn{text-decoration:none}
 /* map host unreachable: message with "try again" instead of an empty map */
 .map-err{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:3;width:min(340px,calc(100% - 32px));background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;text-align:center;font-size:14px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.12)}
 .map-err p{margin:0 0 12px}
+/* "Belki bir gün" (Someday List): names only, tap = the map goes there */
+.wish-head{display:flex;justify-content:flex-end;margin:-4px 0 10px}
+.wlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wlist li{background:var(--paper);border:1px solid var(--rule);border-radius:4px}
+.wlist li.on{border-color:var(--ink)}
+.wrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.wstar{color:var(--muted);font-size:14px;line-height:1}
+.wlist li.on .wstar{color:var(--ink)}
+.wacts{display:flex;gap:8px;padding:0 12px 11px 36px}
+.wish-form{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px;margin-bottom:12px}
+.wish-where{margin:0;font-size:12.5px;color:var(--muted)}
+.wish-acts{display:flex;gap:8px}
+.d-wish{margin:14px 0 4px}
+.btn.wish-on{background:var(--tint);border-color:var(--ink);color:var(--ink)}
