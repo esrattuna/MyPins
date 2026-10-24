@@ -28,7 +28,7 @@ const I18N = {
     sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
     requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.",
-    searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı",
+    searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı", shareMap: "Haritamı paylaş", shareText: n => `${n} · MyPins haritası`,
     ateT: "🍴 Burada ne yedim", addFood: "+ Ne yedim ekle", noFood: "Henüz bir sofra eklenmemiş.", foodLocPlace: n => `📍 ${n} (yerin konumu)`, foodLocSet: "📍 Mekânın konumu seçildi",
     foodLocSearch: "Mekânın adresini ara", backTo: n => `← ${n}`, delQFoods: n => `Bu yerin ${n} sofrası da silinecek.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Burada nerede yedim", nearbyFood: "🍴 Yakınındaki diğer sofralar", nearbyPlaces: "🌍 Yakınındaki yerler",
@@ -79,7 +79,7 @@ const I18N = {
     sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
     requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.",
-    searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied",
+    searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied", shareMap: "Share my map", shareText: n => `${n} · MyPins map`,
     ateT: "🍴 What I ate here", addFood: "+ Add what I ate", noFood: "No food spots added yet.", foodLocPlace: n => `📍 ${n} (the place's location)`, foodLocSet: "📍 Venue location set",
     foodLocSearch: "Find the venue's address", backTo: n => `← ${n}`, delQFoods: n => `Its ${n} food ${n === 1 ? "spot" : "spots"} will be deleted too.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Where I ate here", nearbyFood: "🍴 Other food spots nearby", nearbyPlaces: "🌍 Nearby places",
@@ -1592,6 +1592,7 @@ function renderChrome() {
       el("a", { role: "menuitem", href: "#/u/" + S.me.username }, "🗺️ " + t("myMap")),
       el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
       el("a", { role: "menuitem", href: "#/people" }, "👥 " + t("people"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null),
+      S.me.visibility !== "ghost" ? el("button", { role: "menuitem", type: "button", onclick: shareMyMap }, "🔗 " + t("shareMap")) : null,
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); };
@@ -1619,7 +1620,6 @@ function profileCard() {
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
     acts.append(el("a", { class: "btn ghost small", href: "#/settings" }, t("editProfile")));
-    if (o.visibility !== "ghost") acts.append(el("button", { class: "btn ghost small", type: "button", onclick: () => copyText(mapLink(o.username)) }, t("copyLink")));
   } else if (S.rel === "accepted") {
     acts.append(el("button", { class: "btn ghost small", type: "button", onclick: unfollow }, t("followingBtn")));
   } else if (S.rel === "pending") {
@@ -1636,6 +1636,15 @@ function lockedBox() {
 function renderNotFound() {
   body.append(el("div", { class: "empty" }, el("strong", { text: t("notFoundT") }), t("notFoundB"), el("div", { style: "margin-top:12px" },
     el("a", { class: "btn small", href: "#/people" }, t("findPeople")))));
+}
+// phones: the system share sheet (WhatsApp, Messages...); elsewhere: copy the link
+async function shareMyMap() {
+  const url = mapLink(S.me.username);
+  if (navigator.share) {
+    try { await navigator.share({ title: t("shareText", S.me.display_name || S.me.username), url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  copyText(url);
 }
 async function copyText(txt) {
   try { await navigator.clipboard.writeText(txt); toast(t("copied")); }
