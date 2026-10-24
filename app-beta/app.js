@@ -25,7 +25,9 @@ const I18N = {
     welcomeT: "MyPins'e hoş geldin", welcomeP1: "Gezdiğin yerleri, yemek yediğin güzel adresleri ve notlarını kendi haritanda topla.", welcomeP2: "Arkadaşlarını takip et, onların haritalarında yeni yerler keşfet.", browseFirst: "Önce etrafa göz at",
     hello: n => `Merhaba, ben ${n}.`, noBio: "Henüz bir tanıtım yazısı yok.",
     sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
-    sLang: "Dil", sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
+    sLang: "Dil", sAccount: "Hesap", delT: "Hesabı sil", delBtn: "Hesabımı sil", delWarn: "Bu işlem geri alınamaz. Haritan, pinlerin, fotoğrafların, Belki bir gün listen ve takiplerin kalıcı olarak silinir.",
+    delType: n => `Onaylamak için kullanıcı adını yaz: ${n}`, delGo: "Kalıcı olarak sil", delDone: "Hesabın silindi.", delErr: "Hesap silinemedi, tekrar dene.", delMissing: "Hesap silme henüz kurulmadı (veritabanı güncellemesi bekleniyor).", deleting: "Siliniyor…",
+    sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
     requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.", peopleBtn: "👥 Kişiler", backProfile: "← Haritama dön",
     searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı", shareMap: "Haritamı paylaş", shareText: n => `${n} · MyPins haritası`,
@@ -76,7 +78,9 @@ const I18N = {
     welcomeT: "Welcome to MyPins", welcomeP1: "Collect the places you've been, the good spots you've eaten at and your notes on your own map.", welcomeP2: "Follow your friends and discover new places on their maps.", browseFirst: "Look around first",
     hello: n => `Hi, I'm ${n}.`, noBio: "No introduction yet.",
     sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
-    sLang: "Language", sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
+    sLang: "Language", sAccount: "Account", delT: "Delete account", delBtn: "Delete my account", delWarn: "This can't be undone. Your map, pins, photos, Someday List and follows are deleted permanently.",
+    delType: n => `To confirm, type your username: ${n}`, delGo: "Delete permanently", delDone: "Your account was deleted.", delErr: "Couldn't delete the account, try again.", delMissing: "Account deletion isn't set up yet (database update pending).", deleting: "Deleting…",
+    sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
     requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.", peopleBtn: "👥 People", backProfile: "← Back to my map",
     searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied", shareMap: "Share my map", shareText: n => `${n} · MyPins map`,
@@ -1597,7 +1601,6 @@ function renderChrome() {
       el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
       S.me.visibility !== "ghost" ? el("button", { role: "menuitem", type: "button", onclick: shareMyMap }, "🔗 " + t("shareMap")) : null,
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
-      el("div", { class: "acct-lang" }, el("span", { text: "🌐" }), langSeg("seg lang-seg")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); };
     menu.addEventListener("click", () => { menu.hidden = true; });
@@ -1627,7 +1630,7 @@ function profileCard() {
         : el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
-    acts.append(el("a", { class: "btn ghost small", href: "#/settings" }, t("editProfile")),
+    acts.append(el("a", { class: "btn ghost small", href: "#/profile" }, t("editProfile")),
       el("a", { class: "btn ghost small", href: "#/people" }, t("peopleBtn"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null));
   } else if (S.rel === "accepted") {
     acts.append(el("button", { class: "btn ghost small", type: "button", onclick: unfollow }, t("followingBtn")));
@@ -1662,39 +1665,56 @@ async function copyText(txt) {
 
 /* ---------------- settings ---------------- */
 let SET = null;
+let SETMODE = "account";   // "profile" = Profili düzenle (photo, name, about) · "account" = Ayarlar (username, language, mode, delete)
 function renderSettings() {
   if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: t("settings") }), t("needSignIn"), el("div", { style: "margin-top:12px" }, el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn"))))); return; }
+  const prof = SETMODE === "profile";
   if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "";
-    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, visibility: S.me.visibility }, busy: false, err: "", msg: "" }; }
+    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, visibility: S.me.visibility }, busy: false, err: "", msg: "", del: null }; }
   const d = SET.d;
   body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, "← " + t("myMap")));
-  body.append(el("div", { class: "eyebrow", text: t("settings") }), el("h2", { class: "d-title", text: t("sProfile") }));
+  body.append(el("h2", { class: "d-title", text: prof ? t("editProfile") : t("settings") }));
   const form = el("form", { class: "form", onsubmit: e => { e.preventDefault(); saveSettings(); } });
   const bind = k => e => { d[k] = e.target.value; };
-  const ph = el("div", { class: "field" }, el("span", { class: "lab", text: t("sPhoto") }),
-    el("div", { class: "set-photo" }, avatarEl(S.me, "av av-lg"),
-      el("label", { class: "btn ghost small", for: "s-photo" }, t(S.me.avatar_path ? "photoChange" : "photoUp"),
-        el("input", { type: "file", id: "s-photo", accept: "image/*", class: "vh", onchange: e => uploadAvatar(e.target.files[0]) })),
-      el("span", { class: "hint", id: "s-photo-msg" })));
-  form.append(ph);
-  form.append(el("div", { class: "field" }, el("label", { for: "s-name", text: t("sName") }), el("input", { id: "s-name", maxlength: 60, value: d.display_name, oninput: bind("display_name") })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
-    el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); $("#s-user-hint").textContent = t("sUserHint") + mapLink(d.username); } }),
-    el("span", { class: "hint", id: "s-user-hint", text: t("sUserHint") + mapLink(d.username) })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about)));
-  const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
-  for (const m of ["public", "private", "ghost"]) {
-    modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
-      el("input", { type: "radio", name: "s-mode", value: m, checked: d.visibility === m, onchange: () => { d.visibility = m; render(); } }),
-      el("span", { class: "mode-t", text: { public: "🌍 ", private: "🔒 ", ghost: "👻 " }[m] + t("m_" + m) }),
-      el("span", { class: "mode-d", text: t("m_" + m + "D") })));
+  if (prof) {
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sPhoto") }),
+      el("div", { class: "set-photo" }, avatarEl(S.me, "av av-lg"),
+        el("label", { class: "btn ghost small", for: "s-photo" }, t(S.me.avatar_path ? "photoChange" : "photoUp"),
+          el("input", { type: "file", id: "s-photo", accept: "image/*", class: "vh", onchange: e => uploadAvatar(e.target.files[0]) })),
+        el("span", { class: "hint", id: "s-photo-msg" }))));
+    form.append(el("div", { class: "field" }, el("label", { for: "s-name", text: t("sName") }), el("input", { id: "s-name", maxlength: 60, value: d.display_name, oninput: bind("display_name") })));
+    form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about)));
+  } else {
+    form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
+      el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); } })));
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sLang") }), langSeg("seg lang-seg")));
+    const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
+    for (const m of ["public", "private", "ghost"]) {
+      modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
+        el("input", { type: "radio", name: "s-mode", value: m, checked: d.visibility === m, onchange: () => { d.visibility = m; render(); } }),
+        el("span", { class: "mode-t", text: { public: "🌍 ", private: "🔒 ", ghost: "👻 " }[m] + t("m_" + m) }),
+        el("span", { class: "mode-d", text: t("m_" + m + "D") })));
+    }
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
   }
-  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
-  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sLang") }), langSeg("seg lang-seg")));
   if (SET.err) form.append(el("div", { class: "err", role: "alert", text: SET.err }));
   form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? (SET.busy === "tr" ? t("translating") : t("saving")) : t("save"))));
   body.append(form);
+  if (prof) return;
+  // account: sign out, delete (typed username confirms)
   body.append(el("div", { class: "set-out" }, el("button", { class: "btn ghost small", type: "button", onclick: signOut }, t("signOut"))));
+  const del = el("section", { class: "set-del" }, el("h3", { text: t("delT") }));
+  if (!SET.del) del.append(el("button", { class: "btn ghost small danger-t", type: "button", onclick: () => { SET.del = { typed: "", busy: false, err: "" }; render(); } }, t("delBtn")));
+  else {
+    const D = SET.del, ok = () => D.typed.trim().toLowerCase() === S.me.username.toLowerCase();
+    const go = el("button", { class: "btn danger small", type: "button", disabled: !ok() || D.busy, onclick: deleteAccount }, D.busy ? t("deleting") : t("delGo"));
+    del.append(el("p", { class: "del-warn", text: t("delWarn") }),
+      el("label", { class: "field" }, el("span", { class: "lab", text: t("delType", "@" + S.me.username) }),
+        el("input", { id: "del-user", autocapitalize: "none", spellcheck: "false", autocomplete: "off", value: D.typed, oninput: e => { D.typed = e.target.value; go.disabled = !ok() || D.busy; } })),
+      D.err ? el("div", { class: "err", role: "alert", text: D.err }) : null,
+      el("div", { class: "del-acts" }, go, el("button", { class: "btn ghost small", type: "button", onclick: () => { SET.del = null; render(); } }, t("cancel"))));
+  }
+  body.append(del);
 }
 // Translation of short texts into Turkish AND English. Returns { tr, en } or null.
 // 1) Claude, through the Supabase Edge Function "translate" (supabase/functions/translate), once it is deployed;
@@ -1743,14 +1763,14 @@ async function translateFree(text) {
   } catch (e) { return null; }
 }
 async function saveSettings() {
-  const d = SET.d;
-  if (!/^[a-z0-9_.]{3,24}$/.test(d.username)) { SET.err = t("sUserBad"); render(); return; }
+  const d = SET.d, prof = SETMODE === "profile";
+  if (!prof && !/^[a-z0-9_.]{3,24}$/.test(d.username)) { SET.err = t("sUserBad"); render(); return; }
   SET.busy = true; SET.err = ""; render();
   // "about": written once in either language, stored in both (bio = Turkish, bio_en = English)
-  const upd = { display_name: d.display_name.trim(), username: d.username, visibility: d.visibility };
+  const upd = prof ? { display_name: d.display_name.trim() } : { username: d.username, visibility: d.visibility };
   let transFailed = false;
   const about = (d.about || "").trim();
-  if (about !== (d.about0 || "").trim()) {
+  if (prof && about !== (d.about0 || "").trim()) {
     if (!about) { upd.bio = ""; upd.bio_en = ""; }
     else {
       SET.busy = "tr"; render();
@@ -1766,6 +1786,32 @@ async function saveSettings() {
   S.me = data; if (S.owner && S.owner.id === data.id) S.owner = { ...S.owner, ...data };
   SET = null; toast(transFailed ? t("sTransFail") : t("sSaved"));
   renderChrome(); render();
+}
+// delete my account: photos through the Storage API, then the account (and everything that belongs to it) in the database
+async function deleteAccount() {
+  const D = SET.del; if (!D || D.busy) return;
+  D.busy = true; D.err = ""; render();
+  try {
+    // set up? (supabase/09). Checked before any photo is removed
+    const chk = await sb.rpc("can_delete_account");
+    if (chk.error || chk.data !== true) throw chk.error || { code: "PGRST202" };
+    const folder = S.me.id, paths = [];
+    for (let off = 0; ; off += 1000) {
+      const { data } = await sb.storage.from("photos").list(folder, { limit: 1000, offset: off });
+      (data || []).forEach(f => f.name && paths.push(folder + "/" + f.name));
+      if (!data || data.length < 1000) break;
+    }
+    for (let i = 0; i < paths.length; i += 100) await sb.storage.from("photos").remove(paths.slice(i, i + 100));
+    const { error } = await sb.rpc("delete_my_account");
+    if (error) throw error;
+  } catch (e) {
+    D.busy = false;
+    D.err = e && (e.code === "PGRST202" || /delete_my_account|can_delete_account/.test(e.message || "")) ? t("delMissing") : t("delErr");
+    render(); return;
+  }
+  try { await sb.auth.signOut(); } catch (e) {}
+  S.me = null; SET = null; S.owner = null; toast(t("delDone"));
+  location.hash = "#/"; renderChrome();
 }
 async function uploadAvatar(file) {
   if (!file) return;
@@ -1878,7 +1924,7 @@ async function route() {
   S.form = null; S.temp = null; S.wishForm = null; setPicking(false);
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
-  if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
+  if (a === "settings" || a === "profile") { S.panelMode = "settings"; SET = null; SETMODE = a === "profile" ? "profile" : "account"; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   if (a === "people") { S.panelMode = "people"; PEOPLE.view = b === "followers" || b === "following" ? b : "search"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   S.panelMode = "map";
   if (a === "u" && b) { if (!S.owner || S.owner.username.toLowerCase() !== b.toLowerCase() || S.ownerState !== "ok") await loadOwner(b); else render(); return; }

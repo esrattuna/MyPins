@@ -397,3 +397,10 @@ a.btn{text-decoration:none}
 .lang-seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
 .lang-seg button{border:0;background:transparent;padding:5px 14px;font:600 13px var(--f-body);cursor:pointer;color:var(--ink)}
 .lang-seg button[aria-pressed="true"]{background:var(--pin);color:var(--pin-ink)}
+/* Settings → delete account */
+.set-del{margin-top:28px;padding-top:16px;border-top:1px dashed var(--rule)}
+.set-del h3{font:400 16px var(--f-display);margin:0 0 10px}
+.set-del .field{margin:10px 0}
+.del-warn{font-size:13.5px;line-height:1.45;margin:0}
+.del-acts{display:flex;gap:8px}
+.danger-t{color:#a1301f;border-color:#d9a79f}
