@@ -79,7 +79,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
     <div class="row"><span class="lab">Hız ayarı</span>
       <label class="tog"><input type="checkbox" id="optWorkers"> Worker ×<span id="wkOn">4</span></label>
       <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
-      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label></div>
+      <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
+      <label class="tog"><input type="checkbox" id="optBase"> Yedek zemin</label></div>
     <div class="row"><span class="lab">Ön yükleme</span>
       <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
@@ -138,7 +139,8 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   poi: "select",       // POI behaviour inside the lite style: off | street | select (Esra chose c: select)
   cold: false,         // zoom-out test starts in a not-yet-loaded city (tiles from the internet)
   prefetch: "",        // zoom-out prefetch: "" off | "light" mid scale only (z<=12) | "full" every coarser level
-  tiles: "ofm" };      // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
+  tiles: "ofm",        // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
+  base: false };       // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
 function mapTilerKey() {
@@ -200,7 +202,7 @@ function geojson() {
 /* ---------- style ---------- */
 async function getStyle() {
   if (!styleJSON) await buildBaseStyle();
-  return liteStyle(JSON.parse(JSON.stringify(styleJSON)));
+  return baseStyle(liteStyle(JSON.parse(JSON.stringify(styleJSON))));
 }
 /* ---------- "Sade stil": fewer layers = less work per tile in the worker (bucket building, symbol layout) ----------
    Selected by source-layer / id pattern so it survives small changes in the upstream style. */
@@ -246,6 +248,22 @@ async function fetchStyleJSON() {
     finally { clearTimeout(t); }
   }
   throw new Error("map-host-unreachable");
+}
+/* ---------- "Yedek zemin": extend the coarse land/sea fallback from zoom 7 to zoom 10 ----------
+   Blank squares appear where a zoom-out needs tiles that have not arrived. OpenMapTiles has no land polygons
+   (land = background), so the fallback paints the background sea and the coarse country outlines as land.
+   Known risk: the outlines (Natural Earth 1:50m) miss small islands and coast detail, so up to zoom 10 such land
+   can stay sea-coloured even after its tiles load. To keep the extra worker work near zero, the outlines are
+   cut into tiles only up to zoom 6 and enlarged above that (geojson source maxzoom). */
+const BASE_MAX = 10;
+function baseStyle(s) {
+  if (!OPT.base) return s;
+  const bg = s.layers.find(l => l.type === "background");
+  if (bg) bg.paint["background-color"] = ["step", ["zoom"], C.sea, BASE_MAX, C.land];
+  const land = s.layers.find(l => l.id === "base-land");
+  if (land) land.maxzoom = BASE_MAX;
+  if (s.sources.countries) s.sources.countries.maxzoom = 6;
+  return s;
 }
 async function buildBaseStyle() {
   const [s] = await Promise.all([fetchStyleJSON(), loadCountries()]);
@@ -759,7 +777,7 @@ function pfText(pf0) {
   return `${PF.tiles - pf0.t} tile, ${Math.round((PF.bytes - pf0.b) / 1024)} KB${lv ? ` (${lv})` : ""}`;
 }
 function cfgLabel() {
-  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? ` · ön yükleme ${OPT.prefetch === "light" ? "hafif" : "tam"}` : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}`;
+  return `worker ${WK.now || "?"}${OPT.workers ? "" : " (varsayılan)"} · ${OPT.lite ? "sade stil, POI " + ({ off: "a) kaldır", street: "b) sokakta", select: "c) seçerek" })[OPT.poi] : "normal stil"} · katman ${LAYER_INFO.used}${OPT.prefetch ? ` · ön yükleme ${OPT.prefetch === "light" ? "hafif" : "tam"}` : ""} · ${OPT.tiles === "maptiler" ? "MapTiler" : "OpenFreeMap"}${OPT.base ? " · yedek zemin" : ""}`;
 }
 function addRow(name, r) {
   let t = $("#report table");
@@ -800,6 +818,7 @@ function reloadWithOptions() {
   if (OPT.workers) q.set("workers", OPT.workers); else q.delete("workers");
   q.set("poi", OPT.poi);
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
+  if (OPT.base) q.set("base", "1"); else q.delete("base");
   if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
@@ -807,12 +826,13 @@ function reloadWithOptions() {
 $("#optWorkers").onchange = e => { OPT.workers = e.target.checked ? WK.on : 0; reloadWithOptions(); };
 $("#optLite").onchange = e => { OPT.lite = e.target.checked; reloadWithOptions(); };
 $("#optCold").onchange = e => { OPT.cold = e.target.checked; };   // test-only, no reload needed
+$("#optBase").onchange = e => { OPT.base = e.target.checked; reloadWithOptions(); };   // style change: reload
 $("#mtForget").onclick = () => { try { localStorage.removeItem("mp-maptiler-key"); } catch (e) {} $("#mtForget").textContent = "Silindi"; };
 document.querySelectorAll("#tileSeg button").forEach(b => b.onclick = () => { if (OPT.tiles !== b.dataset.tiles) { OPT.tiles = b.dataset.tiles; reloadWithOptions(); } });
 document.querySelectorAll("#pfSeg button").forEach(b => b.onclick = () => { OPT.prefetch = b.dataset.pf; paintCfg(); if (OPT.prefetch) prefetchZoomOut(); });
 document.querySelectorAll("#poiSeg button").forEach(b => b.onclick = () => { OPT.poi = b.dataset.poi; reloadWithOptions(); });
 function paintCfg() {
-  $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#wkOn").textContent = OPT.workers || WK.on;
+  $("#optWorkers").checked = !!OPT.workers; $("#optLite").checked = OPT.lite; $("#optBase").checked = OPT.base; $("#wkOn").textContent = OPT.workers || WK.on;
   document.querySelectorAll("#poiSeg button").forEach(b => { b.setAttribute("aria-pressed", String(OPT.lite && b.dataset.poi === OPT.poi)); b.disabled = !OPT.lite; });
   document.querySelectorAll("#tileSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tiles === OPT.tiles)));
   document.querySelectorAll("#pfSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pf === OPT.prefetch)));
@@ -834,6 +854,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   for (const [k, id] of [["anim", "#optAnim"], ["cluster", "#optCluster"], ["photo", "#optPhoto"], ["smooth", "#optSmooth"]]) if (q.has(k)) { OPT[k] = q.get(k) === "1"; $(id).checked = OPT[k]; }
   OPT.lite = q.get("lite") === "1";
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
+  OPT.base = q.get("base") === "1";
   const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
   if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
