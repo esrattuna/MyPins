@@ -170,8 +170,18 @@ function fmtDate(s) {
   if (isNaN(d)) return s;
   return d.toLocaleDateString(t("locale"), { day: "numeric", month: "long", year: "numeric" });
 }
-const PHOTO = new Map();
-const blobUrl = p => PHOTO.get(p) || "";
+const PHOTO = new Map();                       // storage path -> signed URL (or local blob URL right after upload)
+const blobUrl = p => PHOTO.get(p) || "";       // full size: lightbox, form
+// small copy saved next to each photo: "<user>/<name>_t.jpg" (short side 480 px); cards, thumbnails and avatars use it, the original when it's missing
+const thumbOf = p => p ? p.replace(/\.[^./]+$/, "") + "_t.jpg" : p;
+const thumbUrl = p => PHOTO.get(thumbOf(p)) || PHOTO.get(p) || "";
+const NOTHUMB = new Set();                     // small copies the server said don't exist (this session)
+// a small copy that fails to load falls back to the original
+document.addEventListener("error", e => {
+  const im = e.target;
+  if (im && im.tagName === "IMG" && im.dataset.full && im.getAttribute("src") !== im.dataset.full) im.src = im.dataset.full;
+}, true);
+const thumbImg = (p, attrs = {}) => el("img", { alt: "", ...attrs, src: thumbUrl(p), "data-full": blobUrl(p) || null });
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
 function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 
@@ -617,7 +627,7 @@ function renderList() {
     arr.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
     for (const p of arr) {
       const ph = el("div", { class: "pc-ph" + (p.photos && p.photos.length ? " has" : "") });
-      if (p.photos && p.photos.length) ph.append(el("img", { src: blobUrl(p.photos[0]), alt: "", loading: "lazy" }));
+      if (p.photos && p.photos.length) ph.append(thumbImg(p.photos[0], { loading: "lazy" }));
       if (p.iso) ph.append(el("span", { class: "stamp", text: p.iso }));
       if (p.example) ph.append(el("span", { class: "tag-ex on-ph", text: t("example") }));
       const sub = el("span", { class: "pc-s" }, el("i", { class: "sw " + p.kind }),
@@ -635,7 +645,7 @@ function renderList() {
 const distKm = (a, b) => d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
 function relRow(q) {
   const th = el("div", { class: "thumb" });
-  if (q.photos && q.photos.length) th.append(el("img", { src: blobUrl(q.photos[0]), alt: "", loading: "lazy" }));
+  if (q.photos && q.photos.length) th.append(thumbImg(q.photos[0], { loading: "lazy" }));
   else th.append(el("span", { class: "rel-ic", "aria-hidden": "true", text: q.home ? "\u{1F3E0}" : ICON[q.kind] }));
   const sub = q.kind === "yemek" ? [L(q, "dish"), q.rating ? stars(q.rating) : null] : [q.city && q.city !== q.title ? cityName(q.city) : KIND_LABEL(q.kind)];
   return el("li", {}, el("button", { class: "rel-row", type: "button", onclick: () => openDetail(q.id, true) }, th,
@@ -646,7 +656,7 @@ function renderFoods(p) {
   const sec = el("section", { class: "rel foods" }, el("h3", { text: t("ateT") }));
   if (foods.length) sec.append(el("ul", { class: "food-list" }, foods.map(f => el("li", {},
     el("button", { class: "food", type: "button", onclick: () => openDetail(f.id, true) },
-      f.photos && f.photos.length ? el("img", { src: blobUrl(f.photos[0]), alt: "", loading: "lazy" }) : el("span", { class: "food-ic", "aria-hidden": "true", text: "🍴" }),
+      f.photos && f.photos.length ? thumbImg(f.photos[0], { loading: "lazy" }) : el("span", { class: "food-ic", "aria-hidden": "true", text: "🍴" }),
       el("span", { class: "food-t" }, el("b", { text: L(f, "title") }),
         L(f, "dish") ? el("span", { text: L(f, "dish") }) : null,
         f.rating ? el("span", { class: "food-r" }, stars(f.rating)) : null))))));
@@ -719,7 +729,7 @@ function renderDetail() {
 
   if (p.photos && p.photos.length) {
     const g = el("div", { class: "gallery" });
-    p.photos.forEach((id, i) => g.append(el("button", { type: "button", "aria-label": t("photoN", i + 1), onclick: () => openLb(p.photos, i) }, el("img", { src: blobUrl(id), alt: "", loading: "lazy" }))));
+    p.photos.forEach((id, i) => g.append(el("button", { type: "button", "aria-label": t("photoN", i + 1), onclick: () => openLb(p.photos, i) }, thumbImg(id, { loading: "lazy" }))));
     body.append(g);
   }
 
@@ -813,7 +823,7 @@ function renderForm() {
   // photos
   const pf = el("div", { class: "field" }, el("span", { class: "lab", text: t("photos") }));
   const pvs = el("div", { class: "previews" });
-  d.photos.forEach(id => pvs.append(el("div", { class: "pv" }, el("img", { src: blobUrl(id), alt: "" }),
+  d.photos.forEach(id => pvs.append(el("div", { class: "pv" }, thumbImg(id),
     el("button", { type: "button", "aria-label": t("removePhoto"), onclick: () => { d.photos = d.photos.filter(x => x !== id); F.removed.push(id); render(); } }, "✕"))));
   F.newFiles.forEach((f, i) => pvs.append(el("div", { class: "pv" }, el("img", { src: f.url, alt: "" }),
     el("button", { type: "button", "aria-label": t("removePhoto"), onclick: () => { URL.revokeObjectURL(f.url); F.newFiles.splice(i, 1); render(); } }, "✕"))));
@@ -894,23 +904,108 @@ const toRow = d => ({
   photos: d.photos || [],
 });
 
+// Signed links last 24 h and are kept in this browser until 30 min before they expire, so the same link comes back
+// and the browser can use its cache. Kept per signed-in person; cleared on sign-out. Who may see what is unchanged:
+// only paths the app would show anyway are looked up, and the server signs nothing the viewer can't read.
+const SIG_TTL = 60 * 60 * 24, SIG_KEY = "mp-sig-v1";
+let SIGC = null;
+function sigCache() {
+  const u = (S.session && S.session.user && S.session.user.id) || "anon";
+  if (!SIGC || SIGC.u !== u) {
+    let c = null; try { c = JSON.parse(localStorage.getItem(SIG_KEY) || "null"); } catch (e) {}
+    SIGC = c && c.u === u && c.m ? c : { u, m: {} };
+  }
+  return SIGC;
+}
+function sigSave() {
+  const c = sigCache(), now = Date.now(), m = {};
+  Object.entries(c.m).filter(([, v]) => v[1] > now).sort((a, b) => b[1][1] - a[1][1]).slice(0, 3000).forEach(([k, v]) => m[k] = v);
+  c.m = m;
+  try { localStorage.setItem(SIG_KEY, JSON.stringify(c)); } catch (e) {}
+}
+function sigClear() { SIGC = null; PHOTO.clear(); NOTHUMB.clear(); try { localStorage.removeItem(SIG_KEY); } catch (e) {} }
 async function signPhotos(paths) {
-  const need = [...new Set(paths.filter(p => p && !PHOTO.has(p)))];
+  const c = sigCache(), now = Date.now(), need = [];
+  const want = new Set();
+  paths.filter(Boolean).forEach(p => { want.add(p); want.add(thumbOf(p)); });
+  for (const p of want) {
+    if (PHOTO.has(p) || NOTHUMB.has(p)) continue;
+    const v = c.m[p];
+    if (v && v[1] - now > 30 * 60e3) PHOTO.set(p, v[0]); else need.push(p);
+  }
   if (!need.length) return;
   for (let i = 0; i < need.length; i += 100) {
-    const { data } = await sb.storage.from("photos").createSignedUrls(need.slice(i, i + 100), 60 * 60 * 6);
-    (data || []).forEach(x => { if (x.signedUrl) PHOTO.set(x.path, x.signedUrl); });
+    const chunk = need.slice(i, i + 100);
+    let { data, error } = await sb.storage.from("photos").createSignedUrls(chunk, SIG_TTL);
+    if (error || !data) {   // never let the small copies cost the originals
+      const orig = chunk.filter(p => !/_t\.jpg$/.test(p));
+      if (!orig.length) continue;
+      ({ data } = await sb.storage.from("photos").createSignedUrls(orig, SIG_TTL));
+      if (!data) continue;
+      data.forEach((x, j) => { const path = x.path || orig[j]; if (x.signedUrl) { PHOTO.set(path, x.signedUrl); c.m[path] = [x.signedUrl, now + SIG_TTL * 1000]; } });
+      continue;
+    }
+    data.forEach((x, j) => {
+      const path = x.path || chunk[j];
+      if (x.signedUrl) { PHOTO.set(path, x.signedUrl); c.m[path] = [x.signedUrl, now + SIG_TTL * 1000]; }
+      else if (/_t\.jpg$/.test(path)) NOTHUMB.add(path);
+    });
   }
+  sigSave();
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const YEAR = "31536000";   // file names never change, so browsers may keep them
+async function makeThumb(src) {
+  const bmp = await createImageBitmap(src, { imageOrientation: "from-image" });
+  const s = Math.min(1, 480 / Math.min(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("encode")), "image/jpeg", 0.8));
+}
+async function uploadThumb(path, src) {
+  const tb = await makeThumb(src);
+  const { error } = await sb.storage.from("photos").upload(thumbOf(path), tb, { contentType: "image/jpeg", upsert: false, cacheControl: YEAR });
+  if (error && !/exist|duplicate/i.test(error.message || "")) throw error;
+  NOTHUMB.delete(thumbOf(path));
+  PHOTO.set(thumbOf(path), URL.createObjectURL(tb));
+}
 async function uploadPhoto(blob) {
   const path = `${S.me.id}/${uid()}.jpg`;
-  const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+  const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false, cacheControl: YEAR });
   if (error) throw error;
   PHOTO.set(path, URL.createObjectURL(blob));
+  try { await uploadThumb(path, blob); } catch (e) {}   // the original is enough; the owner's next visit retries
   return path;
 }
-async function removePhotos(paths) { if (paths.length) { try { await sb.storage.from("photos").remove(paths); } catch (e) {} } }
+async function removePhotos(paths) {
+  paths = paths.filter(Boolean);
+  if (!paths.length) return;
+  const all = paths.flatMap(p => [p, thumbOf(p)]);
+  const c = sigCache(); all.forEach(p => { delete c.m[p]; PHOTO.delete(p); }); sigSave();
+  try { await sb.storage.from("photos").remove(all); } catch (e) {}
+}
+// Small copies for photos uploaded before they existed: made in the background when the owner opens their own map.
+let BACKFILL = false;
+async function backfillThumbs() {
+  if (BACKFILL || !S.me || !S.canEdit) return;
+  const me = S.me.id;
+  const todo = [...new Set([S.me.avatar_path, ...S.places.flatMap(p => p.photos || [])])]
+    .filter(p => p && p.startsWith(me + "/") && NOTHUMB.has(thumbOf(p)) && PHOTO.get(p));
+  if (!todo.length) return;
+  BACKFILL = true;
+  try {
+    for (const p of todo) {
+      if (!S.me || S.me.id !== me) break;
+      try {
+        const r = await fetch(PHOTO.get(p));
+        if (r.ok) await uploadThumb(p, await r.blob());
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 100));
+    }
+  } finally { BACKFILL = false; }
+}
 
 async function savePlace() {
   const F = S.form, d = F.data;
@@ -951,7 +1046,7 @@ function upsertLocal(p) {
 async function deletePlace(p) {
   const { error } = await sb.from("pins").delete().eq("id", p.id);
   if (error) { toast(t("delErr")); return; }
-  await removePhotos(p.photos || []);
+  await removePhotos([...(p.photos || []), ...foodsOf(p.id).flatMap(f => f.photos || [])]);
   S.places = S.places.filter(x => x.id !== p.id && x.parent_id !== p.id);   // its food spots are deleted with it
   toast(t("deleted")); backToList();
 }
@@ -995,6 +1090,7 @@ async function loadOwner(username, quiet) {
   S.ownerState = "ok"; S.loaded = true;
   renderChrome(); render(); lastFitOwner = null; fitPins();
   maybeAutoIntro();
+  if (S.canEdit) setTimeout(backfillThumbs, 4000);
   if (!quiet && S.canEdit && !S.places.length && !ls("mp-onb-done-" + S.me.id)) location.hash = "#/start";
 }
 
@@ -1192,10 +1288,18 @@ async function signIn() {
   ls("mp-after", location.hash || "#/");
   await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
 }
-async function signOut() { await sb.auth.signOut(); S.me = null; location.hash = "#/"; route(); }
+async function signOut() { await sb.auth.signOut(); sigClear(); S.me = null; location.hash = "#/"; route(); }
 /* ---------------- lightbox ---------------- */
 function openLb(list, i) { S.lb = { list, i }; showLb(); $("#lightbox").hidden = false; $("#lbClose").focus(); }
-function showLb() { const { list, i } = S.lb; $("#lbImg").src = blobUrl(list[i]); $("#lbPrev").hidden = $("#lbNext").hidden = list.length < 2; }
+function showLb() {
+  const { list, i } = S.lb, img = $("#lbImg"), full = blobUrl(list[i]), small = PHOTO.get(thumbOf(list[i]));
+  $("#lbPrev").hidden = $("#lbNext").hidden = list.length < 2;
+  if (!small || small === full) { img.src = full; return; }
+  img.src = small;
+  const pre = new Image();
+  pre.onload = () => { if (S.lb && S.lb.list[S.lb.i] === list[i]) img.src = full; };
+  pre.src = full;
+}
 function stepLb(n) { const L = S.lb; L.i = (L.i + n + L.list.length) % L.list.length; showLb(); }
 function closeLb() { $("#lightbox").hidden = true; S.lb = null; }
 $("#lbClose").onclick = closeLb; $("#lbPrev").onclick = () => stepLb(-1); $("#lbNext").onclick = () => stepLb(1);
@@ -1602,8 +1706,8 @@ const fmtMonth = s => { const d = new Date(s + "T12:00:00"); return isNaN(d) ? "
 /* ---------------- chrome: brand, account menu ---------------- */
 const avatarEl = (prof, cls = "av") => {
   const box = el("span", { class: cls, "aria-hidden": "true" });
-  const url = prof && prof.avatar_path ? blobUrl(prof.avatar_path) : "";
-  if (url) box.append(el("img", { src: url, alt: "" }));
+  const url = prof && prof.avatar_path ? thumbUrl(prof.avatar_path) : "";
+  if (url) box.append(thumbImg(prof.avatar_path));
   else box.append(el("span", { text: ((prof && (prof.display_name || prof.username)) || "?").trim().charAt(0).toLocaleUpperCase(LANG) }));
   return box;
 };
@@ -1837,7 +1941,7 @@ async function deleteAccount() {
     render(); return;
   }
   try { await sb.auth.signOut(); } catch (e) {}
-  S.me = null; SET = null; S.owner = null; toast(t("delDone"));
+  sigClear(); S.me = null; SET = null; S.owner = null; toast(t("delDone"));
   location.hash = "#/"; renderChrome();
 }
 async function uploadAvatar(file) {
