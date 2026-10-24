@@ -8,9 +8,12 @@
 //                  "lang": "tr"|"en", "focus": { "kind": "pin"|"wish", "id": "..." } | { "kind": "map", "id": "<username>" } | null }
 // Response: { "text": "...", "sources": [{ "url", "title" }], "pins": [{ title, city, country, kind, date, note, search }],
 //             "left": <questions left today> }
+//           With "mode": "save_plan" the conversation (which may end with the assistant) is turned into a plan instead:
+//           { "plan": { "title", "body", "places": [{ title, city, country }] }, "left": n }. Uses one question.
+//           focus may also be { "kind": "plan", "id": "<plans.id>" }: continuing a saved plan.
 //           errors: { "error": "limit" | "no_key" | "no_limit_table" | "bad_request" | "upstream" | ... }
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { buildSystem, cleanHistory, converse, tools, type Ctx, type Focus, type Friend } from "./lib.ts";
+import { buildSystem, cleanHistory, converse, tools, writePlan, type Ctx, type Focus, type Friend } from "./lib.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,9 +28,10 @@ const FRIEND_COLS = "id,kind,home,title,city,country,lat,lon,visited_on,note,not
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  let body: { messages?: unknown; lang?: string; focus?: { kind?: string; id?: string } | null };
+  let body: { messages?: unknown; lang?: string; mode?: string; focus?: { kind?: string; id?: string } | null };
   try { body = await req.json(); } catch (_) { return json({ error: "bad_json" }, 400); }
-  const history = cleanHistory(body.messages);
+  const saving = body.mode === "save_plan";
+  const history = cleanHistory(body.messages, !saving);
   if (!history) return json({ error: "bad_request" }, 400);
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) return json({ error: "no_key" }, 500);
@@ -70,6 +74,12 @@ export async function handle(req: Request): Promise<Response> {
   } else if (f && typeof f.id === "string" && f.kind === "wish") {
     const w = (wish.data || []).find(x => x.id === f.id);
     if (w) focus = { kind: "wish", title: w.title, city: w.city, country: w.country, lat: w.lat, lon: w.lon, mine: true };
+  } else if (f && typeof f.id === "string" && f.kind === "plan") {
+    const { data: pl } = await sb.from("plans").select("title,body,places").eq("id", f.id).maybeSingle();
+    if (pl) {
+      const first = (Array.isArray(pl.places) ? pl.places : []).find((x: { lat?: number }) => typeof x.lat === "number");
+      focus = { kind: "plan", title: pl.title, plan: pl.body, lat: first ? first.lat : NaN, lon: first ? first.lon : NaN, mine: true };
+    }
   } else if (f && typeof f.id === "string" && f.kind === "map") {
     const { data: pr } = await sb.from("profiles").select("id").ilike("username", f.id.replace(/[%_\\]/g, "\\$&")).maybeSingle();
     if (pr && pr.id !== uid) await loadFriend(pr.id);
@@ -87,16 +97,21 @@ export async function handle(req: Request): Promise<Response> {
   };
   const home = myPins.find(p => p.home);
 
+  const call = async (payload: Record<string, unknown>) => {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw Object.assign(new Error("upstream"), { status: r.status, detail: (await r.text()).slice(0, 300) });
+    return await r.json();
+  };
   try {
-    const reply = await converse(async (payload) => {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!r.ok) throw Object.assign(new Error("upstream"), { status: r.status, detail: (await r.text()).slice(0, 300) });
-      return await r.json();
-    }, buildSystem(ctx), history, tools(home?.iso || undefined));
+    if (saving) {
+      const plan = await writePlan(call, buildSystem(ctx), history);
+      return plan ? json({ plan, left }) : json({ error: "empty" }, 502);
+    }
+    const reply = await converse(call, buildSystem(ctx), history, tools(home?.iso || undefined));
     if (!reply.text && !reply.pins.length) return json({ error: "empty" }, 502);
     return json({ ...reply, left });
   } catch (e) {

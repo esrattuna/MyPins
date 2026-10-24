@@ -595,3 +595,25 @@ body{font-size:15px;line-height:1.5}
 .pin-card-sub{font-size:13px;color:var(--muted)}
 .pin-card-st{font-size:13px;color:var(--muted);margin-top:4px}
 .pin-card-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+
+/* "Planlarım": saved plans */
+.msg-acts{align-self:flex-start;margin:-4px 0 2px 4px}
+.msg-acts .linkbtn{border:0;background:none;padding:4px 0;cursor:pointer;font-size:13.5px}
+.chat-note{align-self:stretch;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;background:var(--sea-tint);color:var(--deep);border-radius:14px;padding:9px 12px;font-size:13.5px;font-weight:600}
+.chat-note.bad{background:var(--tint);color:var(--ink)}
+.chat-note .linkbtn{border:0;background:none;padding:0;cursor:pointer;text-decoration:underline;font-size:13.5px}
+.chat-note-q{font-weight:500;color:var(--ink)}
+.plan-offer{margin:14px 0 4px;background:var(--sea-tint);color:var(--deep);border-radius:14px;padding:11px 13px;font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:8px}
+.plan-offer-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
+.wrow .wplan{margin-left:auto;font-size:15px;padding:2px 4px;border-radius:8px;cursor:pointer}
+.wrow .wplan:hover,.wrow .wplan:focus-visible{background:var(--sea-tint)}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pcard{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:12px 14px;cursor:pointer;font:inherit;color:var(--ink)}
+.pcard:hover{border-color:var(--deep)}
+.pcard-t{font-family:var(--f-display);font-weight:600;font-size:17px}
+.pcard-places{font-size:13.5px;color:var(--deep);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard-date{font-size:12.5px;color:var(--muted)}
+.plan-places{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.plan-places .chip{cursor:pointer;font-size:13px}
+.plan-places .chip:disabled{cursor:default;opacity:.6}
+.plan-body{max-width:100%;margin-bottom:10px}

@@ -10,7 +10,7 @@ export type Msg = { role: "user" | "assistant"; text: string };
 export type Pin = { id?: string; title: string; title_en?: string; city?: string; country?: string; iso?: string; kind?: string; home?: boolean; lat: number; lon: number; visited_on?: string | null; parent_id?: string | null; note?: string; note_en?: string; dish?: string; dish_en?: string; rating?: number; price?: string };
 export type Wish = { title: string; city?: string; country?: string; lat: number; lon: number };
 export type Profile = { username?: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string };
-export type Focus = { kind: "pin" | "wish" | "map"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean };
+export type Focus = { kind: "pin" | "wish" | "map" | "plan"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean; plan?: string };
 // the map being looked at when it is someone else's: their profile and pins (only what the viewer may see)
 export type Friend = { username: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string; pins: Pin[] };
 export type Ctx = { lang: "tr" | "en"; today: string; me: Profile; pins: Pin[]; wish: Wish[]; focus: Focus | null; friend?: Friend | null };
@@ -28,7 +28,7 @@ const clean = (s: unknown, max = 300) => String(s ?? "").replace(/<\/?data>/gi, 
 const where = (x: { city?: string; country?: string }) => [x.city, x.country].map(v => clean(v, 80)).filter(Boolean).join(", ");
 
 // the history from the app: text only, starts with the person, alternates, ends with the person
-export function cleanHistory(raw: unknown): Msg[] | null {
+export function cleanHistory(raw: unknown, endWithUser = true): Msg[] | null {
   if (!Array.isArray(raw)) return null;
   const out: Msg[] = [];
   for (const m of raw.slice(-MAX_TURNS * 2)) {
@@ -41,7 +41,7 @@ export function cleanHistory(raw: unknown): Msg[] | null {
   while (out.length && out[0].role !== "user") out.shift();
   const last = out.slice(-MAX_TURNS);
   while (last.length && last[0].role !== "user") last.shift();
-  return last.length && last[last.length - 1].role === "user" ? last : null;
+  return last.length && (!endWithUser || last[last.length - 1].role === "user") ? last : null;
 }
 
 export function buildSystem(c: Ctx): string {
@@ -71,7 +71,10 @@ export function buildSystem(c: Ctx): string {
     wish ? "Their Someday list:\n" + wish : "Their Someday list is empty.",
   ];
   if (c.friend) lines.push(friendSection(c.friend, c.lang, c.focus && c.focus.kind === "pin" ? c.focus.title : ""));
-  if (c.focus && c.focus.kind !== "map") {
+  if (c.focus && c.focus.kind === "plan") {
+    lines.push(`They opened a plan they saved earlier, "${clean(c.focus.title, 100)}", to continue working on it:\n${String(c.focus.plan || "").replace(/<\/?data>/gi, "").slice(0, 6000)}`);
+  }
+  if (c.focus && c.focus.kind !== "map" && c.focus.kind !== "plan") {
     const f = c.focus;
     lines.push(`Place they are looking at now: ${clean(f.title, 100)}${where(f) ? " — " + where(f) : ""} (lat ${f.lat.toFixed(4)}, lon ${f.lon.toFixed(4)})` +
       (f.kind === "wish" ? ", from their own Someday list." : f.mine ? ", a pin on their own map." : `, a pin on ${f.owner ? "@" + clean(f.owner, 40) + "'s" : "a friend's"} map.`));
@@ -121,6 +124,39 @@ function friendSection(fr: Friend, lang: "tr" | "en", focusTitle: string): strin
     home ? `${name} lives in ${where(home) || clean(home.title, 60)}.` : "",
     rows.length ? `${name}'s pins (places with their notes, food spots with ratings):\n` + rows.join("\n") : `${name} has no pins yet.`,
   ].filter(Boolean).join("\n");
+}
+
+// "Planı kaydet": the conversation becomes a clean plan for the "Planlarım" page
+export const SAVE_PLAN_TOOL = {
+  name: "save_plan",
+  description: "Save the trip plan from this conversation to the user's private Plans page.",
+  input_schema: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "Short title in the user's language, e.g. 'Sitges hafta sonu' or 'Endülüs kasabaları, 5 gün'." },
+      body: { type: "string", description: "The plan in the user's language, as short markdown for a phone: bold labels and '-' lists, no tables, no # headings. Include what the conversation settled: how to get there (airports, stations, stops, operators), day by day, where to eat if discussed, a rough budget with approximate prices, and open questions. Only what the conversation contains; do not add new facts. 80–400 words." },
+      places: {
+        type: "array", description: "The places the plan visits, in order (towns, sights, restaurants named in the plan). At most 10.",
+        items: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, country: { type: "string" } }, required: ["title"] },
+      },
+    },
+    required: ["title", "body", "places"],
+  },
+};
+export const SAVE_PLAN_ASK = "[MyPins app] The user tapped \"Save plan\". Call save_plan with the plan from this conversation so far.";
+export type SavedPlan = { title: string; body: string; places: { title: string; city?: string; country?: string }[] };
+export async function writePlan(call: CallFn, system: string, history: Msg[]): Promise<SavedPlan | null> {
+  const msgs = history.map(m => ({ role: m.role, content: m.text }));
+  if (msgs.length && msgs[msgs.length - 1].role === "user") msgs[msgs.length - 1].content += "\n\n" + SAVE_PLAN_ASK;
+  else msgs.push({ role: "user", content: SAVE_PLAN_ASK });
+  const r = await call({ model: MODEL, max_tokens: 3000, system, tools: [SAVE_PLAN_TOOL], tool_choice: { type: "tool", name: "save_plan" }, messages: msgs });
+  const u = (r.content || []).find(b => b.type === "tool_use" && b.name === "save_plan");
+  const inp = (u && u.input) || {};
+  const title = clean(inp.title, 120), body = String(inp.body ?? "").replace(/\r/g, "").trim().slice(0, 12000);
+  if (!title || !body) return null;
+  const places = (Array.isArray(inp.places) ? inp.places : []).slice(0, 10).map((p: Record<string, unknown>) => ({
+    title: clean(p && p.title, 120), city: clean(p && p.city, 80) || undefined, country: clean(p && p.country, 80) || undefined })).filter(p => p.title);
+  return { title, body, places };
 }
 
 export const ADD_PIN_TOOL = {
