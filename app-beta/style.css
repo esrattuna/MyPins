@@ -534,3 +534,7 @@ body{font-size:15px;line-height:1.5}
 /* corner brand: pin logo + MyPins (owner name lives in the profile card) */
 .brand h1.brand-t{display:flex;align-items:center;gap:7px}
 .map .brand svg.brand-logo{flex:none;display:block;width:22px;height:26px;cursor:default}
+/* short bio on the profile card */
+.pcx-bio{grid-column:1/-1;margin:6px 0 0;font-size:14px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
+.tag-box{resize:none;min-height:0}
+.char-count{align-self:flex-end;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
