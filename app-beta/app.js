@@ -39,8 +39,6 @@ const I18N = {
     kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Not ekle",
     tally: (a, b, c) => `${a} yer · ${b} sofra · ${c} ülke`,
     noDb: "Notlar bu görünümde açılamıyor. Görmek için claude.ai hesabınla oturum açman gerekiyor.", dbErr: "Notlar yüklenemedi. Sayfayı yenileyip tekrar dene.",
-    testBtn: "Test hesabı", testT: "Test hesabıyla giriş", testB: "Bu ekran sadece test sürümünde var. Örnek hesaplardan biriyle (sample1 … sample5) e-posta ve şifreyle girersin; Google gerekmez.",
-    testAcct: "Hesap", testPw: "Şifre", testGo: "Giriş yap", testErr: "Giriş yapılamadı. Şifreyi ve Supabase'de e-posta ile girişin açık olduğunu kontrol et.", testAs: n => `Şu an ${n} olarak girişlisin.`,
     filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar", f_wish: "Belki bir gün",
     wishBtn: "Belki bir gün giderim", wishOn: "Belki bir gün ✓", wishNew: "+ Yer ekle", wishWent: "Gittim", wishRemove: "Kaldır",
     wishEmptyOwn: "Henüz bir yer yok. Arkadaşlarının pinlerinden ya da haritadan ekleyebilirsin.", wishEmptyOther: "Bu listede henüz bir yer yok.",
@@ -88,8 +86,6 @@ const I18N = {
     kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add note",
     tally: (a, b, c) => `${a} ${a === 1 ? "place" : "places"} · ${b} food ${b === 1 ? "spot" : "spots"} · ${c} ${c === 1 ? "country" : "countries"}`,
     noDb: "Notes can't load in this view. Sign in with a claude.ai account to see them.", dbErr: "Notes didn't load. Refresh the page and try again.",
-    testBtn: "Test account", testT: "Sign in with a test account", testB: "This screen exists only in the test build. Sign in as one of the sample accounts (sample1 … sample5) with e-mail and password; no Google needed.",
-    testAcct: "Account", testPw: "Password", testGo: "Sign in", testErr: "Couldn't sign in. Check the password and that e-mail sign-in is enabled in Supabase.", testAs: n => `You're signed in as ${n}.`,
     filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food", f_wish: "Someday List",
     wishBtn: "Maybe someday", wishOn: "Someday ✓", wishNew: "+ Add a place", wishWent: "Been there", wishRemove: "Remove",
     wishEmptyOwn: "No places yet. Add them from friends' pins or from the map.", wishEmptyOther: "No places on this list yet.",
@@ -531,7 +527,6 @@ function render() {
   body.dataset.view = S.panelMode === "map" ? S.view : S.panelMode;
   if (S.panelMode === "onboard") renderOnboard();
   else if (S.panelMode === "settings") renderSettings();
-  else if (S.panelMode === "testlogin") renderTestLogin();
   else if (S.panelMode === "people") renderPeople();
   else if (S.ownerState === "notfound") renderNotFound();
   else if (S.view === "detail") renderDetail();
@@ -1023,34 +1018,6 @@ function renderWish() {
   body.append(ul);
 }
 
-/* ---------------- test build: sign in as a sample account (e-mail + password) ----------------
-   The sample accounts (supabase/04, password set with supabase/06) have no Google login.
-   No password is stored here: it is typed on the screen. */
-let TEST = { user: "sample1", busy: false, err: "" };
-function renderTestLogin() {
-  body.append(el("div", { class: "ph" }, el("div", {}, el("div", { class: "eyebrow", text: "MyPins · beta" }), el("h2", { text: t("testT") }))));
-  body.append(el("p", { class: "hint", text: t("testB") }));
-  if (S.me) body.append(el("div", { class: "notice", text: t("testAs", "@" + S.me.username) }));
-  const sel = el("select", { id: "test-user" }, [1, 2, 3, 4, 5].map(n => el("option", { value: "sample" + n, selected: TEST.user === "sample" + n ? "" : null }, "sample" + n)));
-  sel.onchange = () => { TEST.user = sel.value; };
-  body.append(el("form", { class: "test-form", onsubmit: e => { e.preventDefault(); testSignIn(); } },
-    el("label", { class: "field" }, el("span", { class: "lab", text: t("testAcct") }), sel),
-    el("label", { class: "field" }, el("span", { class: "lab", text: t("testPw") }), el("input", { id: "test-pw", type: "password", autocomplete: "current-password", required: "" })),
-    TEST.err ? el("div", { class: "notice", text: TEST.err }) : null,
-    el("button", { class: "btn", type: "submit", disabled: TEST.busy ? "" : null }, t("testGo"))));
-}
-async function testSignIn() {
-  const pw = $("#test-pw").value; if (!pw || TEST.busy) return;
-  TEST.busy = true; TEST.err = ""; render();
-  if (S.me) await sb.auth.signOut();
-  const { error } = await sb.auth.signInWithPassword({ email: TEST.user + "@mypins.test", password: pw });
-  TEST.busy = false;
-  if (error) { TEST.err = t("testErr"); render(); return; }
-  await fetchMe(); renderChrome();
-  S.owner = null;                     // reload the profile so edit rights match the new account
-  location.hash = "#/u/" + TEST.user;
-}
-
 async function follow() {
   if (!S.me) return signIn();
   const { error } = await sb.from("follows").insert({ follower_id: S.me.id, following_id: S.owner.id });
@@ -1491,8 +1458,7 @@ function renderChrome() {
   const acct = $("#acct");
   acct.replaceChildren();
   if (!S.me) {
-    acct.append(el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn")),
-      el("a", { class: "acct-test", href: "#/test" }, t("testBtn")));   // test build only: sample accounts
+    acct.append(el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn")));
   } else {
     const btn = el("button", { class: "acct-btn", type: "button", "aria-label": t("menu"), "aria-haspopup": "menu", "aria-expanded": "false" }, avatarEl(S.me));
     if (S.pending) btn.append(el("span", { class: "badge", text: String(S.pending) }));
@@ -1502,7 +1468,6 @@ function renderChrome() {
       el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
       el("a", { role: "menuitem", href: "#/people" }, "👥 " + t("people"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null),
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
-      el("a", { role: "menuitem", href: "#/test" }, "🧪 " + t("testBtn")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); };
     menu.addEventListener("click", () => { menu.hidden = true; });
@@ -1705,7 +1670,6 @@ async function route() {
   S.form = null; S.temp = null; S.wishForm = null; setPicking(false);
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
-  if (a === "test") { S.panelMode = "testlogin"; render(); return; }
   if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   if (a === "people") { S.panelMode = "people"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   S.panelMode = "map";

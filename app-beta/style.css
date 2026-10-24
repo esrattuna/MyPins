@@ -371,6 +371,3 @@ a.btn{text-decoration:none}
 .wish-acts{display:flex;gap:8px}
 .d-wish{margin:14px 0 4px}
 .btn.wish-on{background:var(--tint);border-color:var(--ink);color:var(--ink)}
-/* test build: sample account sign-in */
-.acct-test{font-size:12px;color:var(--muted);text-decoration:underline;margin-left:8px;align-self:center}
-.test-form{display:flex;flex-direction:column;gap:10px;max-width:320px}
