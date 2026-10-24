@@ -160,7 +160,14 @@ const S = {
 };
 const sb = supabase.createClient(MYPINS.supabaseUrl, MYPINS.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" } });
 
-/* ---------------- map (MapLibre GL + OpenFreeMap vector tiles) ---------------- */
+/* ---------------- map (MapLibre GL + OpenFreeMap vector tiles) ----------------
+   Map setup carried over from the map prototype (map-prototype/index.html, ad72685):
+   - "Sade stil": fewer style layers (less work per tile); POI c: food & drink markers removed, stops/museums/etc. kept
+   - no road number shields, labels in the interface language (TR/EN), island labels from country scale
+   - tap to zoom: country, neighbouring country, city/town/island label, pin
+   - smooth detail: fly on tap, detail layers fade in by zoom, labels fade, the target's tiles are requested as the flight starts
+   - coarse country base up to zoom 7, 1200 tiles kept in memory
+   - style request with a time limit and a "try again" message instead of an empty map */
 const mapEl = $("#map");
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a", ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
@@ -173,35 +180,85 @@ let map = null, mapReady = false;
 const narrowView = () => matchMedia("(max-width:760px)").matches;
 const mapPadding = () => narrowView() ? { top: 70, bottom: Math.round(mapEl.clientHeight * 0.5), left: 20, right: 20 } : { top: 40, bottom: 40, left: 40, right: 40 };
 const kToZoom = k => Math.min(16, 3 + Math.log2(Math.max(1, k)) * 1.1);
+const reducedMotion = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
 
-function restyle(style) {
+/* --- style --- */
+// The map host can be slow or unreachable; without a time limit the page waited on an empty map.
+// Two tries of 12 s, then a message with "try again" is shown on the map.
+async function fetchStyleJSON() {
+  for (let k = 0; k < 2; k++) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+    try { const r = await fetch(MAP_STYLE, { signal: ctl.signal }); if (r.ok) return await r.json(); }
+    catch (e) { console.warn("style fetch", k + 1, e.name); }
+    finally { clearTimeout(timer); }
+  }
+  throw new Error("map-host-unreachable");
+}
+const POI_FOOD = ["restaurant", "fast_food", "cafe", "bar", "beer", "ice_cream", "bakery", "alcohol_shop"];
+const LITE_DROP_SOURCE = new Set(["housenumber", "aeroway", "aerodrome_label", "building"]);
+const LITE_DROP_ID = /oneway|shield|hatching|cablecar|path|pedestrian|highway-name-minor/;
+function isLegacyFilter(f) {
+  if (!Array.isArray(f)) return false;
+  if (["all", "any", "none"].includes(f[0])) return f.slice(1).some(isLegacyFilter);
+  return typeof f[1] === "string" && ["==", "!=", "<", ">", "<=", ">=", "in", "!in", "!has"].includes(f[0]);
+}
+function addFilter(l, legacy, expr) {
+  if (!l.filter) l.filter = expr;
+  else l.filter = isLegacyFilter(l.filter) ? ["all", l.filter, legacy] : ["all", l.filter, expr];
+}
+const showsName = l => l.type === "symbol" && l.layout && l.layout["text-field"] && /"name/.test(JSON.stringify(l.layout["text-field"]));
+function restyle(s) {
+  // "Sade stil" with POI c (select): drop detail layers and food & drink markers
+  s.layers = s.layers.filter(l => {
+    const sl = l["source-layer"];
+    if (/shield/.test(l.id)) return false;                       // road number shields: removed
+    if (!sl) return true;
+    if (LITE_DROP_SOURCE.has(sl)) return false;
+    if (sl !== "poi" && LITE_DROP_ID.test(l.id)) return false;
+    return true;
+  });
   const nameExpr = labelExpr();
-  for (const l of style.layers) {
+  for (const l of s.layers) {
     const id = l.id, p = (l.paint = l.paint || {});
+    if (l["source-layer"] === "poi") addFilter(l, ["!in", "class", ...POI_FOOD], ["!", ["in", ["get", "class"], ["literal", POI_FOOD]]]);
     if (l.type === "background") p["background-color"] = C.land;
-    else if (id === "water" || /^water(?!way)/.test(id)) { if (l.type === "fill") p["fill-color"] = C.sea; }
+    else if (id === "water" && l.type === "fill") p["fill-color"] = C.sea;
     else if (/^waterway/.test(id) && l.type === "line") p["line-color"] = C.sea2;
-    else if (id === "natural_earth") { l.layout = { ...(l.layout || {}), visibility: "none" }; }
+    else if (id === "natural_earth" || /park_outline/.test(id)) l.layout = { ...(l.layout || {}), visibility: "none" };
     else if (/park/.test(id) && l.type === "fill") { p["fill-color"] = C.park; p["fill-opacity"] = 0.7; }
-    else if (/park_outline/.test(id)) { l.layout = { ...(l.layout || {}), visibility: "none" }; }
-    else if (/landcover_wood|landuse_forest/.test(id)) { p["fill-color"] = C.wood; p["fill-opacity"] = 0.5; }
-    else if (/landcover_grass|landuse_pitch|landuse_track|landuse_cemetery/.test(id)) { p["fill-color"] = C.park; p["fill-opacity"] = 0.45; }
+    else if (/landcover_wood/.test(id)) { p["fill-color"] = C.wood; p["fill-opacity"] = 0.5; }
+    else if (/landcover_grass|landuse_(pitch|track|cemetery)/.test(id)) { p["fill-color"] = C.park; p["fill-opacity"] = 0.45; }
     else if (/landcover_sand/.test(id)) p["fill-color"] = C.sand;
     else if (/landuse_residential/.test(id)) { p["fill-color"] = C.land2; p["fill-opacity"] = 0.5; }
-    else if (/landuse_(hospital|school)|aeroway_fill/.test(id)) { p["fill-color"] = C.land2; }
-    else if (/building/.test(id) && l.type === "fill") { p["fill-color"] = C.building; p["fill-outline-color"] = C.roadCase; p["fill-opacity"] = 0.6; }
-    else if (/building/.test(id) && l.type === "fill-extrusion") { p["fill-extrusion-color"] = C.building; p["fill-extrusion-opacity"] = 0.5; }
     else if (l.type === "line" && /casing/.test(id)) p["line-color"] = C.roadCase;
     else if (l.type === "line" && /^(road|bridge|tunnel)_/.test(id) && !/rail|hatching|path/.test(id)) p["line-color"] = C.road;
-    else if (l.type === "line" && /boundary/.test(id)) { p["line-color"] = C.border; }
-    if (l.type === "symbol" && l.layout && l.layout["text-field"]) {
+    else if (l.type === "line" && /boundary/.test(id)) p["line-color"] = C.border;
+    // only labels that show a name get the language-aware name (a road number replaced by a name left empty boxes)
+    if (showsName(l)) {
       l.layout["text-field"] = nameExpr;
-      p["text-color"] = /water|ocean|sea|lake|bay/.test(id) ? "#3d8f93" : C.ink;
-      p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
+      p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
     }
-    if (l.type === "symbol" && /poi/.test(id)) { p["icon-opacity"] = 0.75; }
   }
-  return style;
+  // Island names: upstream they fall into "label_other" (from zoom 8). Own layers: islands from z6, islets from z10.
+  const other = s.layers.find(l => l.id === "label_other");
+  if (other) {
+    other.filter = ["all", other.filter, ["!", ["in", ["get", "class"], ["literal", ["island", "islet"]]]]];
+    const at = s.layers.indexOf(other);
+    const islandLayer = (id, cls, minzoom) => ({ id, type: "symbol", source: other.source, "source-layer": "place", minzoom,
+      filter: ["==", ["get", "class"], cls],
+      layout: { "text-field": nameExpr, "text-font": (other.layout && other.layout["text-font"]) || ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 11, 10, 13, 14, 15], "symbol-sort-key": ["coalesce", ["get", "rank"], 99],
+        "text-max-width": 7, "text-padding": 4 },
+      paint: { "text-color": "#3f5a5c", "text-halo-color": C.halo, "text-halo-width": 1.4 } });
+    s.layers.splice(at + 1, 0, islandLayer("label_island", "island", 6), islandLayer("label_islet", "islet", 10));
+  }
+  // Country base: until a region's tiles arrive, the coarse country fill already shows land and sea at
+  // continent scale (<= z7). Above z7 the background is land as before.
+  const bg = s.layers.findIndex(l => l.type === "background");
+  s.layers[bg].paint["background-color"] = ["step", ["zoom"], C.sea, 7, C.land];
+  s.sources.countries = { type: "geojson", data: COUNTRIES, tolerance: 0.6, buffer: 32 };
+  s.layers.splice(bg + 1, 0, { id: "base-land", type: "fill", source: "countries", maxzoom: 7, paint: { "fill-color": C.land, "fill-antialias": false } });
+  return s;
 }
 
 const pinImg = (kind) => {
@@ -217,15 +274,25 @@ const pinImg = (kind) => {
   return { width: w, height: h, data: g.getImageData(0, 0, w, h).data };
 };
 
+function showMapError() {
+  let box = $("#mapErr");
+  if (!box) { box = el("div", { id: "mapErr", class: "map-err", role: "alert" }); mapEl.append(box); }
+  box.replaceChildren(
+    el("p", {}, LANG === "en" ? "Couldn't reach the map server (OpenFreeMap). This is usually a temporary connection problem." : "Harita sunucusuna (OpenFreeMap) ulaşılamadı. Bu genelde geçici bir bağlantı sorunu."),
+    el("button", { class: "btn", type: "button", onclick: () => location.reload() }, LANG === "en" ? "Try again" : "Tekrar dene"));
+}
+
+let styleTpl = null;   // style source description, used to find the tile URL template for prefetching
 async function initMap() {
   let style;
-  try { style = restyle(await (await fetch(MAP_STYLE)).json()); }
-  catch (e) { style = { version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": C.sea } }] }; }
-  map = new maplibregl.Map({ container: "mapgl", style, center: [15, 42], zoom: 2.6, minZoom: 1, maxZoom: 19, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+  try { style = restyle(await fetchStyleJSON()); styleTpl = style; }
+  catch (e) { showMapError(); return; }
+  map = new maplibregl.Map({ container: "mapgl", style, center: [15, 42], zoom: 2.6, minZoom: 1, maxZoom: 19, attributionControl: { compact: true },
+    dragRotate: false, pitchWithRotate: false, fadeDuration: 300, maxTileCacheSize: 1200 });
   map.touchZoomRotate.disableRotation();
   map.on("load", () => {
+    captureRamps(); applySmooth();
     for (const k of ["yer", "yemek", "home", "temp"]) map.addImage("pin-" + k, pinImg(k), { pixelRatio: 2 });
-    map.addSource("countries", { type: "geojson", data: COUNTRIES });
     map.addLayer({ id: "countries-hit", type: "fill", source: "countries", paint: { "fill-color": "#000", "fill-opacity": 0 } });
     map.addLayer({ id: "countries-picked", type: "fill", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "fill-color": C.pin, "fill-opacity": 0.55 } });
     map.addLayer({ id: "countries-picked-line", type: "line", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "line-color": C.pinInk, "line-width": 1.2 } });
@@ -239,20 +306,12 @@ async function initMap() {
     map.addLayer({ id: "pins-sel", type: "symbol", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["==", ["get", "sel"], 1],
       layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": 1.25, "icon-allow-overlap": true, "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -3.4], "text-anchor": "bottom" },
       paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.8 } });
-    for (const id of ["pins-dot", "pins-pin", "pins-sel"]) {
-      map.on("click", id, e => { const f = e.features[0]; if (!f || f.properties.id === "__temp") return; e.originalEvent._pin = true; openDetail(f.properties.id, true); });
+    for (const id of PIN_LAYERS) {
+      map.on("click", id, onPinTap);
       map.on("mouseenter", id, () => map.getCanvas().style.cursor = "pointer");
-      map.on("mouseleave", id, () => map.getCanvas().style.cursor = "");
+      map.on("mouseleave", id, () => map.getCanvas().style.cursor = S.picking ? "crosshair" : "");
     }
-    map.on("click", e => {
-      if (e.originalEvent._pin) return;
-      if (S.picking) { setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) }; startForm(null, S.temp); return; }
-      const f = map.queryRenderedFeatures(e.point, { layers: ["countries-hit"] })[0];
-      if (!f) return;
-      const feat = COUNTRIES.features.find(x => x.properties.n === f.properties.n);
-      if (feat && typeof onbLandClick === "function" && onbLandClick(feat)) return;
-      if (feat && map.getZoom() < 5) zoomToCountry(feat);
-    });
+    map.on("click", onMapTap);
     mapReady = true;
     drawOverlay(); if (typeof onbPaint === "function") onbPaint();
     if (S.places.length && !S.selId) fitPins();
@@ -260,7 +319,66 @@ async function initMap() {
   map.on("mousemove", e => { const r = $("#readout"); if (r) r.textContent = fmtCoord(e.lngLat.lng, e.lngLat.lat); });
 }
 const DOT_ZOOM_GL = 6;
+const PIN_LAYERS = ["pins-dot", "pins-pin", "pins-sel"];
 
+/* --- taps --- */
+// Order: add-place mode, onboarding country picking, pin, then tap-to-zoom (neighbouring country, place label / island, country).
+function onPinTap(e) {
+  const f = e.features[0];
+  if (!f || f.properties.id === "__temp" || S.picking) return;
+  e.originalEvent._pin = true;
+  openDetail(f.properties.id, false);
+  const z = map.getZoom();
+  camera({ center: f.geometry.coordinates, zoom: z < 12 ? Math.max(12, z + 3) : z });
+}
+const PLACE_ZOOM = { city: 11.5, town: 13, village: 14, suburb: 14.5, quarter: 15, neighbourhood: 15.5, hamlet: 15, island: 10.5, islet: 13 };
+function countryAtPoint(pt) {
+  const f = map.queryRenderedFeatures(pt, { layers: ["countries-hit"] })[0];
+  return f ? COUNTRIES.features.find(x => x.properties.n === f.properties.n) : null;
+}
+// a tap on an island's land (not exactly on its name) still finds the island: nearest island label within ~45 px
+function islandNear(pt) {
+  const layers = ["label_island", "label_islet"].filter(id => map.getLayer(id)); if (!layers.length) return null;
+  const r = 45, feats = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]], { layers });
+  let best = null, bd = Infinity;
+  for (const f of feats) { const p = map.project(f.geometry.coordinates), d = (p.x - pt.x) ** 2 + (p.y - pt.y) ** 2; if (d < bd) { bd = d; best = f; } }
+  return best;
+}
+// middle of the visible map (above the bottom sheet on phones)
+function visibleCenterPoint() {
+  const pad = mapPadding(), w = mapEl.clientWidth, h = mapEl.clientHeight;
+  return [pad.left + (w - pad.left - pad.right) / 2, pad.top + (h - pad.top - pad.bottom) / 2];
+}
+function onMapTap(e) {
+  if (e.originalEvent._pin) return;
+  if (S.picking) { setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) }; startForm(null, S.temp); return; }
+  const tapped = countryAtPoint(e.point);
+  if (tapped && typeof onbLandClick === "function" && onbLandClick(tapped)) return;
+  const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
+  if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;   // the pin handler owns this tap
+  const z = map.getZoom();
+  // Country scale: a tap in another country than the one in the middle of the screen frames that country
+  // (checked before place labels so a nearby city label does not swallow the switch).
+  if (z >= 5.5 && z < 8 && tapped) {
+    const here = countryAtPoint(visibleCenterPoint());
+    if (tapped !== here) { zoomToCountry(tapped); return; }
+  }
+  const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class])
+    || islandNear(e.point);
+  if (place) {
+    const tz = PLACE_ZOOM[place.properties.class];
+    camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
+    return;
+  }
+  if (z < 5.5 && tapped) zoomToCountry(tapped);
+}
+
+/* --- camera --- */
+function camera(opts) {
+  if (reducedMotion()) { map.jumpTo({ ...opts, padding: mapPadding() }); return; }
+  prefetchView(opts.center, opts.zoom);
+  map.flyTo({ ...opts, padding: mapPadding(), duration: 1000, curve: 1.3, essential: true });
+}
 function drawOverlay() {
   if (!mapReady) return;
   const shown = S.places.filter(p => S.filter === "all" || p.kind === S.filter || p.id === S.selId);
@@ -280,14 +398,64 @@ function fitPins() {
 }
 function flyTo(lon, lat, k = 7) {
   if (!mapReady) return;
-  const z = Math.max(map.getZoom(), kToZoom(k));
-  map.flyTo({ center: [lon, lat], zoom: z, padding: mapPadding(), duration: matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 1100, essential: true });
+  camera({ center: [lon, lat], zoom: Math.max(map.getZoom(), kToZoom(k)) });
 }
 function zoomToCountry(f) {
   const [[x0, y0], [x1, y1]] = d3.geoBounds(f.properties.main);
   if (x1 < x0) return;
-  map.fitBounds([[x0, y0], [x1, y1]], { padding: mapPadding(), maxZoom: 7, duration: 900 });
+  // fitBounds applies the panel padding once (cameraForBounds + a padded flyTo shifted it twice on phones)
+  const bounds = [[x0, y0], [x1, y1]], opts = { padding: mapPadding(), maxZoom: 7.5 };
+  if (reducedMotion()) { map.fitBounds(bounds, { ...opts, animate: false }); return; }
+  const cam = map.cameraForBounds(bounds, opts);
+  if (cam) prefetchView(cam.center, cam.zoom);
+  map.fitBounds(bounds, { ...opts, linear: false, duration: 1000, curve: 1.3, essential: true });
 }
+
+/* --- smooth detail ---
+   1) layers that start at a zoom (minor roads, small labels...) fade in over ~0.8 zoom instead of popping;
+   2) taps fly to the target so intermediate zooms load progressively;
+   3) the target's tiles are requested when the flight starts (HTTP cache), so they are ready on arrival;
+   4) labels fade (fadeDuration). */
+const OPACITY_PROPS = { fill: ["fill-opacity"], line: ["line-opacity"], symbol: ["text-opacity", "icon-opacity"], circle: ["circle-opacity"] };
+const OWN_LAYERS = new Set(["base-land", "countries-hit", "countries-picked", "countries-picked-line", ...PIN_LAYERS]);
+let RAMPS = [];
+function captureRamps() {
+  RAMPS = [];
+  for (const l of map.getStyle().layers) {
+    if (OWN_LAYERS.has(l.id) || !(l.minzoom > 0) || !OPACITY_PROPS[l.type]) continue;
+    for (const prop of OPACITY_PROPS[l.type]) {
+      const orig = map.getPaintProperty(l.id, prop);
+      if (orig !== undefined && typeof orig !== "number") continue;   // already zoom-driven: leave it alone
+      RAMPS.push({ id: l.id, prop, ramp: ["interpolate", ["linear"], ["zoom"], l.minzoom, 0, l.minzoom + 0.8, orig === undefined ? 1 : orig] });
+    }
+  }
+}
+function applySmooth() { for (const r of RAMPS) map.setPaintProperty(r.id, r.prop, r.ramp); }
+let TILE_TPL = null, TILE_MAX = 14;
+async function tileTemplate() {
+  if (TILE_TPL !== null) return TILE_TPL;
+  TILE_TPL = "";
+  try {
+    const src = Object.values(styleTpl.sources).find(x => x.type === "vector" && x.url);
+    const tj = await (await fetch(src.url)).json();
+    TILE_TPL = tj.tiles[0]; TILE_MAX = tj.maxzoom || 14;
+  } catch (e) {}
+  return TILE_TPL;
+}
+async function prefetchView(center, zoom) {
+  const tpl = await tileTemplate(); if (!tpl || !center) return;
+  const c = Array.isArray(center) ? center : [center.lng, center.lat];
+  const tz = Math.max(0, Math.min(TILE_MAX, Math.floor(zoom))), n = 2 ** tz;
+  const x = (c[0] + 180) / 360 * n, lr = c[1] * Math.PI / 180, y = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
+  const span = 512 * 2 ** (zoom - tz), hx = mapEl.clientWidth / 2 / span + 0.5, hy = mapEl.clientHeight / 2 / span + 0.5;
+  const urls = [];
+  for (let ty = Math.floor(y - hy); ty <= Math.floor(y + hy); ty++) for (let tx = Math.floor(x - hx); tx <= Math.floor(x + hx); tx++) {
+    if (ty < 0 || ty >= n) continue;
+    urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
+  }
+  urls.slice(0, 24).forEach(u => fetch(u, { mode: "cors", credentials: "same-origin" }).catch(() => {}));
+}
+
 function layout() { if (map) map.resize(); }
 function setPicking(on) {
   S.picking = on; mapEl.classList.toggle("picking", on); $("#pickBanner").hidden = !on;
@@ -296,15 +464,14 @@ function setPicking(on) {
 }
 $("#pickCancel").onclick = () => setPicking(false);
 function labelExpr() {
-  const nm = ["coalesce", ["get", "name:" + LANG], ["get", "name:latin"], ["get", "name"]];
+  const nm = LANG === "en" ? ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name:latin"], ["get", "name"]]
+    : ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
   return ["case", ["==", ["coalesce", ["get", "name:en"], ["get", "name_en"], ""], "Israel"], "", nm];
 }
 function applyMapLang() {
   if (!mapReady) return;
   const nameExpr = labelExpr();
-  for (const l of map.getStyle().layers) {
-    if (l.type === "symbol" && l.source === "openmaptiles" && map.getLayoutProperty(l.id, "text-field")) map.setLayoutProperty(l.id, "text-field", nameExpr);
-  }
+  for (const l of map.getStyle().layers) if (l.source === "openmaptiles" && showsName(l)) map.setLayoutProperty(l.id, "text-field", nameExpr);
 }
 
 /* geography lookups for the form */

@@ -354,3 +354,6 @@ a.btn{text-decoration:none}
 .maplibregl-ctrl-bottom-right{bottom:env(safe-area-inset-bottom,0px)}
 @media (max-width:760px){.maplibregl-ctrl-bottom-right{bottom:calc(50% + 4px)}}
 .map.picking .maplibregl-canvas{cursor:crosshair}
+/* map host unreachable: message with "try again" instead of an empty map */
+.map-err{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:3;width:min(340px,calc(100% - 32px));background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;text-align:center;font-size:14px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.map-err p{margin:0 0 12px}
