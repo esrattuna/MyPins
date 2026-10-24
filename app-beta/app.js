@@ -1692,12 +1692,50 @@ function renderSettings() {
   body.append(form);
   body.append(el("div", { class: "set-out" }, el("button", { class: "btn ghost small", type: "button", onclick: signOut }, t("signOut"))));
 }
-// Supabase Edge Function "translate" (supabase/functions/translate): Claude returns { tr, en }. null if unavailable.
+// Translation of short texts into Turkish AND English. Returns { tr, en } or null.
+// 1) Claude, through the Supabase Edge Function "translate" (supabase/functions/translate), once it is deployed;
+// 2) until then (or if it fails): MyMemory, a free service with no key (lower quality, daily limit, 500 bytes per request).
+// Switching to Claude later needs no code change: deploy the function and it is used automatically.
 async function translatePair(text) {
   try {
     const { data, error } = await sb.functions.invoke("translate", { body: { text } });
-    if (error || !data || typeof data.tr !== "string" || typeof data.en !== "string") return null;
-    return { tr: data.tr.trim(), en: data.en.trim() };
+    if (!error && data && typeof data.tr === "string" && typeof data.en === "string") return { tr: data.tr.trim(), en: data.en.trim() };
+  } catch (e) { /* not deployed yet: use the free service */ }
+  return translateFree(text);
+}
+// rough language guess: Turkish letters or very common Turkish words
+const looksTurkish = s => /[çğıöşüİĞŞ]/.test(s) || /\b(ve|bir|bu|için|ile|çok|ben|gibi|olan|daha|en|ama|de|da)\b/i.test(s) && !/\b(the|and|with|is|are|of|to|in)\b/i.test(s);
+// split into pieces under ~450 bytes (MyMemory's limit is 500 bytes per request), keeping paragraphs and sentences
+function chunks(text) {
+  const out = [], size = s => new TextEncoder().encode(s).length;
+  for (const para of text.split(/(\n+)/)) {
+    if (/^\n+$/.test(para) || size(para) <= 450) { out.push(para); continue; }
+    let cur = "";
+    for (const part of para.split(/(?<=[.!?…])\s+/)) {
+      if (size(cur + " " + part) > 450 && cur) { out.push(cur); cur = part; } else cur = cur ? cur + " " + part : part;
+    }
+    if (cur) out.push(cur);
+  }
+  return out;
+}
+async function myMemory(piece, from, to) {
+  if (!piece.trim() || /^\n+$/.test(piece)) return piece;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(piece)}&langpair=${from}|${to}`, { signal: ctl.signal });
+    const js = await r.json();
+    const out = js && js.responseData && js.responseData.translatedText;
+    if (!r.ok || +js.responseStatus !== 200 || !out || /MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(out)) throw new Error("mymemory");
+    return out;
+  } finally { clearTimeout(timer); }
+}
+async function translateFree(text) {
+  const from = looksTurkish(text) ? "tr" : "en", to = from === "tr" ? "en" : "tr";
+  try {
+    const parts = [];
+    for (const piece of chunks(text)) parts.push(await myMemory(piece, from, to));
+    const other = parts.join("").trim();
+    return from === "tr" ? { tr: text, en: other } : { tr: other, en: text };
   } catch (e) { return null; }
 }
 async function saveSettings() {
