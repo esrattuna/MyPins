@@ -52,6 +52,7 @@ body{font:14px var(--f-body);color:var(--ink);background:var(--sea);overflow:hid
 .lvl{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(34px + env(safe-area-inset-bottom,0px));z-index:4;width:48px;height:48px;border-radius:50%;
   border:1.5px solid var(--pin-ink);background:var(--paper);color:var(--pin-ink);font:700 22px var(--f-body);box-shadow:0 4px 14px rgba(31,62,70,.25);cursor:pointer}
 .lvl.wait{background:var(--pin)}
+.snap{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity}
 .lvl:disabled{opacity:.45}
 #info{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;width:min(320px,calc(100% - 24px));
   background:var(--paper);border-radius:12px;box-shadow:0 10px 30px rgba(31,62,70,.25);overflow:hidden;transform:translateY(0);opacity:1}
@@ -88,7 +89,7 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optLuPre" checked> Üst seviyede önce indir</label>
       <label class="tog"><input type="checkbox" id="optLuReady"> Düğmeyi hazırla</label></div>
     <div class="row"><span class="lab">⤒ geçiş</span>
-      <span class="seg" id="luSeg"><button data-lu="jump">Zıplama</button><button data-lu="short">Kısa</button><button data-lu="full">Tam</button></span></div>
+      <span class="seg" id="luSeg"><button data-lu="jump">Zıplama</button><button data-lu="short">Kısa</button><button data-lu="fx">Efekt</button><button data-lu="full">Tam</button></span></div>
     <div class="row"><span class="lab">Ön yükleme</span>
       <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
@@ -151,7 +152,7 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   tiles: "ofm",        // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
   base: false,         // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7 (dropped 24 Oct)
   luPre: true,         // level-up button: download the target level's tiles first, then jump
-  luMode: "short",     // level-up transition: jump | short | full
+  luMode: "fx",        // level-up transition: jump | short | fx | full
   luReady: false };    // level-up: pre-download the next level when the map rests
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
@@ -606,13 +607,29 @@ const nextLevel = z => LEVELS.find(l => l < z - 0.25);
    - "kısa" (short, default): download only the target view (same data as the jump), jump to just inside the
      target's tile level (target + up to 0.6 zoom) and ease the last bit in 350 ms. That last bit stays on the
      target's tile level, so it needs no extra tiles.
+   - "efekt" (fx, default since 24 Oct): "kısa" had no squares and a short wait (1-4 MB per 3 presses) but still felt
+     like the next scene was set up at once. Same download as the jump, but a picture of the current view is laid
+     over the map, the map jumps underneath, and the picture shrinks into the new view's centre while fading out,
+     which reads as a continuous zoom-out. Only a picture is scaled: no extra tiles.
    The wait limit is 1 s (was 1.5 s). */
+// copy of the current frame, taken right after a render (the WebGL buffer is still intact inside the render event)
+function snapshotView() {
+  const src = map.getCanvas(), k = Math.min(2, devicePixelRatio || 1);
+  const c = document.createElement("canvas"); c.className = "snap";
+  c.width = Math.round(src.clientWidth * k); c.height = Math.round(src.clientHeight * k);
+  return new Promise(res => {
+    map.once("render", () => { try { c.getContext("2d").drawImage(src, 0, 0, c.width, c.height); } catch (e) { console.warn(e); } res(c); });
+    map.triggerRepaint();
+  });
+}
 async function levelUp() {
   if (!map || LU.busy) return null;
   const z = map.getZoom(), target = nextLevel(z);
   if (target === undefined) return null;
   LU.busy = true; $("#levelUp").classList.add("wait");
   const t0 = performance.now(), center = map.getCenter(), mode = OPT.luMode;
+  let snap = null;
+  if (mode === "fx") { snap = await snapshotView(); $("#stage").appendChild(snap); }
   if (OPT.luPre) {
     const jobs = [];
     if (mode === "full") for (let L = Math.ceil(z) - 1; L > Math.floor(target); L--) jobs.push(prefetchView(center, L));
@@ -622,7 +639,15 @@ async function levelUp() {
   const waited = performance.now() - t0;
   const ease = (zoom, duration) => new Promise(r => { map.easeTo({ center, zoom, duration, easing: t => 1 - (1 - t) * (1 - t) }); map.once("moveend", r); });
   if (mode === "full") await ease(target, LU_ANIM);
-  else if (mode === "short") {
+  else if (mode === "fx") {
+    map.jumpTo({ center, zoom: target });
+    const sc = 2 ** (target - z);
+    try {
+      await snap.animate([{ transform: "scale(1)", opacity: 1 }, { opacity: 1, offset: 0.55 }, { transform: `scale(${sc})`, opacity: 0 }],
+        { duration: 450, easing: "cubic-bezier(.2,.7,.3,1)" }).finished;
+    } catch (e) {}
+    snap.remove();
+  } else if (mode === "short") {
     const d = Math.min(0.6, Math.floor(target) + 0.98 - target);
     map.jumpTo({ center, zoom: target + d });
     await ease(target, LU_SHORT);
@@ -864,7 +889,7 @@ async function levelUpTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round, w = waits.filter(x => x != null);
-  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen"}, ${({ jump: "zıplama", short: "kısa", full: "tam" })[OPT.luMode]}${OPT.luReady ? ", hazırla" : ""}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), önceden indirilen ${r((LU.bytes - b0) / 1024)} KB${OPT.luReady ? `, hazırlanan ${r((LU.readyBytes - rb0) / 1024)} KB` : ""}, istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen"}, ${({ jump: "zıplama", short: "kısa", fx: "efekt", full: "tam" })[OPT.luMode]}${OPT.luReady ? ", hazırla" : ""}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), önceden indirilen ${r((LU.bytes - b0) / 1024)} KB${OPT.luReady ? `, hazırlanan ${r((LU.readyBytes - rb0) / 1024)} KB` : ""}, istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   for (const id of ["#runZoomOut", "#runLevelUp", "#runAll"]) $(id).disabled = false;
 }
@@ -922,7 +947,7 @@ function reloadWithOptions() {
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   if (OPT.base) q.set("base", "1"); else q.delete("base");
   if (!OPT.luPre) q.set("lupre", "0"); else q.delete("lupre");
-  if (OPT.luMode !== "short") q.set("lumode", OPT.luMode); else q.delete("lumode");
+  if (OPT.luMode !== "fx") q.set("lumode", OPT.luMode); else q.delete("lumode");
   if (OPT.luReady) q.set("luready", "1"); else q.delete("luready");
   if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
@@ -962,7 +987,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   OPT.base = q.get("base") === "1";
   OPT.luPre = q.get("lupre") !== "0"; $("#optLuPre").checked = OPT.luPre;
-  if (["jump", "short", "full"].includes(q.get("lumode"))) OPT.luMode = q.get("lumode");
+  if (["jump", "short", "fx", "full"].includes(q.get("lumode"))) OPT.luMode = q.get("lumode");
   else if (q.get("luanim") === "0") OPT.luMode = "jump";
   OPT.luReady = q.get("luready") === "1"; $("#optLuReady").checked = OPT.luReady;
   const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
