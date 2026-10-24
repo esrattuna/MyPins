@@ -24,22 +24,33 @@ const I18N = {
     ghostNote: "Hayalet moddasın: haritan sadece sana görünür. Başkaları seni bulamaz ve takip edemez.", privateNote: "Gizli profil: haritanı sadece onayladığın takipçiler görür.",
     welcomeT: "MyPins'e hoş geldin", welcomeP1: "Gezdiğin yerleri, yemek yediğin güzel adresleri ve notlarını kendi haritanda topla.", welcomeP2: "Arkadaşlarını takip et, onların haritalarında yeni yerler keşfet.", browseFirst: "Önce etrafa göz at",
     hello: n => `Merhaba, ben ${n}.`, noBio: "Henüz bir tanıtım yazısı yok.",
-    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda (Türkçe)", sBioEn: "Hakkımda (İngilizce)", sPhoto: "Profil fotoğrafı",
+    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
+    sLang: "Dil", sAccount: "Hesap", delT: "Hesabı sil", delBtn: "Hesabımı sil", delWarn: "Bu işlem geri alınamaz. Haritan, pinlerin, fotoğrafların, Belki bir gün listen ve takiplerin kalıcı olarak silinir.",
+    delType: n => `Onaylamak için kullanıcı adını yaz: ${n}`, delGo: "Kalıcı olarak sil", delDone: "Hesabın silindi.", delErr: "Hesap silinemedi, tekrar dene.", delMissing: "Hesap silme henüz kurulmadı (veritabanı güncellemesi bekleniyor).", deleting: "Siliniyor…",
     sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
-    requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.",
-    searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı",
+    requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.", peopleBtn: "👥 Kişiler", backProfile: "← Haritama dön",
+    searchPh: "Kullanıcı adı ya da isim ara", searchNone: "Kimse bulunamadı.", needSignIn: "Bunun için giriş yapman gerekiyor.", loadErr: "Yüklenemedi. Bağlantını kontrol edip tekrar dene.", copyLink: "Linki kopyala", copied: "Link kopyalandı", shareMap: "Haritamı paylaş", shareText: n => `${n} · MyPins haritası`,
+    ateT: "🍴 Burada ne yedim", addFood: "+ Ne yedim ekle", noFood: "Henüz bir sofra eklenmemiş.", foodLocPlace: n => `📍 ${n} (yerin konumu)`, foodLocSet: "📍 Mekânın konumu seçildi",
+    foodLocSearch: "Mekânın adresini ara", backTo: n => `← ${n}`, delQFoods: n => `Bu yerin ${n} sofrası da silinecek.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Burada nerede yedim", nearbyFood: "🍴 Yakınındaki diğer sofralar", nearbyPlaces: "🌍 Yakınındaki yerler",
     home: "Yaşadığım şehir", siteName: "MyPins", about: "Hakkında",  explore: "Haritayı keşfet", photoUp: "Fotoğrafını yükle", photoChange: "Fotoğrafı değiştir", photoSaving: "Yükleniyor…", photoErr: "Fotoğraf yüklenemedi. Tekrar dene.",
     aboutP1: "Bu blogu, büyük şehirlere seyahat ederken etrafındaki daha lokal bölgeleri, kasabaları, doğal alanları, manzaraları ve adresleri keşfetmek isteyen benim gibi insanlar için açtım.",
     aboutP2: "Eğer seyahat ederken amacınız bir ülkedeki doğayı ve lokal hayatı deneyimlemek ve farklı bir realitenin parçası olabilmekse, burada hoşunuza gidecek yerler keşfetmenizi umuyorum.",
     tagline: "Seyir notları · yerler · sofralar", zoomIn: "Yakınlaştır", zoomOut: "Uzaklaştır", zoomHome: "Tüm haritayı göster",
-    pickHint: "Haritada notun yerine dokun", cancel: "Vazgeç", mapLabel: "Akdeniz ve Avrupa haritası", sheet: "Paneli büyüt veya küçült",
+    pickHint: "Haritada pinin yerine dokun", cancel: "Vazgeç", mapLabel: "Akdeniz ve Avrupa haritası", sheet: "Paneli büyüt veya küçült",
     close: "Kapat", prev: "Önceki", next: "Sonraki",
-    kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Not ekle",
+    kind_yer: "Yer", kind_yemek: "Sofra", newNote: "Yeni not", eyebrowList: "Seyir defteri", listTitle: "Gittiğim yerler", addNote: "+ Pin ekle",
+    addPinT: "Pin ekle", addPinPh: "Adres ya da yer adı yaz", addPinMap: "ya da haritada yerine dokun", addPinNone: "Sonuç bulunamadı. Başka bir yazım dene ya da haritada dokun.",
+    addPinErr: "Adres araması şu an çalışmıyor; haritada dokunarak ekleyebilirsin.", addPinHint: "Örnek: Rua Augusta 24 Lizbon, Kardeşim Mantı Emirgan, Sintra",
     tally: (a, b, c) => `${a} yer · ${b} sofra · ${c} ülke`,
     noDb: "Notlar bu görünümde açılamıyor. Görmek için claude.ai hesabınla oturum açman gerekiyor.", dbErr: "Notlar yüklenemedi. Sayfayı yenileyip tekrar dene.",
-    filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar",
+    filter: "Filtre", f_all: "Tümü", f_yer: "Yerler", f_yemek: "Sofralar", f_wish: "Belki bir gün",
+    wishBtn: "Belki bir gün giderim", wishOn: "Belki bir gün ✓", wishNew: "+ Yer ekle", wishWent: "Gittim", wishRemove: "Kaldır",
+    wishEmptyOwn: "Henüz bir yer yok. Arkadaşlarının pinlerinden ya da haritadan ekleyebilirsin.", wishEmptyOther: "Bu listede henüz bir yer yok.",
+    wishPick: "Haritada gitmek istediğin yere dokun", wishName: "Yerin adı", wishSave: "Listeye ekle",
+    wishAddedT: "Belki bir gün listene eklendi", wishRemovedT: "Listeden çıkarıldı", wishWentT: "Haritana eklendi",
+    wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
     exNotice: n => `Örnek olarak ${n} not ekledim, nasıl göründüğünü görebilmen için. `, exRemove: "Örnekleri kaldır", example: "örnek",
     loadingT: "Defter açılıyor…", loadingB: "Notların yükleniyor.", emptyFilter: "Bu filtrede not yok", emptyAll: "Defter henüz boş",
     emptyEdit: "“Not ekle”ye bas, sonra haritada gittiğin yere dokun. Fotoğraf, not ve yemek puanı ekleyebilirsin.", emptyView: "Henüz paylaşılmış bir not yok.",
@@ -66,22 +77,33 @@ const I18N = {
     ghostNote: "You're in ghost mode: your map is visible only to you. Others can't find or follow you.", privateNote: "Private profile: only followers you approve can see your map.",
     welcomeT: "Welcome to MyPins", welcomeP1: "Collect the places you've been, the good spots you've eaten at and your notes on your own map.", welcomeP2: "Follow your friends and discover new places on their maps.", browseFirst: "Look around first",
     hello: n => `Hi, I'm ${n}.`, noBio: "No introduction yet.",
-    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me (Turkish)", sBioEn: "About me (English)", sPhoto: "Profile photo",
+    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
+    sLang: "Language", sAccount: "Account", delT: "Delete account", delBtn: "Delete my account", delWarn: "This can't be undone. Your map, pins, photos, Someday List and follows are deleted permanently.",
+    delType: n => `To confirm, type your username: ${n}`, delGo: "Delete permanently", delDone: "Your account was deleted.", delErr: "Couldn't delete the account, try again.", delMissing: "Account deletion isn't set up yet (database update pending).", deleting: "Deleting…",
     sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
-    requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.",
-    searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied",
+    requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.", peopleBtn: "👥 People", backProfile: "← Back to my map",
+    searchPh: "Search by username or name", searchNone: "No one found.", needSignIn: "You need to sign in for this.", loadErr: "Couldn't load. Check your connection and try again.", copyLink: "Copy link", copied: "Link copied", shareMap: "Share my map", shareText: n => `${n} · MyPins map`,
+    ateT: "🍴 What I ate here", addFood: "+ Add what I ate", noFood: "No food spots added yet.", foodLocPlace: n => `📍 ${n} (the place's location)`, foodLocSet: "📍 Venue location set",
+    foodLocSearch: "Find the venue's address", backTo: n => `← ${n}`, delQFoods: n => `Its ${n} food ${n === 1 ? "spot" : "spots"} will be deleted too.`, foodsN: n => `🍴 ${n}`,
     eatHere: "🍴 Where I ate here", nearbyFood: "🍴 Other food spots nearby", nearbyPlaces: "🌍 Nearby places",
     home: "Where I live", siteName: "MyPins", about: "About",  explore: "Explore the map", photoUp: "Upload your photo", photoChange: "Change photo", photoSaving: "Uploading…", photoErr: "The photo didn't upload. Try again.",
     aboutP1: "I started this blog for people like me who, when traveling to big cities, also want to discover the more local areas around them: small towns, nature, views and good addresses.",
     aboutP2: "If your goal when traveling is to experience a country's nature and local life, and to become part of a different reality, I hope you'll find places here you'll love.",
     tagline: "Travel notes · places · tables", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomHome: "Show the whole map",
-    pickHint: "Tap the map where your note belongs", cancel: "Cancel", mapLabel: "Map of the Mediterranean and Europe", sheet: "Expand or collapse the panel",
+    pickHint: "Tap the map where your pin belongs", cancel: "Cancel", mapLabel: "Map of the Mediterranean and Europe", sheet: "Expand or collapse the panel",
     close: "Close", prev: "Previous", next: "Next",
-    kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add note",
+    kind_yer: "Place", kind_yemek: "Food", newNote: "New note", eyebrowList: "Travel log", listTitle: "Places I've been", addNote: "+ Add pin",
+    addPinT: "Add a pin", addPinPh: "Type an address or place name", addPinMap: "or tap its spot on the map", addPinNone: "No results. Try another spelling or tap the map.",
+    addPinErr: "Address search isn't working right now; you can tap the map instead.", addPinHint: "e.g. Rua Augusta 24 Lisbon, Kardeşim Mantı Emirgan, Sintra",
     tally: (a, b, c) => `${a} ${a === 1 ? "place" : "places"} · ${b} food ${b === 1 ? "spot" : "spots"} · ${c} ${c === 1 ? "country" : "countries"}`,
     noDb: "Notes can't load in this view. Sign in with a claude.ai account to see them.", dbErr: "Notes didn't load. Refresh the page and try again.",
-    filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food",
+    filter: "Filter", f_all: "All", f_yer: "Places", f_yemek: "Food", f_wish: "Someday List",
+    wishBtn: "Maybe someday", wishOn: "Someday ✓", wishNew: "+ Add a place", wishWent: "Been there", wishRemove: "Remove",
+    wishEmptyOwn: "No places yet. Add them from friends' pins or from the map.", wishEmptyOther: "No places on this list yet.",
+    wishPick: "Tap the map where you'd like to go", wishName: "Place name", wishSave: "Add to list",
+    wishAddedT: "Added to your Someday List", wishRemovedT: "Removed from the list", wishWentT: "Added to your map",
+    wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
     exNotice: n => `I added ${n} example notes so you can see how things look. `, exRemove: "Remove examples", example: "example",
     loadingT: "Opening the notebook…", loadingB: "Loading your notes.", emptyFilter: "No notes for this filter", emptyAll: "The notebook is empty",
     emptyEdit: "Press “Add note”, then tap the map where you went. You can add photos, notes and a food rating.", emptyView: "No notes have been shared yet.",
@@ -103,7 +125,7 @@ const I18N = {
 let LANG = (() => { const s = ls("ad-lang"); if (s === "tr" || s === "en") return s; return (navigator.language || "").toLowerCase().startsWith("tr") ? "tr" : "en"; })();
 const t = (k, ...a) => { const v = I18N[LANG][k] ?? I18N.tr[k]; return typeof v === "function" ? v(...a) : v; };
 const KIND_LABEL = k => t("kind_" + k);
-const ICON = { yer: "🌍", yemek: "🍴" };
+const ICON = { yer: "🌍", yemek: "🍴", wish: "☆" };
 const REGION = {};
 for (const lg of ["tr", "en"]) { try { REGION[lg] = new Intl.DisplayNames([lg], { type: "region" }); } catch (e) { REGION[lg] = null; } }
 const regionName = (iso, lg = LANG) => { if (!iso || !REGION[lg]) return ""; try { const n = REGION[lg].of(iso); return n && n !== iso ? n : ""; } catch (e) { return ""; } };
@@ -128,10 +150,14 @@ function applyLang() {
   document.querySelectorAll("[data-i18n]").forEach(e => e.textContent = t(e.dataset.i18n));
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
-  gWorld.selectAll("path.land title").text(d => HIDE_LABEL.has(d.properties.n) ? "" : cName(d));
+  if (typeof applyMapLang === "function") applyMapLang();
   if (typeof renderChrome === "function") renderChrome();
 }
-document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { LANG = b.dataset.lang; ls("ad-lang", LANG); applyLang(); render(); });
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+// language: chosen in the account menu or in Settings (the top-bar switch is hidden); visitors get the browser's language
+function setLang(l) { if (l === LANG) return; LANG = l; ls("ad-lang", LANG); applyLang(); render(); }
+const langSeg = (cls) => el("div", { class: cls, role: "group", "aria-label": "Dil / Language" },
+  ["tr", "en"].map(l => el("button", { type: "button", "aria-pressed": String(LANG === l), onclick: e => { e.stopPropagation(); setLang(l); } }, l.toUpperCase())));
 function dms(v, pos, neg) {
   const a = Math.abs(v), d = Math.floor(a), m = Math.round((a - d) * 60);
   const dd = m === 60 ? d + 1 : d, mm = m === 60 ? 0 : m;
@@ -144,8 +170,18 @@ function fmtDate(s) {
   if (isNaN(d)) return s;
   return d.toLocaleDateString(t("locale"), { day: "numeric", month: "long", year: "numeric" });
 }
-const PHOTO = new Map();
-const blobUrl = p => PHOTO.get(p) || "";
+const PHOTO = new Map();                       // storage path -> signed URL (or local blob URL right after upload)
+const blobUrl = p => PHOTO.get(p) || "";       // full size: lightbox, form
+// small copy saved next to each photo: "<user>/<name>_t.jpg" (short side 480 px); cards, thumbnails and avatars use it, the original when it's missing
+const thumbOf = p => p ? p.replace(/\.[^./]+$/, "") + "_t.jpg" : p;
+const thumbUrl = p => PHOTO.get(thumbOf(p)) || PHOTO.get(p) || "";
+const NOTHUMB = new Set();                     // small copies the server said don't exist (this session)
+// a small copy that fails to load falls back to the original
+document.addEventListener("error", e => {
+  const im = e.target;
+  if (im && im.tagName === "IMG" && im.dataset.full && im.getAttribute("src") !== im.dataset.full) im.src = im.dataset.full;
+}, true);
+const thumbImg = (p, attrs = {}) => el("img", { alt: "", ...attrs, src: thumbUrl(p), "data-full": blobUrl(p) || null });
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
 function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 
@@ -155,229 +191,353 @@ const S = {
   canEdit: false, canUpload: false,
   me: null, session: null, owner: null, ownerState: "loading", // loading | ok | locked | notfound | landing
   rel: null, counts: { followers: 0, following: 0 }, panelMode: "map", // map | settings | people
-  view: "list", selId: null, filter: ls("ad-filter") || "all",
+  view: "list", selId: null, filter: ls("ad-filter") === "wish" ? "wish" : "yer",
+  wish: [], wishState: "ok", wishSel: null, wishForm: null, pickMode: "pin", mineSrc: new Map(),   // "Belki bir gün" list
   picking: false, temp: null, form: null, lb: null,
 };
 const sb = supabase.createClient(MYPINS.supabaseUrl, MYPINS.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" } });
 
-/* ---------------- map ---------------- */
-const svg = d3.select("#svg");
+/* ---------------- map (MapLibre GL + OpenFreeMap vector tiles) ----------------
+   Map setup carried over from the map prototype (map-prototype/index.html, ad72685):
+   - "Sade stil": fewer style layers (less work per tile); POI c: food & drink markers removed, stops/museums/etc. kept
+   - no road number shields, labels in the interface language (TR/EN), island labels from country scale
+   - tap to zoom: country, neighbouring country, city/town/island label, pin
+   - smooth detail: fly on tap, detail layers fade in by zoom, labels fade, the target's tiles are requested as the flight starts
+   - coarse country base up to zoom 7, 1200 tiles kept in memory
+   - style request with a time limit and a "try again" message instead of an empty map */
 const mapEl = $("#map");
-const projection = d3.geoConicConformal().parallels([32, 62]).rotate([-15, 0]);
-const path = d3.geoPath(projection);
-const FRAME = { type: "MultiPoint", coordinates: [[-11, 27], [44, 27], [-11, 70], [44, 70], [16, 71], [16, 27], [-14, 50], [46, 50]] };
-const gRoot = svg.append("g");
-const gWorld = gRoot.append("g");
-const gOver = svg.append("g");
-const gLabels = gOver.append("g");
-const gPins = gOver.append("g");
-let W = 0, H = 0, T = d3.zoomIdentity;
-
-const SEAS = [
-  [["Akdeniz", "Mediterranean Sea"], 18.5, 34.6, 1, 0], [["Ege Denizi", "Aegean Sea"], 25.1, 38.9, 2.2, 0], [["Karadeniz", "Black Sea"], 34.5, 43.3, 1, 0],
-  [["Adriyatik", "Adriatic Sea"], 15.6, 42.9, 2.2, -38], [["İyon Denizi", "Ionian Sea"], 18.6, 37.6, 2.6, 0], [["Tiren Denizi", "Tyrrhenian Sea"], 12.1, 39.9, 2.4, 0],
-  [["Atlas Okyanusu", "Atlantic Ocean"], -17.5, 44, 1, 0], [["Kuzey Denizi", "North Sea"], 3.5, 56.2, 1, 0], [["Baltık Denizi", "Baltic Sea"], 19.4, 56.7, 1.6, 0],
-  [["Kızıldeniz", "Red Sea"], 36.6, 22.3, 1.6, -58], [["Biskay Körfezi", "Bay of Biscay"], -5.2, 45.6, 2.2, 0], [["Alboran", "Alboran Sea"], -3.8, 36.0, 4, 0],
-  [["Marmara", "Sea of Marmara"], 28.1, 40.72, 7, 0], [["Levant Denizi", "Levantine Sea"], 33.0, 33.3, 2.6, 0], [["Norveç Denizi", "Norwegian Sea"], 2, 66.5, 1, 0],
-];
-// Portolan rose sits in the Ionian, like the medieval charts drawn from Genoa and Venice.
-const ROSES = [[19.2, 35.2, true], [-9, 40.5, false], [31, 37.3, false]];
-
-function largestPolygonCentroid(f) {
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+const C = { sea: "#7fcfd0", sea2: "#93d9d9", land: "#ecd3a0", land2: "#e4c78f", park: "#dccf94", wood: "#d4c98a", sand: "#f1dfb4", road: "#fbf7ee", roadCase: "#cfb27a", ink: "#2b3338", halo: "#fbf7ee", border: "#a98d58", building: "#e0c38b", pin: "#f4e08c", pinInk: "#5e5016" };
+COUNTRIES.features.forEach(f => {
   let best = null, bestA = -1;
-  for (const poly of f.geometry.coordinates) {
-    const g = { type: "Polygon", coordinates: poly };
-    const a = d3.geoArea(g);
-    if (a > bestA) { bestA = a; best = g; }
+  for (const poly of f.geometry.coordinates) { const g = { type: "Polygon", coordinates: poly }; const a = d3.geoArea(g); if (a > bestA) { bestA = a; best = g; } }
+  f.properties.c = d3.geoCentroid(best); f.properties.area = d3.geoArea(f); f.properties.main = best;
+});
+let map = null, mapReady = false;
+const narrowView = () => matchMedia("(max-width:760px)").matches;
+const mapPadding = () => narrowView() ? { top: 70, bottom: Math.round(mapEl.clientHeight * 0.5), left: 20, right: 20 } : { top: 40, bottom: 40, left: 40, right: 40 };
+const kToZoom = k => Math.min(16, 3 + Math.log2(Math.max(1, k)) * 1.1);
+const reducedMotion = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* --- style --- */
+// The map host can be slow or unreachable; without a time limit the page waited on an empty map.
+// Two tries of 12 s, then a message with "try again" is shown on the map.
+async function fetchStyleJSON() {
+  for (let k = 0; k < 2; k++) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+    try { const r = await fetch(MAP_STYLE, { signal: ctl.signal }); if (r.ok) return await r.json(); }
+    catch (e) { console.warn("style fetch", k + 1, e.name); }
+    finally { clearTimeout(timer); }
   }
-  return d3.geoCentroid(best);
+  throw new Error("map-host-unreachable");
 }
-COUNTRIES.features.forEach(f => { f.properties.c = largestPolygonCentroid(f); f.properties.area = d3.geoArea(f); });
-const LABEL_POS = { "Portugal": [-8.1, 39.7], "Norway": [9.5, 61.5], "Sweden": [15.5, 62.5], "Russia": [38, 58], "Croatia": [16.2, 45.4], "Greece": [21.9, 39.6], "Italy": [12.6, 42.9], "United Kingdom": [-1.8, 52.8], "Egypt": [29.5, 26.5], "Libya": [17.5, 28], "Algeria": [3, 30], "Turkey": [34.5, 39.2] };
-COUNTRIES.features.forEach(f => { if (LABEL_POS[f.properties.n]) f.properties.c = LABEL_POS[f.properties.n]; });
-
-const zoom = d3.zoom().scaleExtent([1, 90]).on("zoom", e => { T = e.transform; gRoot.attr("transform", T); mapEl.classList.toggle("zoomed", T.k >= 4); drawOverlay(); });
-svg.call(zoom);
-
-function layout() {
-  const r = mapEl.getBoundingClientRect();
-  W = Math.max(200, r.width); H = Math.max(200, r.height);
-  const narrow = matchMedia("(max-width:760px)").matches;
-  const padTop = narrow ? 70 : 20, padBottom = narrow ? H * 0.46 : 20;
-  projection.fitExtent([[16, padTop], [W - 16, H - padBottom]], FRAME);
-  zoom.translateExtent([[-W * .6, -H * .6], [W * 1.6, H * 1.6]]).extent([[0, 0], [W, H]]);
-  drawWorld();
-  svg.call(zoom.transform, T);
+const POI_FOOD = ["restaurant", "fast_food", "cafe", "bar", "beer", "ice_cream", "bakery", "alcohol_shop"];
+const LITE_DROP_SOURCE = new Set(["housenumber", "aeroway", "aerodrome_label", "building"]);
+const LITE_DROP_ID = /oneway|shield|hatching|cablecar|path|pedestrian|highway-name-minor/;
+function isLegacyFilter(f) {
+  if (!Array.isArray(f)) return false;
+  if (["all", "any", "none"].includes(f[0])) return f.slice(1).some(isLegacyFilter);
+  return typeof f[1] === "string" && ["==", "!=", "<", ">", "<=", ">=", "in", "!in", "!has"].includes(f[0]);
 }
-
-function drawWorld() {
-  gWorld.selectAll("*").remove();
-  gWorld.append("rect").attr("class", "sea-rect").attr("x", -W * 3).attr("y", -H * 3).attr("width", W * 7).attr("height", H * 7);
-  if (false) gWorld.append("path").attr("class", "grat").attr("vector-effect", "non-scaling-stroke")
-    .attr("d", path(d3.geoGraticule().step([10, 10]).extent([[-40, 0], [70, 80]])()));
-  // rhumb lines: 32 winds radiating from each rose
-  const R = Math.hypot(W, H) * 1.4;
-  for (const [lon, lat, main] of []) {
-    const [x, y] = projection([lon, lat]);
-    const g = gWorld.append("g");
-    let d = "";
-    for (let i = 0; i < 32; i++) {
-      const a = i / 32 * Math.PI * 2;
-      d += `M${x},${y}L${x + Math.cos(a) * R},${y + Math.sin(a) * R}`;
+function addFilter(l, legacy, expr) {
+  if (!l.filter) l.filter = expr;
+  else l.filter = isLegacyFilter(l.filter) ? ["all", l.filter, legacy] : ["all", l.filter, expr];
+}
+const showsName = l => l.type === "symbol" && l.layout && l.layout["text-field"] && /"name/.test(JSON.stringify(l.layout["text-field"]));
+function restyle(s) {
+  // "Sade stil" with POI c (select): drop detail layers and food & drink markers
+  s.layers = s.layers.filter(l => {
+    const sl = l["source-layer"];
+    if (/shield/.test(l.id)) return false;                       // road number shields: removed
+    if (!sl) return true;
+    if (LITE_DROP_SOURCE.has(sl)) return false;
+    if (sl !== "poi" && LITE_DROP_ID.test(l.id)) return false;
+    return true;
+  });
+  const nameExpr = labelExpr();
+  for (const l of s.layers) {
+    const id = l.id, p = (l.paint = l.paint || {});
+    if (l["source-layer"] === "poi") addFilter(l, ["!in", "class", ...POI_FOOD], ["!", ["in", ["get", "class"], ["literal", POI_FOOD]]]);
+    if (l.type === "background") p["background-color"] = C.land;
+    else if (id === "water" && l.type === "fill") p["fill-color"] = C.sea;
+    else if (/^waterway/.test(id) && l.type === "line") p["line-color"] = C.sea2;
+    else if (id === "natural_earth" || /park_outline/.test(id)) l.layout = { ...(l.layout || {}), visibility: "none" };
+    else if (/park/.test(id) && l.type === "fill") { p["fill-color"] = C.park; p["fill-opacity"] = 0.7; }
+    else if (/landcover_wood/.test(id)) { p["fill-color"] = C.wood; p["fill-opacity"] = 0.5; }
+    else if (/landcover_grass|landuse_(pitch|track|cemetery)/.test(id)) { p["fill-color"] = C.park; p["fill-opacity"] = 0.45; }
+    else if (/landcover_sand/.test(id)) p["fill-color"] = C.sand;
+    else if (/landuse_residential/.test(id)) { p["fill-color"] = C.land2; p["fill-opacity"] = 0.5; }
+    else if (l.type === "line" && /casing/.test(id)) p["line-color"] = C.roadCase;
+    else if (l.type === "line" && /^(road|bridge|tunnel)_/.test(id) && !/rail|hatching|path/.test(id)) p["line-color"] = C.road;
+    else if (l.type === "line" && /boundary/.test(id)) p["line-color"] = C.border;
+    // only labels that show a name get the language-aware name (a road number replaced by a name left empty boxes)
+    if (showsName(l)) {
+      l.layout["text-field"] = nameExpr;
+      p["text-color"] = /water/.test(id) ? "#3d8f93" : C.ink; p["text-halo-color"] = C.halo; p["text-halo-width"] = 1.4;
     }
-    g.append("path").attr("class", "rhumb" + (main ? " main" : "")).attr("vector-effect", "non-scaling-stroke").attr("d", d);
-    if (main) {
-      const rose = gWorld.append("g").attr("class", "rose").attr("transform", `translate(${x},${y})`);
-      rose.append("circle").attr("r", 26).attr("stroke-width", .8).attr("vector-effect", "non-scaling-stroke");
-      rose.append("circle").attr("r", 31).attr("stroke-width", .5).attr("vector-effect", "non-scaling-stroke");
-      let star = "";
-      for (let i = 0; i < 8; i++) {
-        const a = i / 8 * Math.PI * 2 - Math.PI / 2, L = i % 2 ? 17 : 30, wv = i % 2 ? 3 : 4.5;
-        const ax = Math.cos(a), ay = Math.sin(a), px = -ay, py = ax;
-        star += `M${ax * L},${ay * L}L${px * wv},${py * wv}L${-px * wv},${-py * wv}Z`;
-      }
-      rose.append("path").attr("d", star).attr("opacity", .8);
+  }
+  // Island names: upstream they fall into "label_other" (from zoom 8). Own layers: islands from z6, islets from z10.
+  const other = s.layers.find(l => l.id === "label_other");
+  if (other) {
+    other.filter = ["all", other.filter, ["!", ["in", ["get", "class"], ["literal", ["island", "islet"]]]]];
+    const at = s.layers.indexOf(other);
+    const islandLayer = (id, cls, minzoom) => ({ id, type: "symbol", source: other.source, "source-layer": "place", minzoom,
+      filter: ["==", ["get", "class"], cls],
+      layout: { "text-field": nameExpr, "text-font": (other.layout && other.layout["text-font"]) || ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 11, 10, 13, 14, 15], "symbol-sort-key": ["coalesce", ["get", "rank"], 99],
+        "text-max-width": 7, "text-padding": 4 },
+      paint: { "text-color": "#3f5a5c", "text-halo-color": C.halo, "text-halo-width": 1.4 } });
+    s.layers.splice(at + 1, 0, islandLayer("label_island", "island", 6), islandLayer("label_islet", "islet", 10));
+  }
+  // Country base: until a region's tiles arrive, the coarse country fill already shows land and sea at
+  // continent scale (<= z7). Above z7 the background is land as before.
+  const bg = s.layers.findIndex(l => l.type === "background");
+  s.layers[bg].paint["background-color"] = ["step", ["zoom"], C.sea, 7, C.land];
+  s.sources.countries = { type: "geojson", data: COUNTRIES, tolerance: 0.6, buffer: 32 };
+  s.layers.splice(bg + 1, 0, { id: "base-land", type: "fill", source: "countries", maxzoom: 7, paint: { "fill-color": C.land, "fill-antialias": false } });
+  return s;
+}
+
+// "Belki bir gün" marker: paper-coloured (not yet visited) pin with a small star
+function star(g, cx, cy, R, r) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; g.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); }
+  g.closePath(); g.fill();
+}
+const pinImg = (kind) => {
+  const s = 2, w = 22 * s, h = 30 * s, c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"); g.scale(s, s);
+  g.beginPath(); g.moveTo(11, 29); g.bezierCurveTo(8, 23, 2, 19, 2, 12); g.arc(11, 11, 9, Math.PI, 0); g.bezierCurveTo(20, 19, 14, 23, 11, 29); g.closePath();
+  g.fillStyle = kind === "wish" ? C.halo : C.pin; g.fill(); g.lineWidth = kind === "wish" ? 1.8 : 1.5; g.strokeStyle = C.pinInk; g.stroke();
+  g.fillStyle = C.pinInk; g.strokeStyle = C.pinInk;
+  if (kind === "yemek") { g.lineWidth = 1.3; g.lineCap = "round"; g.beginPath(); g.moveTo(8, 6); g.lineTo(8, 16); g.moveTo(6.5, 6); g.lineTo(6.5, 10); g.moveTo(9.5, 6); g.lineTo(9.5, 10); g.moveTo(14, 16); g.lineTo(14, 6); g.quadraticCurveTo(16, 8, 14, 11); g.stroke(); }
+  else if (kind === "home") { g.font = "11px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("🏠", 11, 11.5); }
+  else if (kind === "temp") { g.beginPath(); g.arc(11, 11, 3.4, 0, Math.PI * 2); g.fill(); }
+  else if (kind === "wish") { star(g, 11, 11, 4.6, 2); }
+  else { g.beginPath(); g.arc(11, 11, 3.4, 0, Math.PI * 2); g.fill(); }
+  return { width: w, height: h, data: g.getImageData(0, 0, w, h).data };
+};
+
+function showMapError() {
+  let box = $("#mapErr");
+  if (!box) { box = el("div", { id: "mapErr", class: "map-err", role: "alert" }); mapEl.append(box); }
+  box.replaceChildren(
+    el("p", {}, LANG === "en" ? "Couldn't reach the map server (OpenFreeMap). This is usually a temporary connection problem." : "Harita sunucusuna (OpenFreeMap) ulaşılamadı. Bu genelde geçici bir bağlantı sorunu."),
+    el("button", { class: "btn", type: "button", onclick: () => location.reload() }, LANG === "en" ? "Try again" : "Tekrar dene"));
+}
+
+let styleTpl = null;   // style source description, used to find the tile URL template for prefetching
+async function initMap() {
+  let style;
+  try { style = restyle(await fetchStyleJSON()); styleTpl = style; }
+  catch (e) { showMapError(); return; }
+  map = new maplibregl.Map({ container: "mapgl", style, center: [15, 42], zoom: 2.6, minZoom: 1, maxZoom: 19, attributionControl: { compact: true },
+    dragRotate: false, pitchWithRotate: false, fadeDuration: 300, maxTileCacheSize: 1200 });
+  map.touchZoomRotate.disableRotation();
+  map.on("load", () => {
+    captureRamps(); applySmooth();
+    for (const k of ["yer", "yemek", "home", "temp", "wish"]) map.addImage("pin-" + k, pinImg(k), { pixelRatio: 2 });
+    map.addLayer({ id: "countries-hit", type: "fill", source: "countries", paint: { "fill-color": "#000", "fill-opacity": 0 } });
+    map.addLayer({ id: "countries-picked", type: "fill", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "fill-color": C.pin, "fill-opacity": 0.55 } });
+    map.addLayer({ id: "countries-picked-line", type: "line", source: "countries", filter: ["in", ["get", "i"], ["literal", []]], paint: { "line-color": C.pinInk, "line-width": 1.2 } });
+    map.addSource("pins", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "pins-dot", type: "circle", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["all", ["!=", ["get", "sel"], 1], ["!=", ["get", "icon"], "fooddot"]],
+      paint: { "circle-radius": 5, "circle-color": ["case", ["==", ["get", "icon"], "wish"], C.halo, C.pin], "circle-stroke-color": C.pinInk, "circle-stroke-width": 1.6 } });
+    map.addLayer({ id: "pins-pin", type: "symbol", source: "pins", minzoom: DOT_ZOOM_GL - 0.01, filter: ["!=", ["get", "icon"], "fooddot"],
+      layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": ["case", ["==", ["get", "sel"], 1], 1.25, 1], "icon-allow-overlap": true,
+        "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -2.9], "text-anchor": "bottom", "text-optional": true, "symbol-sort-key": ["case", ["==", ["get", "sel"], 1], 0, 1] },
+      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.8 } });
+    // food spots of the open place: small ink dots, names when zoomed in
+    map.addLayer({ id: "food-dots", type: "circle", source: "pins", filter: ["==", ["get", "icon"], "fooddot"],
+      paint: { "circle-radius": ["case", ["==", ["get", "sel"], 1], 6.5, 4.5], "circle-color": C.pinInk, "circle-stroke-color": C.halo, "circle-stroke-width": 1.8 } });
+    map.addLayer({ id: "food-labels", type: "symbol", source: "pins", minzoom: 12, filter: ["==", ["get", "icon"], "fooddot"],
+      layout: { "text-field": ["concat", "🍴 ", ["get", "title"]], "text-font": ["Noto Sans Bold"], "text-size": 11.5, "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
+      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.6 } });
+    map.addLayer({ id: "pins-sel", type: "symbol", source: "pins", maxzoom: DOT_ZOOM_GL, filter: ["all", ["==", ["get", "sel"], 1], ["!=", ["get", "icon"], "fooddot"]],
+      layout: { "icon-image": ["concat", "pin-", ["get", "icon"]], "icon-anchor": "bottom", "icon-size": 1.25, "icon-allow-overlap": true, "text-field": ["get", "title"], "text-font": ["Noto Sans Bold"], "text-size": 12.5, "text-offset": [0, -3.4], "text-anchor": "bottom" },
+      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.8 } });
+    for (const id of PIN_LAYERS) {
+      map.on("click", id, onPinTap);
+      map.on("mouseenter", id, () => map.getCanvas().style.cursor = "pointer");
+      map.on("mouseleave", id, () => map.getCanvas().style.cursor = S.picking ? "crosshair" : "");
     }
+    map.on("click", onMapTap);
+    mapReady = true;
+    drawOverlay(); if (typeof onbPaint === "function") onbPaint();
+    if (S.places.length && !S.selId) fitPins();
+  });
+  map.on("mousemove", e => { const r = $("#readout"); if (r) r.textContent = fmtCoord(e.lngLat.lng, e.lngLat.lat); });
+}
+const DOT_ZOOM_GL = 6;
+const PIN_LAYERS = ["pins-dot", "pins-pin", "pins-sel", "food-dots"];
+
+/* --- taps --- */
+// Order: add-place mode, onboarding country picking, pin, then tap-to-zoom (neighbouring country, place label / island, country).
+function onPinTap(e) {
+  const f = e.features[0];
+  if (!f || f.properties.id === "__temp" || S.picking) return;
+  e.originalEvent._pin = true;
+  if (String(f.properties.id).startsWith("w:")) { selectWish(f.properties.id.slice(2)); return; }
+  openDetail(f.properties.id, false);
+  const z = map.getZoom();
+  camera({ center: f.geometry.coordinates, zoom: z < 12 ? Math.max(12, z + 3) : z });
+}
+const PLACE_ZOOM = { city: 11.5, town: 13, village: 14, suburb: 14.5, quarter: 15, neighbourhood: 15.5, hamlet: 15, island: 10.5, islet: 13 };
+function countryAtPoint(pt) {
+  const f = map.queryRenderedFeatures(pt, { layers: ["countries-hit"] })[0];
+  return f ? COUNTRIES.features.find(x => x.properties.n === f.properties.n) : null;
+}
+// a tap on an island's land (not exactly on its name) still finds the island: nearest island label within ~45 px
+function islandNear(pt) {
+  const layers = ["label_island", "label_islet"].filter(id => map.getLayer(id)); if (!layers.length) return null;
+  const r = 45, feats = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]], { layers });
+  let best = null, bd = Infinity;
+  for (const f of feats) { const p = map.project(f.geometry.coordinates), d = (p.x - pt.x) ** 2 + (p.y - pt.y) ** 2; if (d < bd) { bd = d; best = f; } }
+  return best;
+}
+// middle of the visible map (above the bottom sheet on phones)
+function visibleCenterPoint() {
+  const pad = mapPadding(), w = mapEl.clientWidth, h = mapEl.clientHeight;
+  return [pad.left + (w - pad.left - pad.right) / 2, pad.top + (h - pad.top - pad.bottom) / 2];
+}
+function onMapTap(e) {
+  if (e.originalEvent._pin) return;
+  if (S.picking) {
+    const mode = S.pickMode; setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) };
+    if (mode === "wish") startWishForm(e.point, S.temp); else startForm(null, S.temp);
+    return;
   }
-  for (const r of ["r1", "r2", "r3"]) {
-    gWorld.append("g").selectAll("path").data(COUNTRIES.features).join("path")
-      .attr("class", "ring " + r).attr("vector-effect", "non-scaling-stroke").attr("d", path);
+  const tapped = countryAtPoint(e.point);
+  if (tapped && typeof onbLandClick === "function" && onbLandClick(tapped)) return;
+  const box = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
+  if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;   // the pin handler owns this tap
+  const z = map.getZoom();
+  // Country scale: a tap in another country than the one in the middle of the screen frames that country
+  // (checked before place labels so a nearby city label does not swallow the switch).
+  if (z >= 5.5 && z < 8 && tapped) {
+    const here = countryAtPoint(visibleCenterPoint());
+    if (tapped !== here) { zoomToCountry(tapped); return; }
   }
-  gWorld.append("g").selectAll("path").data(COUNTRIES.features).join("path")
-    .attr("class", "land").attr("vector-effect", "non-scaling-stroke").attr("d", path)
-    .on("click", (e, d) => { if (S.picking) return; e.stopPropagation(); if (typeof onbLandClick === "function" && onbLandClick(d)) return; zoomToCountry(d); })
-    .append("title").text(d => HIDE_LABEL.has(d.properties.n) ? "" : cName(d));
-  gWorld.append("path").attr("class", "admin1").attr("vector-effect", "non-scaling-stroke").attr("d", path(ADMIN1));
+  const place = map.queryRenderedFeatures(box).find(f => f.layer.type === "symbol" && f.sourceLayer === "place" && PLACE_ZOOM[f.properties.class])
+    || islandNear(e.point);
+  if (place) {
+    const tz = PLACE_ZOOM[place.properties.class];
+    camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
+    return;
+  }
+  if (z < 5.5 && tapped) zoomToCountry(tapped);
 }
 
-function zoomToCountry(f) {
-  const polys = f.geometry.coordinates;
-  const areas = polys.map(p => d3.geoArea({ type: "Polygon", coordinates: p }));
-  const maxA = d3.max(areas);
-  const main = { type: "MultiPolygon", coordinates: polys.filter((p, i) => areas[i] >= maxA * 0.08) };
-  let [[x0, y0], [x1, y1]] = path.bounds(main);
-  const fb = path.bounds(FRAME);
-  x0 = Math.max(x0, fb[0][0]); y0 = Math.max(y0, fb[0][1]); x1 = Math.min(x1, fb[1][0]); y1 = Math.min(y1, fb[1][1]);
-  if (x1 <= x0 || y1 <= y0) return;
-  const narrow = matchMedia("(max-width:760px)").matches;
-  const top = narrow ? 70 : 20, availH = (narrow ? H * 0.52 : H) - top - 20, availW = W - 40;
-  const k = Math.max(1, Math.min(40, 0.86 / Math.max((x1 - x0) / availW, (y1 - y0) / availH)));
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const t = d3.zoomIdentity.translate(W / 2, top + availH / 2).scale(k).translate(-cx, -cy);
-  gWorld.selectAll("path.land").classed("on", d => d === f);
-  svg.transition().duration(matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 750).call(zoom.transform, t);
+/* --- camera --- */
+function camera(opts) {
+  if (reducedMotion()) { map.jumpTo({ ...opts, padding: mapPadding() }); return; }
+  prefetchView(opts.center, opts.zoom);
+  map.flyTo({ ...opts, padding: mapPadding(), duration: 1000, curve: 1.3, essential: true });
 }
-
-/* labels + pins live in screen space so text stays crisp at every zoom */
 function drawOverlay() {
-  const k = T.k;
-  const P = ll => { const p = projection(ll); return p ? T.apply(p) : [-999, -999]; };
-  const on = (x, y, m = 40) => x > -m && y > -m && x < W + m && y < H + m;
-  const boxes = [];
-  const free = (x, y, w, h) => { for (const b of boxes) if (x < b[2] && x + w > b[0] && y < b[3] && y + h > b[1]) return false; boxes.push([x, y, x + w, y + h]); return true; };
-  const shown = S.places.filter(p => S.filter === "all" || p.kind === S.filter || p.id === S.selId);
-  const pinPts = shown.map(p => P([p.lon, p.lat]));
-  const FAR = k < DOT_ZOOM;
-  const asDot = d => FAR && d.id !== S.selId && d.id !== "__temp";
-  pinPts.forEach(([x, y], i) => {
-    if (asDot(shown[i])) { boxes.push([x - 6, y - 6, x + 6, y + 6]); return; }
-    boxes.push([x - 9, y - 26, x + 9, y + 2]);
-    const w = L(shown[i], "title").length * 6.9 + 10;
-    boxes.push([x - w / 2, y - 46, x + w / 2, y - 27]);
-  });
-
-  const lbls = [];
-  // seas
-  for (const [nn, lon, lat, minK, rot] of SEAS) {
-    const n = nn[LANG === "tr" ? 0 : 1];
-    if (k < minK || k > minK * 7) continue;
-    const [x, y] = P([lon, lat]); if (!on(x, y)) continue;
-    lbls.push({ t: n, x, y, cls: "lbl lbl-sea", rot, fs: Math.min(16, 12 + k) });
+  if (!mapReady) return;
+  if (S.filter === "wish") {
+    const feats = S.wish.map(w => ({ type: "Feature", geometry: { type: "Point", coordinates: [w.lon, w.lat] },
+      properties: { id: "w:" + w.id, title: L(w, "title"), icon: "wish", sel: w.id === S.wishSel ? 1 : 0 } }));
+    if (S.temp) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [S.temp.lon, S.temp.lat] }, properties: { id: "__temp", title: "", icon: "temp", sel: 1 } });
+    map.getSource("pins").setData({ type: "FeatureCollection", features: feats });
+    return;
   }
-  // countries
-  if (k < 9) {
-    const feats = COUNTRIES.features.filter(f => !HIDE_LABEL.has(f.properties.n) && f.properties.area * k * k > 0.00045).sort((a, b) => b.properties.area - a.properties.area);
-    for (const f of feats) {
-      const [x, y] = P(f.properties.c); if (!on(x, y)) continue;
-      const nm = cName(f); const w = nm.length * 8.4;
-      if (free(x - w / 2, y - 8, w, 14)) lbls.push({ t: nm, x, y, cls: "lbl lbl-country" });
+  const sel = S.places.find(p => p.id === S.selId), focus = sel ? (parentOf(sel) || sel) : null;
+  const feats = S.places.filter(isTop).map(p => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+    properties: { id: p.id, title: L(p, "title"), icon: p.home ? "home" : p.kind === "yemek" ? "yemek" : "yer", sel: focus && p.id === focus.id ? 1 : 0 } }));
+  if (focus) for (const f of foodsOf(focus.id)) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [f.lon, f.lat] },
+    properties: { id: f.id, title: L(f, "title"), icon: "fooddot", sel: f.id === S.selId ? 1 : 0 } });
+  if (S.temp) feats.push({ type: "Feature", geometry: { type: "Point", coordinates: [S.temp.lon, S.temp.lat] }, properties: { id: "__temp", title: "", icon: "temp", sel: 1 } });
+  map.getSource("pins").setData({ type: "FeatureCollection", features: feats });
+}
+let lastFitOwner = null;
+function fitPins() {
+  if (!mapReady || !S.places.length) return;
+  if (lastFitOwner === (S.owner && S.owner.id)) return;
+  lastFitOwner = S.owner && S.owner.id;
+  const b = new maplibregl.LngLatBounds();
+  S.places.forEach(p => b.extend([p.lon, p.lat]));
+  map.fitBounds(b, { padding: mapPadding(), maxZoom: 9, duration: 900 });
+}
+function flyTo(lon, lat, k = 7) {
+  if (!mapReady) return;
+  camera({ center: [lon, lat], zoom: Math.max(map.getZoom(), kToZoom(k)) });
+}
+function zoomToCountry(f) {
+  const [[x0, y0], [x1, y1]] = d3.geoBounds(f.properties.main);
+  if (x1 < x0) return;
+  // fitBounds applies the panel padding once (cameraForBounds + a padded flyTo shifted it twice on phones)
+  const bounds = [[x0, y0], [x1, y1]], opts = { padding: mapPadding(), maxZoom: 7.5 };
+  if (reducedMotion()) { map.fitBounds(bounds, { ...opts, animate: false }); return; }
+  const cam = map.cameraForBounds(bounds, opts);
+  if (cam) prefetchView(cam.center, cam.zoom);
+  map.fitBounds(bounds, { ...opts, linear: false, duration: 1000, curve: 1.3, essential: true });
+}
+
+/* --- smooth detail ---
+   1) layers that start at a zoom (minor roads, small labels...) fade in over ~0.8 zoom instead of popping;
+   2) taps fly to the target so intermediate zooms load progressively;
+   3) the target's tiles are requested when the flight starts (HTTP cache), so they are ready on arrival;
+   4) labels fade (fadeDuration). */
+const OPACITY_PROPS = { fill: ["fill-opacity"], line: ["line-opacity"], symbol: ["text-opacity", "icon-opacity"], circle: ["circle-opacity"] };
+const OWN_LAYERS = new Set(["base-land", "countries-hit", "countries-picked", "countries-picked-line", "food-labels", ...PIN_LAYERS]);
+let RAMPS = [];
+function captureRamps() {
+  RAMPS = [];
+  for (const l of map.getStyle().layers) {
+    if (OWN_LAYERS.has(l.id) || !(l.minzoom > 0) || !OPACITY_PROPS[l.type]) continue;
+    for (const prop of OPACITY_PROPS[l.type]) {
+      const orig = map.getPaintProperty(l.id, prop);
+      if (orig !== undefined && typeof orig !== "number") continue;   // already zoom-driven: leave it alone
+      RAMPS.push({ id: l.id, prop, ramp: ["interpolate", ["linear"], ["zoom"], l.minzoom, 0, l.minzoom + 0.8, orig === undefined ? 1 : orig] });
     }
   }
-  // cities
-  const maxRank = k < 1.7 ? -1 : k < 2.8 ? 1 : k < 4.5 ? 2 : k < 7 ? 3 : k < 10 ? 4 : k < 15 ? 5 : k < 22 ? 6 : k < 32 ? 7 : 8;
-  const cities = CITIES.filter(c => c[3] <= maxRank || (c[4] && k >= 2.2)).sort((a, b) => a[3] - b[3] || b[4] - a[4]);
-  for (const c of cities) {
-    const [x, y] = P([c[1], c[2]]); if (!on(x, y)) continue;
-    const nm = cityName(c[0]); const w = nm.length * 6.6 + 8;
-    if (free(x - 3, y - 7, w, 14)) lbls.push({ t: nm, x, y, cls: "lbl lbl-city", dot: true });
+}
+function applySmooth() { for (const r of RAMPS) map.setPaintProperty(r.id, r.prop, r.ramp); }
+let TILE_TPL = null, TILE_MAX = 14;
+async function tileTemplate() {
+  if (TILE_TPL !== null) return TILE_TPL;
+  TILE_TPL = "";
+  try {
+    const src = Object.values(styleTpl.sources).find(x => x.type === "vector" && x.url);
+    const tj = await (await fetch(src.url)).json();
+    TILE_TPL = tj.tiles[0]; TILE_MAX = tj.maxzoom || 14;
+  } catch (e) {}
+  return TILE_TPL;
+}
+async function prefetchView(center, zoom) {
+  const tpl = await tileTemplate(); if (!tpl || !center) return;
+  const c = Array.isArray(center) ? center : [center.lng, center.lat];
+  const tz = Math.max(0, Math.min(TILE_MAX, Math.floor(zoom))), n = 2 ** tz;
+  const x = (c[0] + 180) / 360 * n, lr = c[1] * Math.PI / 180, y = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
+  const span = 512 * 2 ** (zoom - tz), hx = mapEl.clientWidth / 2 / span + 0.5, hy = mapEl.clientHeight / 2 / span + 0.5;
+  const urls = [];
+  for (let ty = Math.floor(y - hy); ty <= Math.floor(y + hy); ty++) for (let tx = Math.floor(x - hx); tx <= Math.floor(x + hx); tx++) {
+    if (ty < 0 || ty >= n) continue;
+    urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
   }
-
-  const sel = gLabels.selectAll("g.l").data(lbls, d => d.cls + d.t);
-  sel.exit().remove();
-  const ent = sel.enter().append("g").attr("class", "l");
-  ent.each(function (d) {
-    const g = d3.select(this);
-    if (d.dot) g.append("circle").attr("class", "dot-city").attr("r", 2.6);
-    g.append("text").attr("class", d.cls).attr("x", d.dot ? 6 : 0).attr("dy", d.dot ? "0.35em" : "0.35em")
-      .attr("text-anchor", d.dot ? "start" : "middle").text(d.t);
-  });
-  ent.merge(sel).attr("transform", d => `translate(${d.x},${d.y})${d.rot ? ` rotate(${d.rot})` : ""}`)
-    .select("text.lbl-sea").style("font-size", d => d.fs + "px");
-
-  // pins
-  const list = shown.slice();
-  if (S.temp) list.push({ id: "__temp", kind: "temp", lon: S.temp.lon, lat: S.temp.lat, title: t("newNote") });
-  const ps = gPins.selectAll("g.pin").data(list, d => d.id);
-  ps.exit().remove();
-  const pe = ps.enter().append("g").attr("tabindex", 0).attr("role", "button");
-  pe.append("circle").attr("class", "dotc").attr("r", 5);
-  pe.append("path").attr("class", "head").attr("d", "M0,0 C-3,-6 -9,-10 -9,-16 A9,9 0 1 1 9,-16 C9,-10 3,-6 0,0Z");
-  pe.append("circle").attr("class", "eye").attr("cy", -16).attr("r", 3.2);
-  const fk = pe.append("g").attr("class", "fk").attr("transform", "translate(0,-16)");
-  fk.append("path").attr("d", "M-3,-5 V-1.2 M-1.5,-5 V5 M0,-5 V-1.2 M-3,-1.2 Q-1.5,0.6 0,-1.2");
-  fk.append("path").attr("d", "M3,5 V-5 Q5,-2.8 3,0.6");
-  pe.append("text").attr("class", "emo").attr("y", -11.5).attr("text-anchor", "middle");
-  pe.append("text").attr("class", "pin-lbl").attr("y", -32).attr("text-anchor", "middle");
-  pe.append("title");
-  pe.on("click", (e, d) => { e.stopPropagation(); if (d.id !== "__temp") openDetail(d.id, true); })
-    .on("keydown", (e, d) => { if ((e.key === "Enter" || e.key === " ") && d.id !== "__temp") { e.preventDefault(); openDetail(d.id, true); } });
-  const all = pe.merge(ps);
-  all.attr("class", d => `pin ${d.kind}${d.id === S.selId ? " sel" : ""}${d.id === "__temp" ? " temp" : ""}${d.example ? " example" : ""}${d.home ? " home" : ""}${asDot(d) ? " dot" : ""}`)
-    .attr("aria-label", d => L(d, "title"))
-    .attr("transform", d => { const [x, y] = P([d.lon, d.lat]); const s = asDot(d) ? 1 : d.id === S.selId || d.id === "__temp" ? 1.25 : 1; return `translate(${x},${y}) scale(${s})`; })
-    .select("title").text(d => L(d, "title") + (d.city ? " · " + cityName(d.city) : ""));
-  all.select("text.pin-lbl").text(d => d.id === "__temp" ? "" : L(d, "title"));
-  all.select("text.emo").text(d => d.home ? "🏠" : "");
-  all.filter(d => d.id === S.selId || d.id === "__temp").raise();
+  urls.slice(0, 24).forEach(u => fetch(u, { mode: "cors", credentials: "same-origin" }).catch(() => {}));
 }
 
-function flyTo(lon, lat, k = 7) {
-  const p = projection([lon, lat]);
-  const narrow = matchMedia("(max-width:760px)").matches;
-  const cy = narrow ? H * 0.26 : H / 2;
-  const t = d3.zoomIdentity.translate(W / 2, cy).scale(Math.max(k, T.k)).translate(-p[0], -p[1]);
-  svg.transition().duration(matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 750).call(zoom.transform, t);
-}
-
-svg.on("mousemove", e => {
-  const [mx, my] = d3.pointer(e);
-  const ll = projection.invert(T.invert([mx, my]));
-  if (ll) $("#readout").textContent = fmtCoord(ll[0], ll[1]);
-});
-svg.on("click", e => {
-  if (!S.picking) return;
-  const [mx, my] = d3.pointer(e);
-  const ll = projection.invert(T.invert([mx, my]));
-  if (!ll) return;
-  setPicking(false);
-  S.temp = { lon: +ll[0].toFixed(4), lat: +ll[1].toFixed(4) };
-  startForm(null, S.temp);
-});
-function setPicking(on) {
-  S.picking = on; mapEl.classList.toggle("picking", on); $("#pickBanner").hidden = !on;
+function layout() { if (map) map.resize(); }
+function setPicking(on, mode = "pin") {
+  S.picking = on; S.pickMode = on ? mode : "pin"; mapEl.classList.toggle("picking", on); $("#pickBanner").hidden = !on;
+  if (on) $("#pickBanner span").textContent = t(mode === "wish" ? "wishPick" : "pickHint");
+  if (map) map.getCanvas().style.cursor = on ? "crosshair" : "";
   if (on) setSheet("collapsed");
 }
 $("#pickCancel").onclick = () => setPicking(false);
+function labelExpr() {
+  const nm = LANG === "en" ? ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name:latin"], ["get", "name"]]
+    : ["coalesce", ["get", "name:tr"], ["get", "name:latin"], ["get", "name"]];
+  return ["case", ["==", ["coalesce", ["get", "name:en"], ["get", "name_en"], ""], "Israel"], "", nm];
+}
+function applyMapLang() {
+  if (!mapReady) return;
+  const nameExpr = labelExpr();
+  for (const l of map.getStyle().layers) if (l.source === "openmaptiles" && showsName(l)) map.setLayoutProperty(l.id, "text-field", nameExpr);
+}
 
 /* geography lookups for the form */
 function whereIs(lon, lat) {
@@ -405,6 +565,7 @@ function render() {
   else if (S.ownerState === "notfound") renderNotFound();
   else if (S.view === "detail") renderDetail();
   else if (S.view === "form") renderForm();
+  else if (S.view === "addpin") renderAddPin();
   else renderList();
   drawOverlay();
 }
@@ -416,7 +577,7 @@ function stars(n) {
 }
 
 function renderList() {
-  const yer = S.places.filter(p => p.kind === "yer").length;
+  const yer = S.places.filter(p => p.kind === "yer" && isTop(p)).length;
   const yemek = S.places.filter(p => p.kind === "yemek").length;
   const countries = new Set(S.places.map(p => p.iso || p.country).filter(Boolean)).size;
   if (!S.owner) { body.append(el("div", { class: "empty" }, el("strong", { text: t("loadingT") }), t("loadingB"))); return; }
@@ -424,7 +585,7 @@ function renderList() {
   if (S.ownerState === "locked") { body.append(lockedBox()); return; }
   const head = el("div", { class: "ph" },
     el("div", {}, el("div", { class: "eyebrow", text: t("eyebrowList") }), el("h2", { text: S.canEdit ? t("listTitle") : t("listTitleOther") })),
-    S.canEdit ? el("button", { class: "btn", type: "button", onclick: () => { S.temp = null; setPicking(true); } }, t("addNote")) : null);
+    S.canEdit ? el("button", { class: "btn", type: "button", onclick: openAddPin }, t("addNote")) : null);
   body.append(head);
   if (S.canEdit && S.owner.visibility === "ghost") body.append(el("div", { class: "notice", text: t("ghostNote") }));
   if (S.canEdit && S.owner.visibility === "private") body.append(el("div", { class: "notice", text: t("privateNote") }));
@@ -438,14 +599,15 @@ function renderList() {
   }
 
   const chips = el("div", { class: "chips", role: "group", "aria-label": t("filter") });
-  for (const [k, lab] of [["all", t("f_all")], ["yer", t("f_yer")], ["yemek", t("f_yemek")]]) {
-    chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); render(); } },
-      k !== "all" ? el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }) : null, lab));
+  for (const [k, lab] of [["yer", t("f_yer")], ["wish", t("f_wish")]]) {
+    chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
+      el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }), lab));
   }
   body.append(chips);
+  if (S.filter === "wish") { renderWish(); return; }
 
 
-  const items = S.places.filter(p => S.filter === "all" || p.kind === S.filter);
+  const items = S.places.filter(isTop);
   if (!S.loaded && S.dbState === "pending") {
     body.append(el("div", { class: "empty" }, el("strong", { text: t("loadingT") }), t("loadingB")));
     return;
@@ -465,12 +627,13 @@ function renderList() {
     arr.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
     for (const p of arr) {
       const ph = el("div", { class: "pc-ph" + (p.photos && p.photos.length ? " has" : "") });
-      if (p.photos && p.photos.length) ph.append(el("img", { src: blobUrl(p.photos[0]), alt: "", loading: "lazy" }));
+      if (p.photos && p.photos.length) ph.append(thumbImg(p.photos[0], { loading: "lazy" }));
       if (p.iso) ph.append(el("span", { class: "stamp", text: p.iso }));
       if (p.example) ph.append(el("span", { class: "tag-ex on-ph", text: t("example") }));
       const sub = el("span", { class: "pc-s" }, el("i", { class: "sw " + p.kind }),
         p.home ? "🏠 " + t("home") : p.kind === "yemek" && p.rating ? stars(p.rating) : KIND_LABEL(p.kind),
-        p.city && p.city !== p.title ? " · " + cityName(p.city) : "");
+        p.city && p.city !== p.title ? " · " + cityName(p.city) : "",
+        foodsOf(p.id).length ? " · " + t("foodsN", foodsOf(p.id).length) : "");
       ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openDetail(p.id, true) }, ph,
         el("b", { class: "pc-t", text: L(p, "title") }), sub,
         p.date ? el("span", { class: "pc-d", text: fmtDate(p.date) }) : null)));
@@ -482,36 +645,83 @@ function renderList() {
 const distKm = (a, b) => d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
 function relRow(q) {
   const th = el("div", { class: "thumb" });
-  if (q.photos && q.photos.length) th.append(el("img", { src: blobUrl(q.photos[0]), alt: "", loading: "lazy" }));
+  if (q.photos && q.photos.length) th.append(thumbImg(q.photos[0], { loading: "lazy" }));
   else th.append(el("span", { class: "rel-ic", "aria-hidden": "true", text: q.home ? "\u{1F3E0}" : ICON[q.kind] }));
   const sub = q.kind === "yemek" ? [L(q, "dish"), q.rating ? stars(q.rating) : null] : [q.city && q.city !== q.title ? cityName(q.city) : KIND_LABEL(q.kind)];
   return el("li", {}, el("button", { class: "rel-row", type: "button", onclick: () => openDetail(q.id, true) }, th,
     el("div", { style: "min-width:0" }, el("div", { class: "rel-t", text: L(q, "title") }), el("div", { class: "rel-s" }, ...sub.filter(Boolean)))));
 }
+function renderFoods(p) {
+  const foods = foodsOf(p.id);
+  const sec = el("section", { class: "rel foods" }, el("h3", { text: t("ateT") }));
+  if (foods.length) sec.append(el("ul", { class: "food-list" }, foods.map(f => el("li", {},
+    el("button", { class: "food", type: "button", onclick: () => openDetail(f.id, true) },
+      f.photos && f.photos.length ? thumbImg(f.photos[0], { loading: "lazy" }) : el("span", { class: "food-ic", "aria-hidden": "true", text: "🍴" }),
+      el("span", { class: "food-t" }, el("b", { text: L(f, "title") }),
+        L(f, "dish") ? el("span", { text: L(f, "dish") }) : null,
+        f.rating ? el("span", { class: "food-r" }, stars(f.rating)) : null))))));
+  else if (!S.canEdit) return;
+  else sec.append(el("p", { class: "hint", text: t("noFood") }));
+  if (S.canEdit && HAS_PARENT) sec.append(el("button", { class: "btn ghost small", type: "button", onclick: () => startFoodForm(p) }, t("addFood")));
+  body.append(sec);
+}
+function startFoodForm(place) {
+  startForm(null, { lon: place.lon, lat: place.lat }, { kind: "yemek", parent_id: place.id, city: place.city || "", country: place.country || "", iso: place.iso || "" });
+}
 function renderRelated(p) {
+  if (!isTop(p)) return;
   const R = p.home ? 35 : 15;
-  const near = S.places.filter(q => q.id !== p.id && distKm(p, q) <= R).sort((a, b) => distKm(p, a) - distKm(p, b));
+  const near = S.places.filter(q => q.id !== p.id && isTop(q) && distKm(p, q) <= R).sort((a, b) => distKm(p, a) - distKm(p, b));
   const food = near.filter(q => q.kind === "yemek");
   const spots = near.filter(q => q.kind !== "yemek");
   const block = (title, arr) => { if (!arr.length) return; body.append(el("section", { class: "rel" }, el("h3", { text: title }), el("ul", {}, arr.map(relRow)))); };
   if (p.kind === "yemek") { block(t("nearbyFood"), food); block(t("nearbyPlaces"), spots); }
-  else { block(t("eatHere"), food); block(t("nearbyPlaces"), spots); }
+  else { if (!HAS_PARENT) block(t("eatHere"), food); block(t("nearbyPlaces"), spots); }
 }
 
 function openDetail(id, fly) {
   const p = S.places.find(x => x.id === id); if (!p) return;
   S.selId = id; S.view = "detail"; S.temp = null; S.confirmDel = false;
+  perfStart();
   if (panel.classList.contains("collapsed")) setSheet(null);
   render();
   if (fly) flyTo(p.lon, p.lat, 28);
   $("#panelBody").scrollTop = 0;
+}
+/* ---------------- ?perf=1: time to first photo and photo bytes after opening a place (nothing shows otherwise) ---------------- */
+const PERF = /[?&]perf=1/.test(location.search) ? { id: 0, t0: 0, first: null } : null;
+if (PERF) {
+  try { performance.setResourceTimingBufferSize(5000); } catch (e) {}
+  body.addEventListener("load", e => {
+    if (e.target.tagName === "IMG" && PERF.t0 && PERF.first == null) { PERF.first = performance.now() - PERF.t0; perfShow(); }
+  }, true);
+}
+function perfStart() {
+  if (!PERF) return;
+  const id = ++PERF.id; PERF.t0 = performance.now(); PERF.first = null;
+  [300, 1500, 4000, 10000].forEach(ms => setTimeout(() => { if (id === PERF.id) perfShow(); }, ms));
+  perfShow();
+}
+function perfShow() {
+  if (!PERF) return;
+  let box = document.getElementById("mpPerf");
+  if (!box) { box = document.createElement("div"); box.id = "mpPerf"; box.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.78);color:#fff;font:12px/1.3 ui-monospace,monospace;padding:4px 7px;border-radius:6px;pointer-events:none;white-space:pre"; document.body.append(box); }
+  const ph = performance.getEntriesByType("resource").filter(r => r.startTime >= PERF.t0 - 5 && /\/storage\/v1\/object\//.test(r.name));
+  const net = ph.reduce((a, r) => a + (r.transferSize || 0), 0), known = ph.some(r => r.encodedBodySize > 0 || r.transferSize > 0);
+  const cached = ph.filter(r => r.transferSize === 0 && r.encodedBodySize > 0).length;
+  const hasImg = !!body.querySelector("img");
+  const first = PERF.first != null ? Math.round(PERF.first) + " ms" : hasImg ? "…" : "–";
+  const size = !ph.length ? "0 KB" : known ? (net >= 1e6 ? (net / 1e6).toFixed(2) + " MB" : Math.round(net / 1e3) + " KB") : "?";
+  box.textContent = `ilk foto ${first} · ${size} · ${ph.length} dosya${cached ? ` (${cached} önbellek)` : ""}`;
 }
 function backToList() { S.view = "list"; S.selId = null; S.temp = null; render(); }
 
 function renderDetail() {
   const p = S.places.find(x => x.id === S.selId);
   if (!p) { S.view = "list"; renderList(); return; }
-  body.append(el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
+  const parent = parentOf(p);
+  body.append(parent ? el("button", { class: "back", type: "button", onclick: () => openDetail(parent.id, true) }, t("backTo", L(parent, "title")))
+    : el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
   body.append(el("div", { class: "kind-line eyebrow" }, el("span", { class: "sw " + p.kind }), p.home ? "🏠 " + t("home") : KIND_LABEL(p.kind), p.example ? el("span", { class: "tag-ex", text: t("example") }) : null));
   body.append(el("h2", { class: "d-title", text: L(p, "title") }));
   body.append(el("p", { class: "d-place", text: [p.city && cityName(p.city), placeCountry(p)].filter(Boolean).join(", ") }));
@@ -519,7 +729,7 @@ function renderDetail() {
 
   if (p.photos && p.photos.length) {
     const g = el("div", { class: "gallery" });
-    p.photos.forEach((id, i) => g.append(el("button", { type: "button", "aria-label": t("photoN", i + 1), onclick: () => openLb(p.photos, i) }, el("img", { src: blobUrl(id), alt: "", loading: "lazy" }))));
+    p.photos.forEach((id, i) => g.append(el("button", { type: "button", "aria-label": t("photoN", i + 1), onclick: () => openLb(p.photos, i) }, thumbImg(id, { loading: "lazy" }))));
     body.append(g);
   }
 
@@ -533,6 +743,11 @@ function renderDetail() {
   }
   if (facts.children.length) body.append(facts);
   if (p.note) body.append(el("div", { class: "note", text: L(p, "note") }));
+  if (isTop(p) && p.kind === "yer") renderFoods(p);
+  if (!S.canEdit && S.wishState !== "missing") {
+    const on = S.mineSrc.has(p.id);
+    body.append(el("div", { class: "d-wish" }, el("button", { class: "btn " + (on ? "wish-on" : "ghost"), type: "button", "aria-pressed": String(on), onclick: () => toggleWishFromPin(p) }, on ? t("wishOn") : t("wishBtn"))));
+  }
   renderRelated(p);
 
   if (S.canEdit) {
@@ -541,7 +756,8 @@ function renderDetail() {
       act.append(el("button", { class: "btn ghost", type: "button", onclick: () => startForm(p) }, t("edit")),
         el("button", { class: "btn ghost", type: "button", onclick: () => { S.confirmDel = true; render(); } }, t("del")));
     } else {
-      act.append(el("div", { class: "confirm" }, t("delQ"),
+      const nf = foodsOf(p.id).length;
+      act.append(el("div", { class: "confirm" }, t("delQ") + (nf ? " " + t("delQFoods", nf) : ""),
         el("button", { class: "btn danger small", type: "button", onclick: () => deletePlace(p) }, t("delYes")),
         el("button", { class: "btn ghost small", type: "button", onclick: () => { S.confirmDel = false; render(); } }, t("cancel"))));
     }
@@ -550,16 +766,17 @@ function renderDetail() {
 }
 
 /* ---------------- form ---------------- */
-function startForm(p, at) {
+function startForm(p, at, prefill) {
   const base = p ? { ...p, photos: [...(p.photos || [])] } : (() => {
     const w = whereIs(at.lon, at.lat);
-    return { kind: "yer", title: "", city: w.city, country: w.country, iso: w.iso, lon: at.lon, lat: at.lat, date: new Date().toISOString().slice(0, 10), note: "", dish: "", rating: 0, price: "", photos: [] };
+    return { kind: "yer", title: "", city: w.city, country: w.country, iso: w.iso, lon: at.lon, lat: at.lat, date: new Date().toISOString().slice(0, 10), note: "", dish: "", rating: 0, price: "", photos: [],
+      ...(prefill || {}) };
   })();
   S.form = { data: base, editingId: p ? p.id : null, newFiles: [], removed: [], busy: false, err: "" };
   S.view = "form"; S.selId = p ? p.id : null;
   if (panel.classList.contains("collapsed")) setSheet("tall");
   render();
-  flyTo(base.lon, base.lat, Math.max(T.k, 4));
+  flyTo(base.lon, base.lat, 60);
 }
 
 function renderForm() {
@@ -571,9 +788,11 @@ function renderForm() {
   const form = el("form", { class: "form", onsubmit: e => { e.preventDefault(); savePlace(); } });
   const bind = (key) => e => { d[key] = e.target.value; };
 
-  const seg = el("div", { class: "seg", role: "group", "aria-label": t("type") });
-  for (const k of ["yer", "yemek"]) seg.append(el("button", { type: "button", "aria-pressed": String(d.kind === k), onclick: () => { d.kind = k; render(); } }, el("span", { class: "sw " + k }), t("t_" + k)));
-  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("type") }), seg));
+  // places come from "+ Pin ekle", food spots from a place's "+ Ne yedim ekle": no Yer/Sofra switch
+  const par = d.parent_id ? S.places.find(x => x.id === d.parent_id) : null;
+  if (par) form.append(el("div", { class: "food-loc" },
+    el("span", { text: d.lon === par.lon && d.lat === par.lat ? t("foodLocPlace", L(par, "title")) : t("foodLocSet") }),
+    el("button", { class: "linkbtn", type: "button", onclick: () => openAddPin("food") }, t("foodLocSearch"))));
 
   form.append(el("div", { class: "field" }, el("label", { for: "f-title", text: d.kind === "yemek" ? t("venue") : t("titleL") }),
     el("input", { id: "f-title", required: true, maxlength: 120, value: d.title, placeholder: d.kind === "yemek" ? t("phVenue") : t("phTitle"), oninput: bind("title") })));
@@ -604,7 +823,7 @@ function renderForm() {
   // photos
   const pf = el("div", { class: "field" }, el("span", { class: "lab", text: t("photos") }));
   const pvs = el("div", { class: "previews" });
-  d.photos.forEach(id => pvs.append(el("div", { class: "pv" }, el("img", { src: blobUrl(id), alt: "" }),
+  d.photos.forEach(id => pvs.append(el("div", { class: "pv" }, thumbImg(id),
     el("button", { type: "button", "aria-label": t("removePhoto"), onclick: () => { d.photos = d.photos.filter(x => x !== id); F.removed.push(id); render(); } }, "✕"))));
   F.newFiles.forEach((f, i) => pvs.append(el("div", { class: "pv" }, el("img", { src: f.url, alt: "" }),
     el("button", { type: "button", "aria-label": t("removePhoto"), onclick: () => { URL.revokeObjectURL(f.url); F.newFiles.splice(i, 1); render(); } }, "✕"))));
@@ -661,13 +880,22 @@ async function shrink(file) {
 }
 
 /* ---------------- data (Supabase) ---------------- */
-const PIN_COLS = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,photos,created_at";
+const PIN_COLS_BASE = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,photos,created_at";
+let HAS_PARENT = true;   // false until supabase/07_sofra_yere_bagla.sql has added pins.parent_id
+const pinCols = () => HAS_PARENT ? PIN_COLS_BASE + ",parent_id" : PIN_COLS_BASE;
+const PIN_COLS = PIN_COLS_BASE + ",parent_id";
+const missingParentCol = e => !!e && /parent_id/.test(e.message || "") && (e.code === "42703" || e.code === "PGRST204" || /does not exist|could not find/i.test(e.message || ""));
+// food spots ("Sofra") belong to a place: top-level pins are places (and old food pins not attached yet)
+const isTop = p => !p.parent_id;
+const foodsOf = id => S.places.filter(x => x.parent_id === id).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+const parentOf = p => p && p.parent_id ? S.places.find(x => x.id === p.parent_id) : null;
 const fromRow = r => ({
   id: r.id, user_id: r.user_id, kind: r.kind, home: r.home, title: r.title, title_en: r.title_en, city: r.city, country: r.country, iso: r.iso,
   lat: r.lat, lon: r.lon, date: r.visited_on || "", note: r.note, note_en: r.note_en, dish: r.dish, dish_en: r.dish_en,
-  rating: r.rating, price: r.price, photos: r.photos || [], createdAt: Date.parse(r.created_at) || 0,
+  rating: r.rating, price: r.price, photos: r.photos || [], createdAt: Date.parse(r.created_at) || 0, parent_id: r.parent_id || null,
 });
 const toRow = d => ({
+  ...(HAS_PARENT ? { parent_id: d.parent_id || null } : {}),
   kind: d.kind, home: !!d.home, title: d.title.trim(), title_en: (d.title_en || "").trim(),
   city: (d.city || "").trim(), country: (d.country || "").trim(), iso: d.iso || "", lat: d.lat, lon: d.lon,
   visited_on: d.date || null, note: d.note || "", note_en: d.note_en || "",
@@ -676,23 +904,119 @@ const toRow = d => ({
   photos: d.photos || [],
 });
 
+// Signed links last 24 h and are kept in this browser until 30 min before they expire, so the same link comes back
+// and the browser can use its cache. Kept per signed-in person; cleared on sign-out. Who may see what is unchanged:
+// only paths the app would show anyway are looked up, and the server signs nothing the viewer can't read.
+const SIG_TTL = 60 * 60 * 24, SIG_KEY = "mp-sig-v1";
+let SIGC = null;
+function sigCache() {
+  const u = (S.session && S.session.user && S.session.user.id) || "anon";
+  if (!SIGC || SIGC.u !== u) {
+    let c = null; try { c = JSON.parse(localStorage.getItem(SIG_KEY) || "null"); } catch (e) {}
+    SIGC = c && c.u === u && c.m ? c : { u, m: {} };
+  }
+  return SIGC;
+}
+function sigSave() {
+  const c = sigCache(), now = Date.now(), m = {};
+  Object.entries(c.m).filter(([, v]) => v[1] > now).sort((a, b) => b[1][1] - a[1][1]).slice(0, 3000).forEach(([k, v]) => m[k] = v);
+  c.m = m;
+  try { localStorage.setItem(SIG_KEY, JSON.stringify(c)); } catch (e) {}
+}
+function sigClear() { SIGC = null; PHOTO.clear(); NOTHUMB.clear(); try { localStorage.removeItem(SIG_KEY); } catch (e) {} }
 async function signPhotos(paths) {
-  const need = [...new Set(paths.filter(p => p && !PHOTO.has(p)))];
+  const c = sigCache(), now = Date.now(), need = [];
+  const want = new Set();
+  paths.filter(Boolean).forEach(p => { want.add(p); want.add(thumbOf(p)); });
+  for (const p of want) {
+    if (PHOTO.has(p) || NOTHUMB.has(p)) continue;
+    const v = c.m[p];
+    if (v && v[1] - now > 30 * 60e3) PHOTO.set(p, v[0]); else need.push(p);
+  }
   if (!need.length) return;
   for (let i = 0; i < need.length; i += 100) {
-    const { data } = await sb.storage.from("photos").createSignedUrls(need.slice(i, i + 100), 60 * 60 * 6);
-    (data || []).forEach(x => { if (x.signedUrl) PHOTO.set(x.path, x.signedUrl); });
+    const chunk = need.slice(i, i + 100);
+    let { data, error } = await sb.storage.from("photos").createSignedUrls(chunk, SIG_TTL);
+    if (error || !data) {   // never let the small copies cost the originals
+      const orig = chunk.filter(p => !/_t\.jpg$/.test(p));
+      if (!orig.length) continue;
+      ({ data } = await sb.storage.from("photos").createSignedUrls(orig, SIG_TTL));
+      if (!data) continue;
+      data.forEach((x, j) => { const path = x.path || orig[j]; if (x.signedUrl) { PHOTO.set(path, x.signedUrl); c.m[path] = [x.signedUrl, now + SIG_TTL * 1000]; } });
+      continue;
+    }
+    data.forEach((x, j) => {
+      const path = x.path || chunk[j];
+      if (x.signedUrl) { PHOTO.set(path, x.signedUrl); c.m[path] = [x.signedUrl, now + SIG_TTL * 1000]; }
+      else if (/_t\.jpg$/.test(path)) NOTHUMB.add(path);
+    });
   }
+  sigSave();
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const YEAR = "31536000";   // file names never change, so browsers may keep them
+// decode an image blob; some browsers (older iOS WebKit) reject createImageBitmap options, so fall back step by step
+async function decodeImage(src) {
+  try { return await createImageBitmap(src, { imageOrientation: "from-image" }); } catch (e) {}
+  try { return await createImageBitmap(src); } catch (e) {}
+  const url = URL.createObjectURL(src);
+  try {
+    const im = new Image(); im.decoding = "async"; im.src = url;
+    await (im.decode ? im.decode() : new Promise((res, rej) => { im.onload = res; im.onerror = rej; }));
+    return im;   // drawImage accepts it like a bitmap; width/height are the natural size
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+async function makeThumb(src) {
+  const bmp = await decodeImage(src);
+  const s = Math.min(1, 480 / Math.min(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("encode")), "image/jpeg", 0.8));
+}
+async function uploadThumb(path, src) {
+  const tb = await makeThumb(src);
+  const { error } = await sb.storage.from("photos").upload(thumbOf(path), tb, { contentType: "image/jpeg", upsert: false, cacheControl: YEAR });
+  if (error && !/exist|duplicate/i.test(error.message || "")) throw error;
+  NOTHUMB.delete(thumbOf(path));
+  PHOTO.set(thumbOf(path), URL.createObjectURL(tb));
+}
 async function uploadPhoto(blob) {
   const path = `${S.me.id}/${uid()}.jpg`;
-  const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+  const { error } = await sb.storage.from("photos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false, cacheControl: YEAR });
   if (error) throw error;
   PHOTO.set(path, URL.createObjectURL(blob));
+  try { await uploadThumb(path, blob); } catch (e) {}   // the original is enough; the owner's next visit retries
   return path;
 }
-async function removePhotos(paths) { if (paths.length) { try { await sb.storage.from("photos").remove(paths); } catch (e) {} } }
+async function removePhotos(paths) {
+  paths = paths.filter(Boolean);
+  if (!paths.length) return;
+  const all = paths.flatMap(p => [p, thumbOf(p)]);
+  const c = sigCache(); all.forEach(p => { delete c.m[p]; PHOTO.delete(p); }); sigSave();
+  try { await sb.storage.from("photos").remove(all); } catch (e) {}
+}
+// Small copies for photos uploaded before they existed: made in the background when the owner opens their own map.
+let BACKFILL = false;
+async function backfillThumbs() {
+  if (BACKFILL || !S.me || !S.canEdit) return;
+  const me = S.me.id;
+  const todo = [...new Set([S.me.avatar_path, ...S.places.flatMap(p => p.photos || [])])]
+    .filter(p => p && p.startsWith(me + "/") && NOTHUMB.has(thumbOf(p)) && PHOTO.get(p));
+  if (!todo.length) return;
+  BACKFILL = true;
+  try {
+    for (const p of todo) {
+      if (!S.me || S.me.id !== me) break;
+      try {
+        const r = await fetch(PHOTO.get(p));
+        if (r.ok) await uploadThumb(p, await r.blob());
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 100));
+    }
+  } finally { BACKFILL = false; }
+}
 
 async function savePlace() {
   const F = S.form, d = F.data;
@@ -708,8 +1032,8 @@ async function savePlace() {
     F.progress = t("saving"); render();
     const row = toRow({ ...d, photos: ids });
     const q = F.editingId
-      ? sb.from("pins").update(row).eq("id", F.editingId).select(PIN_COLS).single()
-      : sb.from("pins").insert({ ...row, user_id: S.me.id }).select(PIN_COLS).single();
+      ? sb.from("pins").update(row).eq("id", F.editingId).select(pinCols()).single()
+      : sb.from("pins").insert({ ...row, user_id: S.me.id }).select(pinCols()).single();
     const { data, error } = await q;
     if (error) throw error;
     await removePhotos(F.removed);
@@ -718,7 +1042,7 @@ async function savePlace() {
     S.form = null; S.temp = null;
     upsertLocal(fromRow(data));
     toast(wasEdit ? t("updated") : t("added"));
-    openDetail(data.id, false);
+    openDetail(data.parent_id || data.id, false);
   } catch (e) {
     console.error(e);
     F.busy = false; F.progress = "";
@@ -733,8 +1057,8 @@ function upsertLocal(p) {
 async function deletePlace(p) {
   const { error } = await sb.from("pins").delete().eq("id", p.id);
   if (error) { toast(t("delErr")); return; }
-  await removePhotos(p.photos || []);
-  S.places = S.places.filter(x => x.id !== p.id);
+  await removePhotos([...(p.photos || []), ...foodsOf(p.id).flatMap(f => f.photos || [])]);
+  S.places = S.places.filter(x => x.id !== p.id && x.parent_id !== p.id);   // its food spots are deleted with it
   toast(t("deleted")); backToList();
 }
 
@@ -749,6 +1073,7 @@ async function fetchMe() {
 
 async function loadOwner(username, quiet) {
   S.ownerState = "loading"; S.owner = null; S.places = []; S.loaded = false; S.rel = null; S.view = "list"; S.selId = null;
+  S.wish = []; S.wishSel = null; S.wishForm = null;
   render();
   const { data: prof, error } = await sb.from("profiles").select("*").ilike("username", username).maybeSingle();
   if (error) { S.dbState = "error"; S.ownerState = "notfound"; render(); return; }
@@ -767,14 +1092,197 @@ async function loadOwner(username, quiet) {
   ]);
   S.counts = { followers: fol.count || 0, following: fing.count || 0 };
   if (!allowed) { S.ownerState = "locked"; S.loaded = true; await signPhotos([prof.avatar_path]); renderChrome(); render(); return; }
-  const { data: pins, error: pe } = await sb.from("pins").select(PIN_COLS).eq("user_id", prof.id);
+  let { data: pins, error: pe } = await sb.from("pins").select(pinCols()).eq("user_id", prof.id);
+  if (missingParentCol(pe)) { HAS_PARENT = false; ({ data: pins, error: pe } = await sb.from("pins").select(pinCols()).eq("user_id", prof.id)); }
   if (pe) { S.dbState = "error"; } else { S.dbState = "ok"; }
   S.places = (pins || []).map(fromRow);
-  await signPhotos([prof.avatar_path, ...S.places.flatMap(p => p.photos)]);
+  await Promise.all([signPhotos([prof.avatar_path, ...S.places.flatMap(p => p.photos)]), loadWish(prof.id)]);
+  await loadMineSrc();
   S.ownerState = "ok"; S.loaded = true;
-  renderChrome(); render();
+  renderChrome(); render(); lastFitOwner = null; fitPins();
   maybeAutoIntro();
+  if (S.canEdit) setTimeout(backfillThumbs, 4000);
   if (!quiet && S.canEdit && !S.places.length && !ls("mp-onb-done-" + S.me.id)) location.hash = "#/start";
+}
+
+/* ---------------- "Pin ekle": type an address or a place name (Photon search), or tap the map ---------------- */
+let ADDPIN = { q: "", results: null, err: false, mode: "pin" };
+let addPinTimer = 0, addPinCtl = null;
+function openAddPin(mode = "pin") {
+  setPicking(false);
+  ADDPIN = { q: mode === "food" && S.form ? S.form.data.title || "" : "", results: null, err: false, mode };
+  if (mode === "pin") { S.temp = null; S.selId = null; }
+  S.view = "addpin"; setSheet(""); render(); const i = $("#addpin-q"); if (i) i.focus();
+  if (ADDPIN.q.length >= 3) searchAddress();
+}
+function renderAddPin() {
+  const food = ADDPIN.mode === "food" && S.form;
+  body.append(food ? el("button", { class: "back", type: "button", onclick: () => { S.view = "form"; render(); } }, t("backCancel"))
+    : el("button", { class: "back", type: "button", onclick: backToList }, t("allNotes")));
+  body.append(el("h2", { class: "d-title", text: food ? t("foodLocSearch") : t("addPinT") }));
+  const input = el("input", { id: "addpin-q", type: "search", placeholder: t("addPinPh"), value: ADDPIN.q, autocomplete: "off", enterkeyhint: "search",
+    oninput: e => { ADDPIN.q = e.target.value; clearTimeout(addPinTimer); addPinTimer = setTimeout(searchAddress, 350); },
+    onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(addPinTimer); searchAddress(); } } });
+  body.append(el("div", { class: "field search" }, input));
+  body.append(el("div", { id: "addpin-res" }));
+  if (!food) body.append(el("button", { class: "linkbtn", type: "button", onclick: () => { S.view = "list"; render(); setPicking(true); } }, "📍 " + t("addPinMap")));
+  paintAddPinResults();
+}
+function paintAddPinResults() {
+  const box = $("#addpin-res"); if (!box) return;
+  box.replaceChildren();
+  if (ADDPIN.err) { box.append(el("p", { class: "notice", text: t("addPinErr") })); return; }
+  if (!ADDPIN.results) return;
+  if (!ADDPIN.results.length) { box.append(el("p", { class: "hint", text: t("addPinNone") })); return; }
+  box.append(el("ul", { class: "addr-list" }, ADDPIN.results.map(r => el("li", {},
+    el("button", { class: "addr", type: "button", onclick: () => chooseAddress(r) }, el("b", { text: r.main }), r.sub ? el("span", { text: r.sub }) : null)))));
+}
+async function searchAddress() {
+  const q = ADDPIN.q.trim();
+  if (q.length < 3) { ADDPIN.results = null; ADDPIN.err = false; paintAddPinResults(); return; }
+  if (addPinCtl) addPinCtl.abort();
+  const ctl = addPinCtl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+  // results near the current map view first
+  const c = mapReady ? map.getCenter() : null;
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lang=${LANG === "en" ? "en" : "default"}` + (c ? `&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}` : "");
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    const js = await r.json();
+    if (ctl !== addPinCtl) return;
+    ADDPIN.err = false;
+    ADDPIN.results = (js.features || []).map(f => {
+      const pr = f.properties || {}, [lon, lat] = f.geometry.coordinates;
+      const street = [pr.street, pr.housenumber].filter(Boolean).join(" ");
+      const town = pr.city || pr.town || pr.village || pr.district || "";
+      const main = pr.name || street || town || pr.state || pr.country || "";
+      const sub = [pr.name && street ? street : "", town !== main ? town : "", pr.country !== main ? pr.country : ""].filter(Boolean).join(", ");
+      return { main, sub, lon: +lon.toFixed(5), lat: +lat.toFixed(5), name: pr.name || "", town, iso: (pr.countrycode || "").toUpperCase(), type: pr.type || "" };
+    }).filter(r => r.main);
+  } catch (e) { if (ctl !== addPinCtl) return; ADDPIN.err = true; }   // a newer search replaced this one: ignore; otherwise failed or timed out
+  finally { clearTimeout(timer); }
+  if (ctl === addPinCtl) paintAddPinResults();
+}
+function chooseAddress(r) {
+  const at = { lon: r.lon, lat: r.lat }, w = whereIs(at.lon, at.lat);
+  if (ADDPIN.mode === "food" && S.form) {        // a food spot's venue: only its position (and name if still empty) change
+    const d = S.form.data; d.lon = at.lon; d.lat = at.lat; if (!d.title && r.name) d.title = r.name;
+    S.temp = at; S.view = "form"; render();
+    if (mapReady) camera({ center: [at.lon, at.lat], zoom: 16 });
+    return;
+  }
+  S.temp = at;
+  startForm(null, at, { title: r.name || "", city: w.city || r.town || "", country: w.country, iso: w.iso || r.iso });
+  // close enough to see the exact spot: a house or a street much closer than a whole town
+  const z = ({ house: 17, street: 16, locality: 15, district: 14, village: 14, town: 13, city: 12, county: 10, state: 8, country: 6 })[r.type] || 16;
+  if (mapReady) camera({ center: [at.lon, at.lat], zoom: z });
+}
+
+/* ---------------- "Belki bir gün" (Someday List) ---------------- */
+const WISH_COLS = "id,user_id,kind,title,title_en,city,country,iso,lat,lon,source_pin,source_user,created_at";
+// table not created yet in Supabase (03_wishlist.sql not run): show a note instead of an error
+const wishTableMissing = e => !!e && (e.code === "42P01" || e.code === "PGRST205" || /wishlist/i.test(e.message || "") && /not find|does not exist|schema cache/i.test(e.message || ""));
+async function loadWish(ownerId) {
+  const { data, error } = await sb.from("wishlist").select(WISH_COLS).eq("user_id", ownerId).order("created_at", { ascending: false });
+  S.wishState = error ? (wishTableMissing(error) ? "missing" : "error") : "ok";
+  S.wish = error ? [] : (data || []).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+}
+// which of the pins on screen are already on MY list (to show "Belki bir gün ✓" on someone else's pin)
+async function loadMineSrc() {
+  S.mineSrc = new Map();
+  if (!S.me || S.wishState === "missing") return;
+  const rows = S.canEdit ? S.wish : ((await sb.from("wishlist").select("id,source_pin").eq("user_id", S.me.id)).data || []);
+  for (const r of rows) if (r.source_pin) S.mineSrc.set(r.source_pin, r.id);
+}
+async function toggleWishFromPin(p) {
+  if (!S.me) return signIn();
+  const have = S.mineSrc.get(p.id);
+  if (have) {
+    const { error } = await sb.from("wishlist").delete().eq("id", have);
+    if (error) { toast(t("wishErr")); return; }
+    S.mineSrc.delete(p.id); toast(t("wishRemovedT")); render(); return;
+  }
+  const row = { user_id: S.me.id, kind: p.kind, title: p.title, title_en: p.title_en || "", city: p.city || "", country: p.country || "", iso: p.iso || "",
+    lat: p.lat, lon: p.lon, source_pin: p.id, source_user: p.user_id || (S.owner && S.owner.id) || null };
+  const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
+  if (error) { toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); return; }
+  S.mineSrc.set(p.id, data.id); toast(t("wishAddedT")); render();
+}
+function selectWish(id) {
+  const w = S.wish.find(x => x.id === id); if (!w) return;
+  S.wishSel = id; S.view = "list"; S.filter = "wish"; render();
+  const z = map ? map.getZoom() : 0;
+  if (mapReady) camera({ center: [w.lon, w.lat], zoom: z < 12 ? 12 : z });
+  const row = document.querySelector(`[data-wish="${id}"]`); if (row) row.scrollIntoView({ block: "nearest" });
+}
+// name for a tapped spot: the nearest place / island label on the map, otherwise the nearest known city
+function labelNear(pt) {
+  if (!mapReady) return "";
+  const r = 40, feats = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]])
+    .filter(f => f.layer.type === "symbol" && f.sourceLayer === "place" && f.properties.class !== "country" && f.properties.class !== "continent");
+  let best = null, bd = Infinity;
+  for (const f of feats) { const q = map.project(f.geometry.coordinates), d = (q.x - pt.x) ** 2 + (q.y - pt.y) ** 2; if (d < bd) { bd = d; best = f; } }
+  if (!best) return "";
+  const pr = best.properties;
+  return (LANG === "en" ? pr["name:en"] || pr.name_en : pr["name:tr"]) || pr["name:latin"] || pr.name || "";
+}
+function startWishForm(pt, at) {
+  const w = whereIs(at.lon, at.lat);
+  S.wishForm = { lon: at.lon, lat: at.lat, title: labelNear(pt) || w.city || "", city: w.city, country: w.country, iso: w.iso, busy: false };
+  S.filter = "wish"; S.view = "list"; setSheet(""); render();
+  const i = $("#wish-name"); if (i) { i.focus(); i.select(); }
+}
+async function saveWishForm() {
+  const F = S.wishForm; if (!F || F.busy) return;
+  const title = ($("#wish-name").value || "").trim(); if (!title) { $("#wish-name").focus(); return; }
+  F.busy = true; render();
+  const row = { user_id: S.me.id, kind: "yer", title, city: F.city || "", country: F.country || "", iso: F.iso || "", lat: F.lat, lon: F.lon };
+  const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
+  if (error) { F.busy = false; toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); render(); return; }
+  S.wish.unshift(data); S.wishForm = null; S.temp = null; S.wishSel = data.id; toast(t("wishAddedT")); render();
+}
+async function removeWish(w) {
+  const { error } = await sb.from("wishlist").delete().eq("id", w.id);
+  if (error) { toast(t("wishErr")); return; }
+  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  if (S.wishSel === w.id) S.wishSel = null; toast(t("wishRemovedT")); render();
+}
+// "Gittim": becomes a pin on my map (note and photos can be added later), and leaves the list
+async function wentWish(w) {
+  const row = { user_id: S.me.id, kind: "yer", home: false, title: w.title, title_en: w.title_en || "", city: w.city || "", country: w.country || "", iso: w.iso || "",
+    lat: w.lat, lon: w.lon, note: "", note_en: "", dish: "", dish_en: "", rating: 0, price: "", photos: [] };
+  const { data, error } = await sb.from("pins").insert(row).select(pinCols()).single();
+  if (error) { toast(t("wishErr")); return; }
+  await sb.from("wishlist").delete().eq("id", w.id);
+  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  upsertLocal(fromRow(data)); S.wishSel = null; S.filter = "yer"; ls("ad-filter", "yer");
+  toast(t("wishWentT")); openDetail(data.id, false);
+}
+function renderWish() {
+  if (S.wishState === "missing") { body.append(el("div", { class: "notice", text: t("wishMissing") })); return; }
+  if (S.wishState === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
+  if (S.canEdit && !S.wishForm) body.append(el("div", { class: "wish-head" },
+    el("button", { class: "btn small", type: "button", onclick: () => { S.temp = null; setPicking(!S.picking || S.pickMode !== "wish" ? true : false, "wish"); } }, t("wishNew"))));
+  if (S.wishForm) {
+    const F = S.wishForm;
+    body.append(el("form", { class: "wish-form", onsubmit: e => { e.preventDefault(); saveWishForm(); } },
+      el("label", { class: "field" }, el("span", { class: "lab", text: t("wishName") }), el("input", { id: "wish-name", type: "text", maxlength: "120", value: F.title, autocomplete: "off" })),
+      F.city || F.country ? el("p", { class: "wish-where", text: [F.city, F.country].filter(Boolean).join(", ") }) : null,
+      el("div", { class: "wish-acts" },
+        el("button", { class: "btn", type: "submit", disabled: F.busy ? "" : null }, t("wishSave")),
+        el("button", { class: "btn ghost", type: "button", onclick: () => { S.wishForm = null; S.temp = null; render(); } }, t("cancel")))));
+  }
+  if (!S.wish.length) { if (!S.wishForm) body.append(el("div", { class: "empty", text: S.canEdit ? t("wishEmptyOwn") : t("wishEmptyOther") })); return; }
+  const ul = el("ul", { class: "wlist" });
+  for (const w of S.wish) {
+    const on = w.id === S.wishSel;
+    const li = el("li", { class: on ? "on" : "", "data-wish": w.id },
+      el("button", { class: "wrow", type: "button", "aria-pressed": String(on), onclick: () => selectWish(w.id) }, el("span", { class: "wstar", "aria-hidden": "true", text: "☆" }), L(w, "title")));
+    if (on && S.canEdit) li.append(el("div", { class: "wacts" },
+      el("button", { class: "btn small", type: "button", onclick: () => wentWish(w) }, t("wishWent")),
+      el("button", { class: "btn ghost small", type: "button", onclick: () => removeWish(w) }, t("wishRemove"))));
+    ul.append(li);
+  }
+  body.append(ul);
 }
 
 async function follow() {
@@ -791,10 +1299,18 @@ async function signIn() {
   ls("mp-after", location.hash || "#/");
   await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
 }
-async function signOut() { await sb.auth.signOut(); S.me = null; location.hash = "#/"; route(); }
+async function signOut() { await sb.auth.signOut(); sigClear(); S.me = null; location.hash = "#/"; route(); }
 /* ---------------- lightbox ---------------- */
 function openLb(list, i) { S.lb = { list, i }; showLb(); $("#lightbox").hidden = false; $("#lbClose").focus(); }
-function showLb() { const { list, i } = S.lb; $("#lbImg").src = blobUrl(list[i]); $("#lbPrev").hidden = $("#lbNext").hidden = list.length < 2; }
+function showLb() {
+  const { list, i } = S.lb, img = $("#lbImg"), full = blobUrl(list[i]), small = PHOTO.get(thumbOf(list[i]));
+  $("#lbPrev").hidden = $("#lbNext").hidden = list.length < 2;
+  if (!small || small === full) { img.src = full; return; }
+  img.src = small;
+  const pre = new Image();
+  pre.onload = () => { if (S.lb && S.lb.list[S.lb.i] === list[i]) img.src = full; };
+  pre.src = full;
+}
 function stepLb(n) { const L = S.lb; L.i = (L.i + n + L.list.length) % L.list.length; showLb(); }
 function closeLb() { $("#lightbox").hidden = true; S.lb = null; }
 $("#lbClose").onclick = closeLb; $("#lbPrev").onclick = () => stepLb(-1); $("#lbNext").onclick = () => stepLb(1);
@@ -938,7 +1454,10 @@ function onbLandClick(f) {
   return true;
 }
 function onbPaint() {
-  gWorld.selectAll("path.land").classed("picked", d => !!(ONB && S.panelMode === "onboard" && ONB.sel.has(d.properties.iso)));
+  if (!mapReady) return;
+  const isos = ONB && S.panelMode === "onboard" ? [...ONB.sel] : [];
+  const flt = ["in", ["get", "i"], ["literal", isos]];
+  map.setFilter("countries-picked", flt); map.setFilter("countries-picked-line", flt);
 }
 
 /* --- clustering --- */
@@ -1083,13 +1602,9 @@ async function onbScan(files) {
   if (all.length) fitPoints(all);
 }
 function fitPoints(arr) {
-  const ext = d3.extent(arr, r => r.lon), eyt = d3.extent(arr, r => r.lat);
-  const [x0, y0] = projection([ext[0], eyt[1]]), [x1, y1] = projection([ext[1], eyt[0]]);
-  const narrow = matchMedia("(max-width:760px)").matches;
-  const top = narrow ? 70 : 40, availH = (narrow ? H * 0.5 : H) - top - 40, availW = W - 80;
-  const k = Math.max(1, Math.min(30, 0.8 / Math.max((x1 - x0 || 1) / availW, (y1 - y0 || 1) / availH)));
-  const t = d3.zoomIdentity.translate(W / 2, top + availH / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
-  svg.transition().duration(700).call(zoom.transform, t);
+  if (!mapReady || !arr.length) return;
+  const b = new maplibregl.LngLatBounds(); arr.forEach(r => b.extend([r.lon, r.lat]));
+  map.fitBounds(b, { padding: mapPadding(), maxZoom: 10, duration: 800 });
 }
 
 /* --- adding --- */
@@ -1104,7 +1619,7 @@ async function onbAdd() {
   }
   if (!rows.length) return;
   ONB.busy = true; ONB.err = ""; render();
-  const { data, error } = await sb.from("pins").insert(rows).select(PIN_COLS);
+  const { data, error } = await sb.from("pins").insert(rows).select(pinCols());
   ONB.busy = false;
   if (error) { console.error(error); ONB.err = ot("addErr"); render(); return; }
   ls("mp-onb-done-" + S.me.id, "1");
@@ -1202,8 +1717,8 @@ const fmtMonth = s => { const d = new Date(s + "T12:00:00"); return isNaN(d) ? "
 /* ---------------- chrome: brand, account menu ---------------- */
 const avatarEl = (prof, cls = "av") => {
   const box = el("span", { class: cls, "aria-hidden": "true" });
-  const url = prof && prof.avatar_path ? blobUrl(prof.avatar_path) : "";
-  if (url) box.append(el("img", { src: url, alt: "" }));
+  const url = prof && prof.avatar_path ? thumbUrl(prof.avatar_path) : "";
+  if (url) box.append(thumbImg(prof.avatar_path));
   else box.append(el("span", { text: ((prof && (prof.display_name || prof.username)) || "?").trim().charAt(0).toLocaleUpperCase(LANG) }));
   return box;
 };
@@ -1226,7 +1741,7 @@ function renderChrome() {
       el("div", { class: "acct-who" }, el("b", { text: S.me.display_name || S.me.username }), el("span", { text: "@" + S.me.username })),
       el("a", { role: "menuitem", href: "#/u/" + S.me.username }, "🗺️ " + t("myMap")),
       el("a", { role: "menuitem", href: "#/start" }, ot("menu")),
-      el("a", { role: "menuitem", href: "#/people" }, "👥 " + t("people"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null),
+      S.me.visibility !== "ghost" ? el("button", { role: "menuitem", type: "button", onclick: shareMyMap }, "🔗 " + t("shareMap")) : null,
       el("a", { role: "menuitem", href: "#/settings" }, "⚙️ " + t("settings")),
       el("button", { role: "menuitem", type: "button", onclick: signOut }, t("signOut")));
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); };
@@ -1250,11 +1765,15 @@ function profileCard() {
     el("div", { class: "pcx-main" },
       el("b", { class: "pcx-name", text: o.display_name || o.username }),
       el("span", { class: "pcx-user", text: "@" + o.username }),
-      el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
+      S.canEdit
+        ? el("span", { class: "pcx-counts" },
+            el("a", { href: "#/people/followers" }, t("followers", S.counts.followers)), " · ",
+            el("a", { href: "#/people/following" }, t("following", S.counts.following)))
+        : el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
-    acts.append(el("a", { class: "btn ghost small", href: "#/settings" }, t("editProfile")));
-    if (o.visibility !== "ghost") acts.append(el("button", { class: "btn ghost small", type: "button", onclick: () => copyText(mapLink(o.username)) }, t("copyLink")));
+    acts.append(el("a", { class: "btn ghost small", href: "#/profile" }, t("editProfile")),
+      el("a", { class: "btn ghost small", href: "#/people" }, t("peopleBtn"), S.pending ? el("span", { class: "badge in", text: String(S.pending) }) : null));
   } else if (S.rel === "accepted") {
     acts.append(el("button", { class: "btn ghost small", type: "button", onclick: unfollow }, t("followingBtn")));
   } else if (S.rel === "pending") {
@@ -1272,6 +1791,15 @@ function renderNotFound() {
   body.append(el("div", { class: "empty" }, el("strong", { text: t("notFoundT") }), t("notFoundB"), el("div", { style: "margin-top:12px" },
     el("a", { class: "btn small", href: "#/people" }, t("findPeople")))));
 }
+// phones: the system share sheet (WhatsApp, Messages...); elsewhere: copy the link
+async function shareMyMap() {
+  const url = mapLink(S.me.username);
+  if (navigator.share) {
+    try { await navigator.share({ title: t("shareText", S.me.display_name || S.me.username), url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  copyText(url);
+}
 async function copyText(txt) {
   try { await navigator.clipboard.writeText(txt); toast(t("copied")); }
   catch (e) { toast(txt); }
@@ -1279,50 +1807,153 @@ async function copyText(txt) {
 
 /* ---------------- settings ---------------- */
 let SET = null;
+let SETMODE = "account";   // "profile" = Profili düzenle (photo, name, about) · "account" = Ayarlar (username, language, mode, delete)
 function renderSettings() {
   if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: t("settings") }), t("needSignIn"), el("div", { style: "margin-top:12px" }, el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn"))))); return; }
-  if (!SET) SET = { d: { display_name: S.me.display_name, username: S.me.username, bio: S.me.bio, bio_en: S.me.bio_en, visibility: S.me.visibility }, busy: false, err: "", msg: "" };
+  const prof = SETMODE === "profile";
+  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "";
+    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, visibility: S.me.visibility }, busy: false, err: "", msg: "", del: null }; }
   const d = SET.d;
   body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, "← " + t("myMap")));
-  body.append(el("div", { class: "eyebrow", text: t("settings") }), el("h2", { class: "d-title", text: t("sProfile") }));
+  body.append(el("h2", { class: "d-title", text: prof ? t("editProfile") : t("settings") }));
   const form = el("form", { class: "form", onsubmit: e => { e.preventDefault(); saveSettings(); } });
   const bind = k => e => { d[k] = e.target.value; };
-  const ph = el("div", { class: "field" }, el("span", { class: "lab", text: t("sPhoto") }),
-    el("div", { class: "set-photo" }, avatarEl(S.me, "av av-lg"),
-      el("label", { class: "btn ghost small", for: "s-photo" }, t(S.me.avatar_path ? "photoChange" : "photoUp"),
-        el("input", { type: "file", id: "s-photo", accept: "image/*", class: "vh", onchange: e => uploadAvatar(e.target.files[0]) })),
-      el("span", { class: "hint", id: "s-photo-msg" })));
-  form.append(ph);
-  form.append(el("div", { class: "field" }, el("label", { for: "s-name", text: t("sName") }), el("input", { id: "s-name", maxlength: 60, value: d.display_name, oninput: bind("display_name") })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
-    el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); $("#s-user-hint").textContent = t("sUserHint") + mapLink(d.username); } }),
-    el("span", { class: "hint", id: "s-user-hint", text: t("sUserHint") + mapLink(d.username) })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("bio") }, d.bio)));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio-en", text: t("sBioEn") }), el("textarea", { id: "s-bio-en", maxlength: 1200, oninput: bind("bio_en") }, d.bio_en)));
-  const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
-  for (const m of ["public", "private", "ghost"]) {
-    modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
-      el("input", { type: "radio", name: "s-mode", value: m, checked: d.visibility === m, onchange: () => { d.visibility = m; render(); } }),
-      el("span", { class: "mode-t", text: { public: "🌍 ", private: "🔒 ", ghost: "👻 " }[m] + t("m_" + m) }),
-      el("span", { class: "mode-d", text: t("m_" + m + "D") })));
+  if (prof) {
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sPhoto") }),
+      el("div", { class: "set-photo" }, avatarEl(S.me, "av av-lg"),
+        el("label", { class: "btn ghost small", for: "s-photo" }, t(S.me.avatar_path ? "photoChange" : "photoUp"),
+          el("input", { type: "file", id: "s-photo", accept: "image/*", class: "vh", onchange: e => uploadAvatar(e.target.files[0]) })),
+        el("span", { class: "hint", id: "s-photo-msg" }))));
+    form.append(el("div", { class: "field" }, el("label", { for: "s-name", text: t("sName") }), el("input", { id: "s-name", maxlength: 60, value: d.display_name, oninput: bind("display_name") })));
+    form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about)));
+  } else {
+    form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
+      el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); } })));
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sLang") }), langSeg("seg lang-seg")));
+    const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
+    for (const m of ["public", "private", "ghost"]) {
+      modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
+        el("input", { type: "radio", name: "s-mode", value: m, checked: d.visibility === m, onchange: () => { d.visibility = m; render(); } }),
+        el("span", { class: "mode-t", text: { public: "🌍 ", private: "🔒 ", ghost: "👻 " }[m] + t("m_" + m) }),
+        el("span", { class: "mode-d", text: t("m_" + m + "D") })));
+    }
+    form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
   }
-  form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
   if (SET.err) form.append(el("div", { class: "err", role: "alert", text: SET.err }));
-  form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? t("saving") : t("save"))));
+  form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? (SET.busy === "tr" ? t("translating") : t("saving")) : t("save"))));
   body.append(form);
+  if (prof) return;
+  // account: sign out, delete (typed username confirms)
   body.append(el("div", { class: "set-out" }, el("button", { class: "btn ghost small", type: "button", onclick: signOut }, t("signOut"))));
+  const del = el("section", { class: "set-del" }, el("h3", { text: t("delT") }));
+  if (!SET.del) del.append(el("button", { class: "btn ghost small danger-t", type: "button", onclick: () => { SET.del = { typed: "", busy: false, err: "" }; render(); } }, t("delBtn")));
+  else {
+    const D = SET.del, ok = () => D.typed.trim().toLowerCase() === S.me.username.toLowerCase();
+    const go = el("button", { class: "btn danger small", type: "button", disabled: !ok() || D.busy, onclick: deleteAccount }, D.busy ? t("deleting") : t("delGo"));
+    del.append(el("p", { class: "del-warn", text: t("delWarn") }),
+      el("label", { class: "field" }, el("span", { class: "lab", text: t("delType", "@" + S.me.username) }),
+        el("input", { id: "del-user", autocapitalize: "none", spellcheck: "false", autocomplete: "off", value: D.typed, oninput: e => { D.typed = e.target.value; go.disabled = !ok() || D.busy; } })),
+      D.err ? el("div", { class: "err", role: "alert", text: D.err }) : null,
+      el("div", { class: "del-acts" }, go, el("button", { class: "btn ghost small", type: "button", onclick: () => { SET.del = null; render(); } }, t("cancel"))));
+  }
+  body.append(del);
+}
+// Translation of short texts into Turkish AND English. Returns { tr, en } or null.
+// 1) Claude, through the Supabase Edge Function "translate" (supabase/functions/translate), once it is deployed;
+// 2) until then (or if it fails): MyMemory, a free service with no key (lower quality, daily limit, 500 bytes per request).
+// Switching to Claude later needs no code change: deploy the function and it is used automatically.
+async function translatePair(text) {
+  try {
+    const { data, error } = await sb.functions.invoke("translate", { body: { text } });
+    if (!error && data && typeof data.tr === "string" && typeof data.en === "string") return { tr: data.tr.trim(), en: data.en.trim() };
+  } catch (e) { /* not deployed yet: use the free service */ }
+  return translateFree(text);
+}
+// rough language guess: Turkish letters or very common Turkish words
+const looksTurkish = s => /[çğıöşüİĞŞ]/.test(s) || /\b(ve|bir|bu|için|ile|çok|ben|gibi|olan|daha|en|ama|de|da)\b/i.test(s) && !/\b(the|and|with|is|are|of|to|in)\b/i.test(s);
+// split into pieces under ~450 bytes (MyMemory's limit is 500 bytes per request), keeping paragraphs and sentences
+function chunks(text) {
+  const out = [], size = s => new TextEncoder().encode(s).length;
+  for (const para of text.split(/(\n+)/)) {
+    if (/^\n+$/.test(para) || size(para) <= 450) { out.push(para); continue; }
+    let cur = "";
+    for (const part of para.split(/(?<=[.!?…])\s+/)) {
+      if (size(cur + " " + part) > 450 && cur) { out.push(cur); cur = part; } else cur = cur ? cur + " " + part : part;
+    }
+    if (cur) out.push(cur);
+  }
+  return out;
+}
+async function myMemory(piece, from, to) {
+  if (!piece.trim() || /^\n+$/.test(piece)) return piece;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(piece)}&langpair=${from}|${to}`, { signal: ctl.signal });
+    const js = await r.json();
+    const out = js && js.responseData && js.responseData.translatedText;
+    if (!r.ok || +js.responseStatus !== 200 || !out || /MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(out)) throw new Error("mymemory");
+    return out;
+  } finally { clearTimeout(timer); }
+}
+async function translateFree(text) {
+  const from = looksTurkish(text) ? "tr" : "en", to = from === "tr" ? "en" : "tr";
+  try {
+    const parts = [];
+    for (const piece of chunks(text)) parts.push(await myMemory(piece, from, to));
+    const other = parts.join("").trim();
+    return from === "tr" ? { tr: text, en: other } : { tr: other, en: text };
+  } catch (e) { return null; }
 }
 async function saveSettings() {
-  const d = SET.d;
-  if (!/^[a-z0-9_.]{3,24}$/.test(d.username)) { SET.err = t("sUserBad"); render(); return; }
+  const d = SET.d, prof = SETMODE === "profile";
+  if (!prof && !/^[a-z0-9_.]{3,24}$/.test(d.username)) { SET.err = t("sUserBad"); render(); return; }
   SET.busy = true; SET.err = ""; render();
-  const { data, error } = await sb.from("profiles").update({
-    display_name: d.display_name.trim(), username: d.username, bio: d.bio, bio_en: d.bio_en, visibility: d.visibility,
-  }).eq("id", S.me.id).select("*").single();
+  // "about": written once in either language, stored in both (bio = Turkish, bio_en = English)
+  const upd = prof ? { display_name: d.display_name.trim() } : { username: d.username, visibility: d.visibility };
+  let transFailed = false;
+  const about = (d.about || "").trim();
+  if (prof && about !== (d.about0 || "").trim()) {
+    if (!about) { upd.bio = ""; upd.bio_en = ""; }
+    else {
+      SET.busy = "tr"; render();
+      const pair = await translatePair(about);
+      if (pair) { upd.bio = pair.tr; upd.bio_en = pair.en; }
+      else { upd.bio = about; upd.bio_en = ""; transFailed = true; }
+      SET.busy = true; render();
+    }
+  }
+  const { data, error } = await sb.from("profiles").update(upd).eq("id", S.me.id).select("*").single();
   SET.busy = false;
   if (error) { SET.err = error.code === "23505" ? t("sUserTaken") : t("saveErr"); render(); return; }
-  S.me = data; SET = null; toast(t("sSaved"));
+  S.me = data; if (S.owner && S.owner.id === data.id) S.owner = { ...S.owner, ...data };
+  SET = null; toast(transFailed ? t("sTransFail") : t("sSaved"));
   renderChrome(); render();
+}
+// delete my account: photos through the Storage API, then the account (and everything that belongs to it) in the database
+async function deleteAccount() {
+  const D = SET.del; if (!D || D.busy) return;
+  D.busy = true; D.err = ""; render();
+  try {
+    // set up? (supabase/09). Checked before any photo is removed
+    const chk = await sb.rpc("can_delete_account");
+    if (chk.error || chk.data !== true) throw chk.error || { code: "PGRST202" };
+    const folder = S.me.id, paths = [];
+    for (let off = 0; ; off += 1000) {
+      const { data } = await sb.storage.from("photos").list(folder, { limit: 1000, offset: off });
+      (data || []).forEach(f => f.name && paths.push(folder + "/" + f.name));
+      if (!data || data.length < 1000) break;
+    }
+    for (let i = 0; i < paths.length; i += 100) await sb.storage.from("photos").remove(paths.slice(i, i + 100));
+    const { error } = await sb.rpc("delete_my_account");
+    if (error) throw error;
+  } catch (e) {
+    D.busy = false;
+    D.err = e && (e.code === "PGRST202" || /delete_my_account|can_delete_account/.test(e.message || "")) ? t("delMissing") : t("delErr");
+    render(); return;
+  }
+  try { await sb.auth.signOut(); } catch (e) {}
+  sigClear(); S.me = null; SET = null; S.owner = null; toast(t("delDone"));
+  location.hash = "#/"; renderChrome();
 }
 async function uploadAvatar(file) {
   if (!file) return;
@@ -1338,7 +1969,7 @@ async function uploadAvatar(file) {
 }
 
 /* ---------------- people: search, requests, followers ---------------- */
-let PEOPLE = { q: "", results: null, requests: [], followers: [], following: [], loaded: false };
+let PEOPLE = { q: "", results: null, requests: [], followers: [], following: [], loaded: false, view: "search" };
 async function loadPeople() {
   if (!S.me) return;
   const sel = k => `${k},status,created_at,profiles!follows_${k}_fkey(id,username,display_name,avatar_path,visibility)`;
@@ -1362,31 +1993,36 @@ function personRow(p, extra) {
     extra || null);
 }
 function renderPeople() {
-  body.append(el("div", { class: "eyebrow", text: "MyPins" }), el("h2", { class: "d-title", text: t("people") }));
-  const input = el("input", { id: "p-search", type: "search", placeholder: t("searchPh"), value: PEOPLE.q, autocapitalize: "none", oninput: e => {
-    PEOPLE.q = e.target.value; clearTimeout(searchT);
-    searchT = setTimeout(async () => {
-      const q = PEOPLE.q.trim().replace(/[%,()]/g, "");
-      if (q.length < 2) { PEOPLE.results = null; render(); focusSearch(); return; }
-      const { data } = await sb.from("profiles").select("id,username,display_name,avatar_path,visibility").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
-      PEOPLE.results = (data || []).filter(p => !S.me || p.id !== S.me.id);
-      await signPhotos(PEOPLE.results.map(p => p.avatar_path));
-      render(); focusSearch();
-    }, 280);
-  } });
-  body.append(el("div", { class: "field search" }, input));
-  if (PEOPLE.results) {
-    body.append(PEOPLE.results.length ? el("ul", { class: "people" }, PEOPLE.results.map(p => personRow(p))) : el("p", { class: "hint", text: t("searchNone") }));
+  // three screens: #/people = search, #/people/followers, #/people/following
+  const v = PEOPLE.view || "search";
+  if (S.me) body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, t("backProfile")));
+  body.append(el("div", { class: "eyebrow", text: "MyPins" }), el("h2", { class: "d-title", text: v === "followers" ? t("followersT") : v === "following" ? t("followingT") : t("people") }));
+  if (v === "search") {
+    const input = el("input", { id: "p-search", type: "search", placeholder: t("searchPh"), value: PEOPLE.q, autocapitalize: "none", enterkeyhint: "search", oninput: e => {
+      PEOPLE.q = e.target.value; clearTimeout(searchT);
+      searchT = setTimeout(async () => {
+        const q = PEOPLE.q.trim().replace(/[%,()]/g, "");
+        if (q.length < 2) { PEOPLE.results = null; render(); focusSearch(); return; }
+        const { data } = await sb.from("profiles").select("id,username,display_name,avatar_path,visibility").or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(20);
+        PEOPLE.results = (data || []).filter(p => !S.me || p.id !== S.me.id);
+        await signPhotos(PEOPLE.results.map(p => p.avatar_path));
+        render(); focusSearch();
+      }, 280);
+    } });
+    body.append(el("div", { class: "field search" }, input));
+    if (PEOPLE.results) body.append(PEOPLE.results.length ? el("ul", { class: "people" }, PEOPLE.results.map(p => personRow(p))) : el("p", { class: "hint", text: t("searchNone") }));
+    if (!PEOPLE.q) setTimeout(focusSearch, 0);
   }
   if (!S.me) { body.append(el("p", { class: "hint", text: t("needSignIn") })); return; }
   if (!PEOPLE.loaded) { loadPeople().then(render); return; }
-  const sec = (title, arr, extra) => body.append(el("section", { class: "rel" }, el("h3", { text: title + (arr.length ? ` (${arr.length})` : "") }),
-    arr.length ? el("ul", { class: "people" }, arr.map(p => personRow(p, extra && extra(p)))) : el("p", { class: "hint", text: title === t("requests") ? t("noRequests") : t("nobody") })));
-  if (S.me.visibility === "private" || PEOPLE.requests.length) sec(t("requests"), PEOPLE.requests, p => el("span", { class: "person-acts" },
-    el("button", { class: "btn small", type: "button", onclick: () => answerRequest(p.id, true) }, t("accept")),
-    el("button", { class: "btn ghost small", type: "button", onclick: () => answerRequest(p.id, false) }, t("decline"))));
-  sec(t("followingT"), PEOPLE.following, p => p._status === "pending" ? el("span", { class: "hint", text: t("requested") }) : null);
-  if (S.me.visibility !== "ghost") sec(t("followersT"), PEOPLE.followers);
+  const list = (arr, extra) => body.append(arr.length ? el("ul", { class: "people" }, arr.map(p => personRow(p, extra && extra(p)))) : el("p", { class: "hint", text: t("nobody") }));
+  if (v === "followers") { list(S.me.visibility === "ghost" ? [] : PEOPLE.followers); return; }
+  if (v === "following") { list(PEOPLE.following, p => p._status === "pending" ? el("span", { class: "hint", text: t("requested") }) : null); return; }
+  // search screen: pending follow requests stay reachable here
+  if (S.me.visibility === "private" || PEOPLE.requests.length) body.append(el("section", { class: "rel" }, el("h3", { text: t("requests") + (PEOPLE.requests.length ? ` (${PEOPLE.requests.length})` : "") }),
+    PEOPLE.requests.length ? el("ul", { class: "people" }, PEOPLE.requests.map(p => personRow(p, el("span", { class: "person-acts" },
+      el("button", { class: "btn small", type: "button", onclick: () => answerRequest(p.id, true) }, t("accept")),
+      el("button", { class: "btn ghost small", type: "button", onclick: () => answerRequest(p.id, false) }, t("decline")))))) : el("p", { class: "hint", text: t("noRequests") })));
 }
 const focusSearch = () => { const i = $("#p-search"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } };
 async function answerRequest(followerId, ok) {
@@ -1427,22 +2063,22 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#intro
 async function route() {
   const h = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
   const [a, b] = h.split("/");
-  S.form = null; S.temp = null; setPicking(false);
+  S.form = null; S.temp = null; S.wishForm = null; setPicking(false);
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
-  if (a === "settings") { S.panelMode = "settings"; SET = null; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
-  if (a === "people") { S.panelMode = "people"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
+  if (a === "settings" || a === "profile") { S.panelMode = "settings"; SET = null; SETMODE = a === "profile" ? "profile" : "account"; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
+  if (a === "people") { S.panelMode = "people"; PEOPLE.view = b === "followers" || b === "following" ? b : "search"; PEOPLE.loaded = false; PEOPLE.results = null; PEOPLE.q = ""; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
   S.panelMode = "map";
   if (a === "u" && b) { if (!S.owner || S.owner.username.toLowerCase() !== b.toLowerCase() || S.ownerState !== "ok") await loadOwner(b); else render(); return; }
   if (S.me) { location.replace("#/u/" + S.me.username); return; }
   await loadOwner(MYPINS.featured);
   if (!ls("mp-welcomed")) { ls("mp-welcomed", "1"); openIntro("welcome"); }
 }
-window.addEventListener("hashchange", () => { svg.interrupt(); route(); });
+window.addEventListener("hashchange", () => { route(); });
 
 /* ---------------- boot ---------------- */
 let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(layout, 60); }).observe(mapEl);
-layout(); applyLang(); renderChrome(); render();
+initMap(); applyLang(); renderChrome(); render();
 (async () => {
   await fetchMe();
   const after = ls("mp-after");

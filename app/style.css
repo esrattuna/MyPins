@@ -222,8 +222,8 @@ button,input,textarea,select{font:inherit;color:inherit}
 .pc-s .stars{letter-spacing:0;font-size:11px}
 .pc-d{font-size:11px;color:var(--muted);margin:2px 3px 0;opacity:.85}
 
-/* travel log background artwork: content sits on paper "cut-outs" so the collage shows between them */
-.panel{background:var(--paper) url("log-bg.jpg") center top/cover no-repeat}
+/* plain paper panel (the personal background artwork was removed) */
+.panel{background:var(--paper)}
 .panel-scroll[data-view="detail"],.panel-scroll[data-view="form"]{background:var(--paper)}
 .panel-scroll[data-view="list"] .ph{background:var(--paper);border-radius:10px;padding:12px 14px;box-shadow:0 2px 10px var(--shadow)}
 .panel-scroll[data-view="list"] .stat{background:var(--paper);box-shadow:0 2px 8px var(--shadow)}
@@ -345,3 +345,62 @@ a.btn{text-decoration:none}
 .field label.btn{font-size:13px;color:var(--ink)}
 .field label.mode .mode-t{font-size:14px;color:var(--ink)}
 .field label.mode .mode-d{font-size:12.5px}
+
+/* ---------- MapLibre map ---------- */
+#mapgl{position:absolute;inset:0}
+.map .coord-readout{display:none}
+.maplibregl-ctrl-attrib{font-family:var(--f-body);font-size:10.5px;background:color-mix(in srgb,var(--paper) 85%,transparent)!important}
+.maplibregl-ctrl-attrib a{color:var(--ink)}
+.maplibregl-ctrl-bottom-right{bottom:env(safe-area-inset-bottom,0px)}
+@media (max-width:760px){.maplibregl-ctrl-bottom-right{bottom:calc(50% + 4px)}}
+.map.picking .maplibregl-canvas{cursor:crosshair}
+/* map host unreachable: message with "try again" instead of an empty map */
+.map-err{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:3;width:min(340px,calc(100% - 32px));background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;text-align:center;font-size:14px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.map-err p{margin:0 0 12px}
+/* "Belki bir gün" (Someday List): names only, tap = the map goes there */
+.wish-head{display:flex;justify-content:flex-end;margin:-4px 0 10px}
+.wlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wlist li{background:var(--paper);border:1px solid var(--rule);border-radius:4px}
+.wlist li.on{border-color:var(--ink)}
+.wrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.wstar{color:var(--muted);font-size:14px;line-height:1}
+.wlist li.on .wstar{color:var(--ink)}
+.wacts{display:flex;gap:8px;padding:0 12px 11px 36px}
+.wish-form{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px;margin-bottom:12px}
+.wish-where{margin:0;font-size:12.5px;color:var(--muted)}
+.wish-acts{display:flex;gap:8px}
+.d-wish{margin:14px 0 4px}
+.btn.wish-on{background:var(--tint);border-color:var(--ink);color:var(--ink)}
+/* "Pin ekle": address search results */
+.addr-list{list-style:none;margin:4px 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.addr{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;cursor:pointer;font:inherit;color:var(--ink)}
+.addr b{font-size:14.5px}
+.addr span{font-size:12.5px;color:var(--muted)}
+.addr:hover{border-color:var(--ink)}
+/* "Burada ne yedim": food spots inside a place */
+.foods .food-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.food{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;font:inherit;color:var(--ink)}
+.food:hover{border-color:var(--ink)}
+.food img,.food .food-ic{width:44px;height:44px;border-radius:3px;object-fit:cover;flex:none}
+.food .food-ic{display:grid;place-items:center;background:var(--tint);font-size:18px}
+.food-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.food-t b{font-size:14.5px;overflow-wrap:anywhere}
+.food-t span{font-size:12.5px;color:var(--muted)}
+.food-loc{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted);margin-bottom:4px}
+.food-loc .linkbtn{padding:2px 0 0;align-self:flex-start}
+/* own profile: follower / following counts open their lists */
+.pcx-counts a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.pcx-counts a:hover{color:var(--ink)}
+/* language lives in the account menu and in Settings; no switch on the map screen */
+.topbar .lang{display:none}
+.acct-lang{display:flex;align-items:center;gap:8px;padding:6px 10px}
+.lang-seg{display:inline-flex;border:1px solid var(--pin-ink);border-radius:6px;overflow:hidden}
+.lang-seg button{border:0;background:transparent;padding:5px 14px;font:600 13px var(--f-body);cursor:pointer;color:var(--ink)}
+.lang-seg button[aria-pressed="true"]{background:var(--pin);color:var(--pin-ink)}
+/* Settings → delete account */
+.set-del{margin-top:28px;padding-top:16px;border-top:1px dashed var(--rule)}
+.set-del h3{font:400 16px var(--f-display);margin:0 0 10px}
+.set-del .field{margin:10px 0}
+.del-warn{font-size:13.5px;line-height:1.45;margin:0}
+.del-acts{display:flex;gap:8px}
+.danger-t{color:#a1301f;border-color:#d9a79f}
