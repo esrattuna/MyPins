@@ -24,7 +24,7 @@ const I18N = {
     ghostNote: "Hayalet moddasın: haritan sadece sana görünür. Başkaları seni bulamaz ve takip edemez.", privateNote: "Gizli profil: haritanı sadece onayladığın takipçiler görür.",
     welcomeT: "MyPins'e hoş geldin", welcomeP1: "Gezdiğin yerleri, yemek yediğin güzel adresleri ve notlarını kendi haritanda topla.", welcomeP2: "Arkadaşlarını takip et, onların haritalarında yeni yerler keşfet.", browseFirst: "Önce etrafa göz at",
     hello: n => `Merhaba, ben ${n}.`, noBio: "Henüz bir tanıtım yazısı yok.",
-    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda (Türkçe)", sBioEn: "Hakkımda (İngilizce)", sPhoto: "Profil fotoğrafı",
+    sProfile: "Profil", sName: "Görünen ad", sUser: "Kullanıcı adı", sUserHint: "Haritanın adresi: ", sBio: "Hakkımda", sBioEn: "Hakkımda (İngilizce)", sBioHint: "Kaydedince Türkçe ve İngilizceye kendiliğinden çevrilir; profilin seçili dile göre görünür.", translating: "Çevriliyor…", sTransFail: "Çeviri şu an yapılamadı; metin yazdığın gibi kaydedildi.", sPhoto: "Profil fotoğrafı",
     sMode: "Profil modu", m_public: "Açık", m_publicD: "Haritanı herkes görebilir, herkes seni takip edebilir.", m_private: "Gizli", m_privateD: "Takip isteklerini sen onaylarsın, haritanı sadece onayladıkların görür.", m_ghost: "Hayalet", m_ghostD: "Haritan sadece sana görünür. Profilin başkalarına görünmez, ama sen açık profilleri gezip takip edebilirsin.",
     sSaved: "Profil kaydedildi", sUserTaken: "Bu kullanıcı adı alınmış, başka bir tane dene.", sUserBad: "Kullanıcı adı 3-24 karakter olmalı; küçük harf, rakam, nokta ve alt çizgi kullanılabilir.",
     requests: "Takip istekleri", noRequests: "Bekleyen istek yok.", accept: "Onayla", decline: "Reddet", followersT: "Takipçiler", followingT: "Takip ettiklerin", nobody: "Henüz kimse yok.", peopleBtn: "👥 Kişiler", backProfile: "← Haritama dön",
@@ -75,7 +75,7 @@ const I18N = {
     ghostNote: "You're in ghost mode: your map is visible only to you. Others can't find or follow you.", privateNote: "Private profile: only followers you approve can see your map.",
     welcomeT: "Welcome to MyPins", welcomeP1: "Collect the places you've been, the good spots you've eaten at and your notes on your own map.", welcomeP2: "Follow your friends and discover new places on their maps.", browseFirst: "Look around first",
     hello: n => `Hi, I'm ${n}.`, noBio: "No introduction yet.",
-    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me (Turkish)", sBioEn: "About me (English)", sPhoto: "Profile photo",
+    sProfile: "Profile", sName: "Display name", sUser: "Username", sUserHint: "Your map's address: ", sBio: "About me", sBioEn: "About me (English)", sBioHint: "When you save, it is translated into Turkish and English automatically; your profile shows the selected language.", translating: "Translating…", sTransFail: "Couldn't translate right now; your text was saved as you wrote it.", sPhoto: "Profile photo",
     sMode: "Profile mode", m_public: "Public", m_publicD: "Anyone can see your map and follow you.", m_private: "Private", m_privateD: "You approve follow requests; only approved followers see your map.", m_ghost: "Ghost", m_ghostD: "Your map is visible only to you. Your profile is hidden from others, but you can browse and follow public profiles.",
     sSaved: "Profile saved", sUserTaken: "That username is taken. Try another one.", sUserBad: "Usernames are 3-24 characters: lowercase letters, numbers, dots and underscores.",
     requests: "Follow requests", noRequests: "No pending requests.", accept: "Approve", decline: "Decline", followersT: "Followers", followingT: "Following", nobody: "Nobody yet.", peopleBtn: "👥 People", backProfile: "← Back to my map",
@@ -1660,7 +1660,8 @@ async function copyText(txt) {
 let SET = null;
 function renderSettings() {
   if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: t("settings") }), t("needSignIn"), el("div", { style: "margin-top:12px" }, el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn"))))); return; }
-  if (!SET) SET = { d: { display_name: S.me.display_name, username: S.me.username, bio: S.me.bio, bio_en: S.me.bio_en, visibility: S.me.visibility }, busy: false, err: "", msg: "" };
+  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "";
+    SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, visibility: S.me.visibility }, busy: false, err: "", msg: "" }; }
   const d = SET.d;
   body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, "← " + t("myMap")));
   body.append(el("div", { class: "eyebrow", text: t("settings") }), el("h2", { class: "d-title", text: t("sProfile") }));
@@ -1676,8 +1677,8 @@ function renderSettings() {
   form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
     el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); $("#s-user-hint").textContent = t("sUserHint") + mapLink(d.username); } }),
     el("span", { class: "hint", id: "s-user-hint", text: t("sUserHint") + mapLink(d.username) })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("bio") }, d.bio)));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio-en", text: t("sBioEn") }), el("textarea", { id: "s-bio-en", maxlength: 1200, oninput: bind("bio_en") }, d.bio_en)));
+  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about),
+    el("span", { class: "hint", text: t("sBioHint") })));
   const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
   for (const m of ["public", "private", "ghost"]) {
     modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
@@ -1687,20 +1688,41 @@ function renderSettings() {
   }
   form.append(el("div", { class: "field" }, el("span", { class: "lab", text: t("sMode") }), modes));
   if (SET.err) form.append(el("div", { class: "err", role: "alert", text: SET.err }));
-  form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? t("saving") : t("save"))));
+  form.append(el("div", { class: "form-actions" }, el("button", { class: "btn", type: "submit", disabled: SET.busy }, SET.busy ? (SET.busy === "tr" ? t("translating") : t("saving")) : t("save"))));
   body.append(form);
   body.append(el("div", { class: "set-out" }, el("button", { class: "btn ghost small", type: "button", onclick: signOut }, t("signOut"))));
+}
+// Supabase Edge Function "translate" (supabase/functions/translate): Claude returns { tr, en }. null if unavailable.
+async function translatePair(text) {
+  try {
+    const { data, error } = await sb.functions.invoke("translate", { body: { text } });
+    if (error || !data || typeof data.tr !== "string" || typeof data.en !== "string") return null;
+    return { tr: data.tr.trim(), en: data.en.trim() };
+  } catch (e) { return null; }
 }
 async function saveSettings() {
   const d = SET.d;
   if (!/^[a-z0-9_.]{3,24}$/.test(d.username)) { SET.err = t("sUserBad"); render(); return; }
   SET.busy = true; SET.err = ""; render();
-  const { data, error } = await sb.from("profiles").update({
-    display_name: d.display_name.trim(), username: d.username, bio: d.bio, bio_en: d.bio_en, visibility: d.visibility,
-  }).eq("id", S.me.id).select("*").single();
+  // "about": written once in either language, stored in both (bio = Turkish, bio_en = English)
+  const upd = { display_name: d.display_name.trim(), username: d.username, visibility: d.visibility };
+  let transFailed = false;
+  const about = (d.about || "").trim();
+  if (about !== (d.about0 || "").trim()) {
+    if (!about) { upd.bio = ""; upd.bio_en = ""; }
+    else {
+      SET.busy = "tr"; render();
+      const pair = await translatePair(about);
+      if (pair) { upd.bio = pair.tr; upd.bio_en = pair.en; }
+      else { upd.bio = about; upd.bio_en = ""; transFailed = true; }
+      SET.busy = true; render();
+    }
+  }
+  const { data, error } = await sb.from("profiles").update(upd).eq("id", S.me.id).select("*").single();
   SET.busy = false;
   if (error) { SET.err = error.code === "23505" ? t("sUserTaken") : t("saveErr"); render(); return; }
-  S.me = data; SET = null; toast(t("sSaved"));
+  S.me = data; if (S.owner && S.owner.id === data.id) S.owner = { ...S.owner, ...data };
+  SET = null; toast(transFailed ? t("sTransFail") : t("sSaved"));
   renderChrome(); render();
 }
 async function uploadAvatar(file) {
