@@ -2,23 +2,18 @@
 :root{
   --sea:#7fcfd0; --ring1:#93d9d9; --ring2:#a9e3e2; --ring3:#c3eceb; --sea-ink:#5fb7b8;
   --land:#ecd3a0; --land-edge:#c9a76a; --border:#d9c9a6;
-  --ink:#2b3338; --muted:#6a6f68; --paper:#fbf7ee; --rule:#ebdfc6; --tint:#f4ecda; --card:#ffffff;
-  --lapis:#3d8f93; --saffron:#c9a227; --pin:#f4e08c; --pin-ink:#5e5016; --danger:#c2412d; --shadow:rgba(31,62,70,.16);
-  --f-display:"Gloock", "Iowan Old Style", Georgia, serif;
-  --f-body:"Courier Prime", "Courier New", ui-monospace, monospace;
-  --f-mono:"Courier Prime", "Courier New", ui-monospace, monospace;
+  /* Kıyı palette (25 Oct 2026): colors from the map + deep sea / foam / ink for the interface */
+  --ink:#23302F; --muted:#55625F; --paper:#FBF5E8; --rule:#EDE2C8; --tint:#F0E4C8; --card:#ffffff;
+  --deep:#0E5A63; --deep-hover:#0B4A52; --sand:#E8D4A6; --sea-tint:#D6EEEE; --handle:#C9B58A;
+  --lapis:#0E5A63; --saffron:#c9a227; --pin:#f4e08c; --pin-ink:#5e5016; --danger:#c2412d; --shadow:rgba(14,58,64,.12);
+  --f-display:"Fraunces", "Iowan Old Style", Georgia, serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1); --dur:.56s;
   --panel-w:388px;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --sea:#0f363c; --ring1:#134148; --ring2:#184c53; --ring3:#1e585f; --sea-ink:#2b6a72;
-  --land:#b39a6a; --land-edge:#8a7349; --border:#33504f;
-  --ink:#eaf2ef; --muted:#9fb7b6; --paper:#10272b; --rule:#1f3c40; --tint:#163236; --card:#17333a;
-  --lapis:#6fc6cf; --saffron:#f4e08c; --pin:#f4e08c; --pin-ink:#5e5016; --danger:#ff8a76; --shadow:rgba(0,0,0,.45); color-scheme:dark}}
-:root[data-theme="dark"]{
-  --sea:#0f363c; --ring1:#134148; --ring2:#184c53; --ring3:#1e585f; --sea-ink:#2b6a72;
-  --land:#b39a6a; --land-edge:#8a7349; --border:#33504f;
-  --ink:#eaf2ef; --muted:#9fb7b6; --paper:#10272b; --rule:#1f3c40; --tint:#163236; --card:#17333a;
-  --lapis:#6fc6cf; --saffron:#f4e08c; --pin:#f4e08c; --pin-ink:#5e5016; --danger:#ff8a76; --shadow:rgba(0,0,0,.45); color-scheme:dark}
+/* dark mode is off for now (Kıyı has no dark palette yet; the map is light) */
 
 html,body{height:100%}
 body{background:var(--sea);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.5;overflow:hidden}
@@ -404,3 +399,135 @@ a.btn{text-decoration:none}
 .del-warn{font-size:13.5px;line-height:1.45;margin:0}
 .del-acts{display:flex;gap:8px}
 .danger-t{color:#a1301f;border-color:#d9a79f}
+
+/* =====================================================================
+   Kıyı style (25 Oct 2026): Fraunces (soft) + Figtree, rounded cards,
+   deep-sea buttons, icon tabs, 560 ms easing. No coastline edge.
+   Overrides only; remove this block to go back to the old look.
+   ===================================================================== */
+body{font-size:15px;line-height:1.5}
+:focus-visible{outline:2px solid var(--deep)}
+
+/* display text: soft Fraunces at a real weight (the old Gloock rule forced 400) */
+.brand h1,.lang button,.brand .about-btn,.intro-card h2,.avatar span,.d-title,.ph h2,.group-h,.empty strong,
+.item-t,.pc-t,.pcx-name,.rel-h,.rel h3,.rel-t,.acct-who b,.person-txt b,.onb-reg-t b,.set-del h3,.av span{font-family:var(--f-display);font-weight:700}
+.rel h3,.set-del h3,.onb-reg-t b,.person-txt b,.rel-t{font-weight:600}
+
+/* labels (were typewriter caps) */
+.eyebrow,.facts dt,.field label,.field .lab{font-family:var(--f-body);font-weight:700;font-size:11px;letter-spacing:.12em;color:var(--deep)}
+.tally,.coords{font-family:var(--f-body)}
+
+/* map chrome */
+.brand{border:0;border-radius:16px;padding:9px 14px 10px;background:color-mix(in srgb,var(--paper) 94%,transparent);box-shadow:0 4px 14px var(--shadow)}
+.brand h1{font-size:22px;letter-spacing:0}
+#brandSub{display:none}
+.brand .about-btn{border:0;background:var(--sand);padding:5px 14px;font-family:var(--f-body);font-weight:700;font-size:13px}
+.brand .about-btn:hover{background:var(--tint)}
+.acct-btn{box-shadow:0 4px 14px var(--shadow)}
+.acct-btn .av{background:var(--deep);border:2px solid var(--paper);width:42px;height:42px}
+.acct-btn .av span{color:var(--paper)}
+.acct-signin{border:0;border-radius:999px;box-shadow:0 4px 14px var(--shadow);font-family:var(--f-body)}
+.acct-menu{border-radius:18px;border-color:var(--rule);padding:8px}
+.acct-menu a,.acct-menu button{border-radius:12px;font-family:var(--f-body);font-size:15px}
+.acct-who{border-bottom:1px solid var(--rule)}
+.lang-seg{border:0;background:var(--tint);border-radius:999px;padding:3px}
+.lang-seg button{border-radius:999px;font-family:var(--f-body);font-weight:700}
+.lang-seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.pick-banner{font-family:var(--f-body)}
+.map-err{border-radius:18px;border-color:var(--rule)}
+.maplibregl-ctrl-attrib{font-family:var(--f-body)}
+.toast{border-radius:999px;font-family:var(--f-body)}
+
+/* panel: flat top edge with rounded corners, softer motion */
+.panel{border-left-color:var(--rule)}
+@media (max-width:760px){
+  .panel{border-top:0;border-radius:24px 24px 0 0;box-shadow:0 -8px 28px var(--shadow);transition:height var(--dur) var(--ease)}
+  .handle{padding:10px 0 4px}
+  .handle span{width:42px;height:5px;border-radius:3px;background:var(--handle)}
+}
+
+/* buttons: pills; primary = deep sea, secondary = sand */
+.btn{border:0;border-radius:999px;background:var(--deep);color:#fff;padding:10px 18px;font-family:var(--f-body);font-weight:700;font-size:14px}
+.btn:hover{opacity:1;background:var(--deep-hover)}
+.btn.ghost{background:var(--sand);color:var(--ink);border:0}
+.btn.ghost:hover{background:var(--tint)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.small{padding:7px 13px;font-size:13px}
+.btn.wish-on{background:var(--sea-tint);color:var(--deep);border:0}
+.linkbtn{font-family:var(--f-body);color:var(--deep);font-weight:600}
+.back{font-family:var(--f-body);font-weight:600}
+
+/* chips (onboarding, nearby names) */
+.chip,.panel-scroll[data-view="list"] .chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:6px 13px;font-family:var(--f-body);font-weight:600}
+.chip[aria-pressed="true"],.chip.on,.panel-scroll[data-view="list"] .chip[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+
+/* Yerler / Belki bir gün: icon tabs, no box around the buttons */
+.tabs{display:flex;gap:10px;margin:4px 0 16px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;padding:2px 0;margin:0;cursor:pointer;
+  color:var(--muted);font:700 14px var(--f-body);-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.tab:focus{outline:none}
+.tab-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--tint);color:#8A7A52;transform:scale(.9);transition:transform var(--dur) var(--ease),background-color .3s,color .3s}
+.tab-ic svg{display:block}
+.tab[aria-pressed="true"]{color:var(--ink)}
+.tab[aria-pressed="true"] .tab-ic{background:var(--deep);color:var(--pin);transform:none}
+.tab:focus-visible .tab-ic{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--deep)}
+
+/* list: profile card, heading, one stats strip, plain country headings, postcards */
+.pcardx,.panel-scroll[data-view="list"] .pcardx{background:#fff;border:1px solid var(--rule);border-radius:18px;box-shadow:none}
+.pcx-name{font-size:21px}
+.panel-scroll[data-view="list"] .ph{background:none;box-shadow:none;padding:0;border-radius:0;margin:6px 0 12px}
+.ph h2{font-size:28px;line-height:1.05}
+.stats{gap:0;background:#fff;border:1px solid var(--rule);border-radius:16px;padding:10px 4px;margin:0 0 16px}
+.stat,.panel-scroll[data-view="list"] .stat{background:none;box-shadow:none;border-radius:0;padding:2px 4px;text-align:center}
+.stat+.stat{border-left:1px solid var(--rule)}
+.stat b{font-family:var(--f-display);font-weight:700;font-size:24px}
+.group-h,.panel-scroll[data-view="list"] .group-h{display:flex;gap:8px;align-items:baseline;justify-content:flex-start;width:auto;background:none;box-shadow:none;border:0;border-radius:0;padding:0;margin:20px 0 10px;font-size:20px}
+.group-h span,.panel-scroll[data-view="list"] .group-h span{font-family:var(--f-body);font-weight:700;font-size:12px;color:var(--deep)}
+.pcards{gap:10px}
+.pcard{border:1px solid var(--rule);border-radius:16px;box-shadow:none;padding:6px 6px 10px;transition:transform .2s var(--ease)}
+.pcard:hover{transform:translateY(-2px);box-shadow:0 6px 16px var(--shadow)}
+.pc-ph{border-radius:12px}
+.pc-t{font-size:16px;margin:8px 4px 2px}
+.pc-s,.pc-d{margin-left:4px;margin-right:4px}
+.stamp{border:2px dashed var(--pin-ink);font-family:var(--f-display);font-weight:700;font-size:10px;width:32px;height:32px}
+.notice,.panel-scroll[data-view="list"] .notice{background:var(--sea-tint);color:var(--deep);border-radius:14px;box-shadow:none;font-size:13.5px}
+.empty,.panel-scroll[data-view="list"] .empty{background:#fff;border:1px dashed var(--rule);border-radius:16px;box-shadow:none}
+.item{border-radius:12px}
+.thumb{border-radius:10px;border-color:var(--rule)}
+.tag-ex{font-family:var(--f-body);font-weight:700;border-radius:999px;padding:0 7px}
+
+/* place page */
+.d-title{font-size:32px;line-height:1.05}
+.facts{border-color:var(--rule)}
+.gallery{gap:6px}
+.gallery button{border-radius:14px}
+.rel{border-top:1px solid var(--rule)}
+.rel h3{font-size:21px}
+.rel-row{border-radius:12px}
+.rel-row .thumb{border-radius:10px}
+.foods .food,.food{background:#fff;border:1px solid var(--rule);border-radius:14px}
+.food img,.food .food-ic{border-radius:10px}
+
+/* Belki bir gün, address search, forms, settings */
+.wlist li{background:#fff;border:1px solid var(--rule);border-radius:16px}
+.wlist li.on{border:1.5px solid var(--ink)}
+.wstar{color:#8A7A52}
+.wlist li.on .wstar{color:var(--pin-ink)}
+.wish-form,.addr{background:#fff;border-color:var(--rule);border-radius:14px}
+.field input,.field textarea,.field select{background:#fff;border-color:var(--rule);border-radius:12px;padding:10px 12px}
+.search input{background:#fff;border-color:var(--rule)}
+.seg{border:0;background:var(--tint);border-radius:999px;padding:3px}
+.seg button{border-radius:999px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.mode{border:1.5px solid var(--rule);border-radius:16px;background:#fff}
+.mode.on{border-color:var(--deep);background:color-mix(in srgb,var(--sea-tint) 55%,#fff)}
+.mode input,.onb-check input{accent-color:var(--deep)}
+.drop{border-radius:14px;border-color:var(--handle)}
+.pv{border-radius:10px}
+.onb-reg{border-color:var(--rule);border-radius:16px;background:#fff}
+.onb-reg.on{border-color:var(--deep);background:color-mix(in srgb,var(--sea-tint) 55%,#fff)}
+.onb-spot{border-radius:12px}
+.onb-name{border-color:var(--rule);border-radius:10px;background:#fff}
+.set-out,.set-del,.onb-foot{border-top:1px solid var(--rule)}
+.intro-card{border-radius:24px}
+.intro-card h2{font-size:28px}

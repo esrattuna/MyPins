@@ -126,6 +126,10 @@ let LANG = (() => { const s = ls("ad-lang"); if (s === "tr" || s === "en") retur
 const t = (k, ...a) => { const v = I18N[LANG][k] ?? I18N.tr[k]; return typeof v === "function" ? v(...a) : v; };
 const KIND_LABEL = k => t("kind_" + k);
 const ICON = { yer: "🌍", yemek: "🍴", wish: "☆" };
+const TAB_ICON = {
+  yer: '<svg width="20" height="24" viewBox="0 0 22 26"><path d="M11 25s9-8.6 9-14.5A9 9 0 0 0 2 10.5C2 16.4 11 25 11 25z" fill="currentColor"/><circle cx="11" cy="10.5" r="3" fill="var(--paper)"/></svg>',
+  wish: '<svg width="22" height="22" viewBox="0 0 12 12"><path d="M6 1l1.5 3.2L11 4.6 8.4 7l.7 3.5L6 8.8 2.9 10.5 3.6 7 1 4.6l3.5-.4z" fill="currentColor"/></svg>',
+};
 const REGION = {};
 for (const lg of ["tr", "en"]) { try { REGION[lg] = new Intl.DisplayNames([lg], { type: "region" }); } catch (e) { REGION[lg] = null; } }
 const regionName = (iso, lg = LANG) => { if (!iso || !REGION[lg]) return ""; try { const n = REGION[lg].of(iso); return n && n !== iso ? n : ""; } catch (e) { return ""; } };
@@ -598,12 +602,15 @@ function renderList() {
     body.append(el("div", { class: "notice", text: t("dbErr") }));
   }
 
-  const chips = el("div", { class: "chips", role: "group", "aria-label": t("filter") });
+  // Kıyı style: icon tabs (round icon + label, no box around the button)
+  const tabs = el("div", { class: "tabs", role: "group", "aria-label": t("filter") });
   for (const [k, lab] of [["yer", t("f_yer")], ["wish", t("f_wish")]]) {
-    chips.append(el("button", { class: "chip", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
-      el("span", { class: "chip-ic", "aria-hidden": "true", text: ICON[k] }), lab));
+    const ic = el("span", { class: "tab-ic", "aria-hidden": "true" });
+    ic.innerHTML = TAB_ICON[k];
+    tabs.append(el("button", { class: "tab", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
+      ic, el("span", { class: "tab-t", text: lab })));
   }
-  body.append(chips);
+  body.append(tabs);
   if (S.filter === "wish") { renderWish(); return; }
 
 
