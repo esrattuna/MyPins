@@ -50,6 +50,14 @@ const I18N = {
     wishEmptyOwn: "Henüz bir yer yok. Arkadaşlarının pinlerinden ya da haritadan ekleyebilirsin.", wishEmptyOther: "Bu listede henüz bir yer yok.",
     wishPick: "Haritada gitmek istediğin yere dokun", wishName: "Yerin adı", wishSave: "Listeye ekle",
     wishAddedT: "Belki bir gün listene eklendi", wishRemovedT: "Listeden çıkarıldı", wishWentT: "Haritana eklendi",
+    askPlace: "✦ Bu yerle ilgili sor", askWish: "✦ Planla", askTop: "Planla", chatT: "Planla", chatBack: "Haritaya dön", chatNew: "Yeni sohbet",
+    chatPh: "Bir şey sor…", chatSend: "Gönder", chatThinking: "Bakıyorum…", chatCtxOff: "Bu yeri sohbetten çıkar",
+    chatErr: "Cevap alınamadı. Tekrar dene.", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
+    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
+    chatSuggPlace: ["Buraya nasıl giderim?", "Yakınında listemden neresi var?", "Burası için 3 günlük plan çıkar"],
+    chatSuggFree: ["Belki bir gün listemden bir rota çıkar", "Gittiğim bir yeri haritama ekle", "Bütçe dostu bir hafta sonu öner"],
+    pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
+    pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
     wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
     exNotice: n => `Örnek olarak ${n} not ekledim, nasıl göründüğünü görebilmen için. `, exRemove: "Örnekleri kaldır", example: "örnek",
     loadingT: "Defter açılıyor…", loadingB: "Notların yükleniyor.", emptyFilter: "Bu filtrede not yok", emptyAll: "Defter henüz boş",
@@ -103,6 +111,14 @@ const I18N = {
     wishEmptyOwn: "No places yet. Add them from friends' pins or from the map.", wishEmptyOther: "No places on this list yet.",
     wishPick: "Tap the map where you'd like to go", wishName: "Place name", wishSave: "Add to list",
     wishAddedT: "Added to your Someday List", wishRemovedT: "Removed from the list", wishWentT: "Added to your map",
+    askPlace: "✦ Ask about this place", askWish: "✦ Plan", askTop: "Plan", chatT: "Plan", chatBack: "Back to the map", chatNew: "New chat",
+    chatPh: "Ask something…", chatSend: "Send", chatThinking: "Looking into it…", chatCtxOff: "Remove this place from the chat",
+    chatErr: "No answer came back. Try again.", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
+    chatLeft: n => `${n} questions left today.`, chatSources: "Sources", chatRetry: "Try again",
+    chatSuggPlace: ["How do I get here?", "What's near here from my list?", "Plan 3 days around here"],
+    chatSuggFree: ["Make a route from my Someday List", "Add a place I've been to my map", "Suggest a budget weekend"],
+    pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
+    pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
     wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
     exNotice: n => `I added ${n} example notes so you can see how things look. `, exRemove: "Remove examples", example: "example",
     loadingT: "Opening the notebook…", loadingB: "Loading your notes.", emptyFilter: "No notes for this filter", emptyAll: "The notebook is empty",
@@ -566,6 +582,7 @@ function render() {
   if (S.panelMode === "onboard") renderOnboard();
   else if (S.panelMode === "settings") renderSettings();
   else if (S.panelMode === "people") renderPeople();
+  else if (S.panelMode === "chat") renderChat();
   else if (S.ownerState === "notfound") renderNotFound();
   else if (S.view === "detail") renderDetail();
   else if (S.view === "form") renderForm();
@@ -755,6 +772,7 @@ function renderDetail() {
     const on = S.mineSrc.has(p.id);
     body.append(el("div", { class: "d-wish" }, el("button", { class: "btn " + (on ? "wish-on" : "ghost"), type: "button", "aria-pressed": String(on), onclick: () => toggleWishFromPin(p) }, on ? t("wishOn") : t("wishBtn"))));
   }
+  if (S.me) body.append(el("div", { class: "d-ask" }, el("button", { class: "btn ghost ask-btn", type: "button", onclick: () => openChat({ kind: "pin", id: p.id, label: L(p, "title") }) }, t("askPlace"))));
   renderRelated(p);
 
   if (S.canEdit) {
@@ -1286,10 +1304,196 @@ function renderWish() {
       el("button", { class: "wrow", type: "button", "aria-pressed": String(on), onclick: () => selectWish(w.id) }, el("span", { class: "wstar", "aria-hidden": "true", text: "☆" }), L(w, "title")));
     if (on && S.canEdit) li.append(el("div", { class: "wacts" },
       el("button", { class: "btn small", type: "button", onclick: () => wentWish(w) }, t("wishWent")),
-      el("button", { class: "btn ghost small", type: "button", onclick: () => removeWish(w) }, t("wishRemove"))));
+      el("button", { class: "btn ghost small", type: "button", onclick: () => removeWish(w) }, t("wishRemove")),
+      el("button", { class: "btn ghost small ask-btn", type: "button", onclick: () => openChat({ kind: "wish", id: w.id, label: L(w, "title") }) }, t("askWish"))));
     ul.append(li);
   }
   body.append(ul);
+}
+
+/* ---------------- "Planla": the Claude trip-planning assistant (Edge Function "plan", supabase/functions/plan) ----------------
+   Knows the place you're looking at (a pin on any map, or a place on your Someday list), your own pins and your list.
+   It can prepare places to add to your map; nothing is added until you confirm in the usual add form.
+   The conversation lives only in this browser tab (sessionStorage). */
+const CHAT_KEY = "mp-chat-v1";
+let CHAT = (() => {
+  try { const c = JSON.parse(sessionStorage.getItem(CHAT_KEY) || "null"); if (c && Array.isArray(c.msgs)) return { ...c, busy: false, err: "" }; } catch (e) {}
+  return { msgs: [], focus: null, left: null, draft: "", busy: false, err: "", uid: null };
+})();
+function chatSave() { try { const { busy, err, ...keep } = CHAT; sessionStorage.setItem(CHAT_KEY, JSON.stringify(keep)); } catch (e) {} }
+function currentFocus() {
+  if (S.panelMode === "map" && S.view === "detail" && S.selId) { const p = S.places.find(x => x.id === S.selId); if (p) return { kind: "pin", id: p.id, label: L(p, "title") }; }
+  if (S.panelMode === "map" && S.filter === "wish" && S.wishSel && S.canEdit) { const w = S.wish.find(x => x.id === S.wishSel); if (w) return { kind: "wish", id: w.id, label: L(w, "title") }; }
+  return null;
+}
+function openChat(focus) {
+  if (!S.me) return signIn();
+  if (CHAT.uid !== S.me.id) CHAT = { msgs: [], focus: null, left: null, draft: "", busy: false, err: "", uid: S.me.id };
+  if (focus) CHAT.focus = focus;
+  S.panelMode = "chat"; setPicking(false);
+  if (narrowView()) setSheet("tall");
+  chatSave(); render();
+  const i = $("#chat-in"); if (i && !narrowView()) i.focus();
+}
+function closeChat() { S.panelMode = "map"; render(); }
+$("#askTop").onclick = () => { if (S.panelMode === "chat") closeChat(); else openChat(currentFocus()); };
+
+// a small, safe markdown subset for answers: paragraphs, - / 1. lists, **bold**, [links](https://…), bare links
+function mdInline(txt) {
+  const out = [], re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)<]+[^\s)<.,;:!?])/g;
+  let last = 0, m;
+  while ((m = re.exec(txt))) {
+    if (m.index > last) out.push(txt.slice(last, m.index));
+    if (m[1]) out.push(el("strong", { text: m[1] }));
+    else out.push(el("a", { href: m[3] || m[4], target: "_blank", rel: "noopener noreferrer", text: m[2] || m[4] }));
+    last = re.lastIndex;
+  }
+  if (last < txt.length) out.push(txt.slice(last));
+  return out;
+}
+function mdNodes(text) {
+  const nodes = []; let list = null, para = [];
+  const flushP = () => { if (para.length) { nodes.push(el("p", {}, mdInline(para.join(" ")))); para = []; } };
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    const li = line.match(/^(?:[-*•]|(\d+)[.)])\s+(.*)$/);
+    if (li) {
+      flushP();
+      const tag = li[1] ? "ol" : "ul";
+      if (!list || list.tagName.toLowerCase() !== tag) { list = el(tag); nodes.push(list); }
+      list.append(el("li", {}, mdInline(li[2])));
+      continue;
+    }
+    if (!line) { flushP(); list = null; continue; }
+    const h = line.match(/^#{1,6}\s+(.*)$/);
+    if (h) { flushP(); list = null; nodes.push(el("p", { class: "md-h" }, el("strong", {}, mdInline(h[1].replace(/\*\*/g, ""))))); continue; }
+    list = null; para.push(line);
+  }
+  flushP();
+  return nodes;
+}
+
+function renderChat() {
+  const top = el("div", { class: "chat-top" },
+    el("button", { class: "back", type: "button", onclick: closeChat }, "← " + t("chatBack")),
+    CHAT.msgs.length ? el("button", { class: "linkbtn", type: "button", onclick: () => { CHAT.msgs = []; CHAT.err = ""; chatSave(); render(); } }, t("chatNew")) : null);
+  body.append(top, el("h2", { class: "d-title chat-h" }, el("span", { class: "chat-spark", "aria-hidden": "true", text: "✦" }), t("chatT")));
+  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: "📍 " + CHAT.focus.label }),
+    el("button", { type: "button", class: "chat-ctx-x", "aria-label": t("chatCtxOff"), title: t("chatCtxOff"), onclick: () => { CHAT.focus = null; chatSave(); render(); } }, "✕")));
+  body.append(el("div", { class: "chat-log", id: "chat-log", "aria-live": "polite" }));
+  const ta = el("textarea", { id: "chat-in", rows: "1", maxlength: "2000", placeholder: t("chatPh"), enterkeyhint: "send",
+    oninput: e => { CHAT.draft = e.target.value; autoGrow(e.target); },
+    onkeydown: e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !narrowView()) { e.preventDefault(); chatSend(); } } });
+  ta.value = CHAT.draft || "";
+  body.append(el("form", { class: "chat-form", onsubmit: e => { e.preventDefault(); chatSend(); } }, ta,
+    el("button", { class: "btn chat-send", type: "submit", id: "chat-go", "aria-label": t("chatSend") }, "↑")));
+  paintChat();
+  requestAnimationFrame(() => autoGrow(ta));
+}
+function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; }
+// repaints only the messages, so the text box (and the phone keyboard) stays as it is
+function paintChat() {
+  const log = $("#chat-log"); if (!log) return;
+  log.replaceChildren();
+  if (!CHAT.msgs.length && !CHAT.busy) {
+    const sugg = CHAT.focus ? t("chatSuggPlace") : t("chatSuggFree");
+    log.append(el("div", { class: "chat-sugg" }, sugg.map(q => el("button", { class: "chip", type: "button", onclick: () => chatSend(q) }, q))));
+  }
+  CHAT.msgs.forEach((m, mi) => {
+    if (m.role === "user") { log.append(el("div", { class: "msg me", text: m.text })); return; }
+    const b = el("div", { class: "msg ai" }, mdNodes(m.text || ""));
+    (m.pins || []).forEach((p, pi) => b.append(pinCard(p, mi, pi)));
+    if (m.sources && m.sources.length) b.append(el("details", { class: "chat-src" }, el("summary", { text: t("chatSources") + " (" + m.sources.length + ")" }),
+      el("ul", {}, m.sources.map(x => el("li", {}, el("a", { href: x.url, target: "_blank", rel: "noopener noreferrer", text: x.title }))))));
+    log.append(b);
+  });
+  if (CHAT.busy) log.append(el("div", { class: "msg ai typing" }, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")), t("chatThinking")));
+  if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err,
+    CHAT.err === t("chatErr") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
+  if (CHAT.left != null && CHAT.left <= 3 && !CHAT.err) log.append(el("p", { class: "chat-left", text: t("chatLeft", CHAT.left) }));
+  const go = $("#chat-go"); if (go) go.disabled = CHAT.busy;
+  const sc = $("#panelBody"); if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
+}
+// what goes back to the assistant with the next question: the text, plus what happened to the places it prepared
+function chatHistory() {
+  return CHAT.msgs.map(m => {
+    if (m.role !== "assistant" || !(m.pins && m.pins.length)) return { role: m.role, text: m.text };
+    const st = m.pins.map(p => `${p.title}: ${p.st === "opened" ? "add form opened" : p.st === "skipped" ? "user declined" : "not confirmed yet"}`).join("; ");
+    return { role: "assistant", text: (m.text || "") + `\n\n[Places prepared for the map — ${st}]` };
+  });
+}
+async function chatSend(q) {
+  if (CHAT.busy) return;
+  const ta = $("#chat-in");
+  const text = (q != null ? q : ta ? ta.value : CHAT.draft || "").trim();
+  if (!text) return;
+  CHAT.msgs.push({ role: "user", text }); CHAT.draft = ""; if (ta && q == null) { ta.value = ""; autoGrow(ta); }
+  await chatAsk();
+}
+async function chatRetry() { if (CHAT.msgs.length && CHAT.msgs[CHAT.msgs.length - 1].role === "user") await chatAsk(); }
+async function chatAsk() {
+  CHAT.busy = true; CHAT.err = ""; chatSave(); paintChat();
+  const focus = CHAT.focus ? { kind: CHAT.focus.kind, id: CHAT.focus.id } : null;
+  let data = null, code = "";
+  try {
+    const r = await sb.functions.invoke("plan", { body: { messages: chatHistory(), lang: LANG, focus } });
+    if (r.error) {
+      const ctx = r.error.context;
+      try { code = (await ctx.json()).error || ""; } catch (e) {}
+      if (!code && ctx && ctx.status === 404) code = "not_deployed";
+      if (!code) code = "network";
+    } else data = r.data;
+  } catch (e) { code = "network"; }
+  CHAT.busy = false;
+  if (data && (data.text || (data.pins && data.pins.length))) {
+    CHAT.msgs.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
+    if (typeof data.left === "number") CHAT.left = data.left;
+  } else {
+    CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady") : t("chatErr");
+    if (code === "limit") CHAT.left = 0;
+  }
+  chatSave(); paintChat();
+}
+
+// a place the assistant prepared: found on the map with Photon, then added through the usual form (so it can be checked)
+function pinCard(p, mi, pi) {
+  const card = el("div", { class: "pin-card" + (p.st === "skipped" ? " off" : "") });
+  card.append(el("div", { class: "eyebrow", text: t("pinCardT") }),
+    el("b", { class: "pin-card-t", text: p.title }),
+    el("span", { class: "pin-card-sub", text: [p.city !== p.title ? p.city : "", p.country, p.date].filter(Boolean).join(" · ") }));
+  if (p.st === "skipped") { card.append(el("span", { class: "pin-card-st", text: t("pinCardSkipped") })); return card; }
+  if (p.st === "opened") { card.append(el("span", { class: "pin-card-st", text: "✓ " + t("pinCardOpened") })); return card; }
+  if (!p.at && !p.nf) { card.append(el("span", { class: "pin-card-st", text: t("pinCardFinding") })); locatePin(p); return card; }
+  const acts = el("div", { class: "pin-card-acts" });
+  if (p.at) acts.append(el("button", { class: "btn small", type: "button", onclick: () => addFromChat(p) }, t("pinCardAdd")),
+    el("button", { class: "btn ghost small", type: "button", onclick: () => { if (mapReady) camera({ center: [p.at.lon, p.at.lat], zoom: 12 }); if (narrowView()) setSheet(""); } }, t("pinCardSee")));
+  else acts.append(el("span", { class: "pin-card-st", text: t("pinCardNF") }), el("button", { class: "btn small", type: "button", onclick: () => addFromChat(p) }, t("pinCardPick")));
+  acts.append(el("button", { class: "btn ghost small", type: "button", onclick: () => { p.st = "skipped"; chatSave(); paintChat(); } }, t("pinCardSkip")));
+  card.append(acts);
+  return card;
+}
+const LOCATING = new Set();
+async function locatePin(p) {
+  const key = p.search || p.title; if (LOCATING.has(key)) return; LOCATING.add(key);
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(key)}&limit=1&lang=${LANG === "en" ? "en" : "default"}`, { signal: ctl.signal });
+    const f = ((await r.json()).features || [])[0];
+    if (f) { const [lon, lat] = f.geometry.coordinates; p.at = { lon: +lon.toFixed(5), lat: +lat.toFixed(5) }; } else p.nf = true;
+  } catch (e) { p.nf = true; }
+  finally { clearTimeout(tm); LOCATING.delete(key); }
+  chatSave(); if (S.panelMode === "chat") paintChat();
+}
+const fullDate = d => !d ? "" : d.length === 4 ? d + "-01-01" : d.length === 7 ? d + "-01" : d;
+async function addFromChat(p) {
+  p.st = "opened"; chatSave(); S.panelMode = "map";
+  if (!S.canEdit || !S.owner || S.owner.id !== S.me.id) {            // the form adds to the map on screen: go to my own map first
+    history.pushState(null, "", "#/u/" + S.me.username);
+    await loadOwner(S.me.username, true);
+  }
+  const prefill = { title: p.title, kind: p.kind === "yemek" ? "yemek" : "yer", note: p.note || "", ...(p.date ? { date: fullDate(p.date) } : {}) };
+  if (p.at) { S.temp = p.at; startForm(null, p.at, prefill); if (mapReady) camera({ center: [p.at.lon, p.at.lat], zoom: 13 }); }
+  else { openAddPin("pin"); ADDPIN.q = p.search || p.title; const i = $("#addpin-q"); if (i) i.value = ADDPIN.q; searchAddress(); }
 }
 
 async function follow() {
@@ -1738,6 +1942,7 @@ function renderChrome() {
   $("#brandSub").textContent = o ? "@" + o.username + " · MyPins" : t("tagline");
   $("#aboutBtn").hidden = true; // "Hakkında" lives in the profile card now
   document.title = o ? `${o.display_name || o.username} · MyPins` : "MyPins";
+  const ask = $("#askTop"); if (ask) { ask.hidden = !S.me; ask.setAttribute("aria-label", t("askTop")); ask.title = t("askTop"); }
   const acct = $("#acct");
   acct.replaceChildren();
   if (!S.me) {
