@@ -981,7 +981,7 @@ function renderAddPin() {
   const input = el("input", { id: "addpin-q", type: "search", placeholder: t("addPinPh"), value: ADDPIN.q, autocomplete: "off", enterkeyhint: "search",
     oninput: e => { ADDPIN.q = e.target.value; clearTimeout(addPinTimer); addPinTimer = setTimeout(searchAddress, 350); },
     onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(addPinTimer); searchAddress(); } } });
-  body.append(el("div", { class: "field search" }, input), el("p", { class: "hint", text: t("addPinHint") }));
+  body.append(el("div", { class: "field search" }, input));
   body.append(el("div", { id: "addpin-res" }));
   if (!food) body.append(el("button", { class: "linkbtn", type: "button", onclick: () => { S.view = "list"; render(); setPicking(true); } }, "📍 " + t("addPinMap")));
   paintAddPinResults();
@@ -1677,8 +1677,7 @@ function renderSettings() {
   form.append(el("div", { class: "field" }, el("label", { for: "s-user", text: t("sUser") }),
     el("input", { id: "s-user", maxlength: 24, value: d.username, autocapitalize: "none", spellcheck: "false", oninput: e => { d.username = e.target.value.toLowerCase(); $("#s-user-hint").textContent = t("sUserHint") + mapLink(d.username); } }),
     el("span", { class: "hint", id: "s-user-hint", text: t("sUserHint") + mapLink(d.username) })));
-  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about),
-    el("span", { class: "hint", text: t("sBioHint") })));
+  form.append(el("div", { class: "field" }, el("label", { for: "s-bio", text: t("sBio") }), el("textarea", { id: "s-bio", maxlength: 1200, oninput: bind("about") }, d.about)));
   const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t("sMode") });
   for (const m of ["public", "private", "ghost"]) {
     modes.append(el("label", { class: "mode" + (d.visibility === m ? " on" : "") },
