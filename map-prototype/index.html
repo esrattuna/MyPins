@@ -85,7 +85,8 @@ body.anim #info{transition:transform .22s ease,opacity .22s ease}
       <label class="tog"><input type="checkbox" id="optLite"> Sade stil</label>
       <label class="tog"><input type="checkbox" id="optCold"> Soğuk test</label>
       <label class="tog"><input type="checkbox" id="optBase"> Yedek zemin</label>
-      <label class="tog"><input type="checkbox" id="optLuPre" checked> Üst seviyede önce indir</label></div>
+      <label class="tog"><input type="checkbox" id="optLuPre" checked> Üst seviyede önce indir</label>
+      <label class="tog"><input type="checkbox" id="optLuAnim" checked> Üst seviyede animasyon</label></div>
     <div class="row"><span class="lab">Ön yükleme</span>
       <span class="seg" id="pfSeg"><button data-pf="">Kapalı</button><button data-pf="light">Hafif</button><button data-pf="full">Tam</button></span></div>
     <div class="row"><span class="lab">POI (sade)</span>
@@ -147,7 +148,8 @@ const OPT = { n: 50, anim: false, cluster: false, photo: false, smooth: true,   
   prefetch: "",        // zoom-out prefetch: "" off | "light" mid scale only (z<=12) | "full" every coarser level
   tiles: "ofm",        // tile host: ofm (OpenFreeMap) | maptiler (same OpenMapTiles schema, CDN)
   base: false,         // "Yedek zemin": coarse land/sea under the tiles up to zoom 10 instead of 7 (dropped 24 Oct)
-  luPre: true };       // level-up button: download the target level's tiles first, then jump
+  luPre: true,         // level-up button: download the target level's tiles first, then jump
+  luAnim: true };      // level-up button: short ease through pre-downloaded levels instead of a cut
 // The MapTiler key is NOT stored in the repository (it is public). It is asked once on the device and kept in
 // that browser's localStorage; "MapTiler anahtarını sil" in the panel removes it.
 function mapTilerKey() {
@@ -581,7 +583,7 @@ async function prefetchView(center, zoom) {
     if (ty < 0 || ty >= n) continue;
     urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
   }
-  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).catch(() => {})));
+  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).then(b => { LU.bytes += b.byteLength; }).catch(() => {})));
 }
 /* ---------- "Üst seviye": jump out by one level instead of pinching through every zoom ----------
    Measured on iPhone: a pinch zoom-out requests every intermediate level and about half the tiles arrive too late
@@ -590,17 +592,27 @@ async function prefetchView(center, zoom) {
    The button jumps to the next level down (city 13, region 10.5, country part 8, country 5.5, continent 3.5).
    With "önce indir" it first downloads exactly the target view's tiles (the ones the jump would need anyway, so no
    extra data), waits up to 1.5 s, then jumps: the new view should appear already filled. */
-const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1500;
-const LU = { busy: false };
+const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1500, LU_ANIM = 450;
+const LU = { busy: false, bytes: 0 };
+/* 24 Oct, iPhone: with "önce indir" the random land squares were gone, but the cut (no animation) plus the short
+   wait felt choppy, while a pinch felt smooth. "Animasyonlu" (default) also pre-downloads every level the animation
+   passes through (each at its widest view), then eases out in 450 ms, so the motion is continuous and every level
+   it shows is already loaded. Those intermediate levels are what a pinch requests anyway. ?luanim=0 = old jump. */
 async function levelUp() {
   if (!map || LU.busy) return null;
   const z = map.getZoom(), target = LEVELS.find(l => l < z - 0.25);
   if (target === undefined) return null;
   LU.busy = true; $("#levelUp").classList.add("wait");
   const t0 = performance.now(), center = map.getCenter();
-  if (OPT.luPre) await Promise.race([prefetchView(center, target), wait(LU_MAX)]);
+  if (OPT.luPre) {
+    const jobs = [];
+    if (OPT.luAnim) for (let L = Math.ceil(z) - 1; L > Math.floor(target); L--) jobs.push(prefetchView(center, L));
+    jobs.push(prefetchView(center, target));
+    await Promise.race([Promise.all(jobs), wait(LU_MAX)]);
+  }
   const waited = performance.now() - t0;
-  map.jumpTo({ center, zoom: target });
+  if (OPT.luAnim) await new Promise(r => { map.easeTo({ center, zoom: target, duration: LU_ANIM, easing: t => 1 - (1 - t) * (1 - t) }); map.once("moveend", r); });
+  else map.jumpTo({ center, zoom: target });
   LU.busy = false; $("#levelUp").classList.remove("wait");
   return waited;
 }
@@ -819,7 +831,7 @@ async function levelUpTest() {
   await idle(); await wait(600);
   TT.pending.clear();
   TT.run = { ready: [], net: [], cached: 0, maxPend: 0, req: 0 };
-  rec = []; const lt0 = stats.longTasks, waits = [];
+  rec = []; const lt0 = stats.longTasks, waits = [], b0 = LU.bytes;
   for (let k = 0; k < 3; k++) {                       // 16 -> 13 -> 10.5 -> 8, like the pinch test
     waits.push(await levelUp());
     if (k < 2) await wait(250);
@@ -829,7 +841,7 @@ async function levelUpTest() {
   const fill = performance.now() - tMove, run = TT.run, fr = summarize(rec);
   TT.run = null; rec = null;
   const r = Math.round, w = waits.filter(x => x != null);
-  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen zıpla"}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
+  addRow(`Üst seviye 16→13→10,5→8 (${OPT.luPre ? "önce indir" : "hemen"}, ${OPT.luAnim ? "animasyonlu" : "zıplama"}), ${OPT.cold ? "soğuk" : "ılık"}, ${city[0]} [${cfgLabel()}] — tepki ort ${r(avg(w))} ms (en çok ${r(Math.max(...w))}), önceden indirilen ${r((LU.bytes - b0) / 1024)} KB, istenen tile ${run.req}, biten ${run.ready.length}, hazır ort ${r(avg(run.ready))} ms, indirme ort ${r(avg(run.net))} ms, en çok bekleyen ${run.maxPend}, önbellekten ${run.cached}/${run.net.length}, doluş ${r(fill)} ms`,
     { ...fr, longs: stats.longTasks - lt0 });
   for (const id of ["#runZoomOut", "#runLevelUp", "#runAll"]) $(id).disabled = false;
 }
@@ -875,6 +887,7 @@ $("#runZoomOut").onclick = () => map && zoomOutTest();
 $("#runLevelUp").onclick = () => map && levelUpTest();
 $("#levelUp").onclick = () => levelUp();
 $("#optLuPre").onchange = e => { OPT.luPre = e.target.checked; paintCfg(); };
+$("#optLuAnim").onchange = e => { OPT.luAnim = e.target.checked; paintCfg(); };
 // worker count and style layers are fixed when the map is built: changing them reloads the page with the
 // current settings in the address bar (so the same link reproduces the test)
 function reloadWithOptions() {
@@ -885,6 +898,7 @@ function reloadWithOptions() {
   if (OPT.cold) q.set("cold", "1"); else q.delete("cold");
   if (OPT.base) q.set("base", "1"); else q.delete("base");
   if (!OPT.luPre) q.set("lupre", "0"); else q.delete("lupre");
+  if (!OPT.luAnim) q.set("luanim", "0"); else q.delete("luanim");
   if (OPT.prefetch) q.set("prefetch", OPT.prefetch); else q.delete("prefetch");
   if (OPT.tiles !== "ofm") q.set("tiles", OPT.tiles); else q.delete("tiles");
   location.search = q.toString();
@@ -922,6 +936,7 @@ $("#devHead").onclick = () => { $("#dev").classList.toggle("min"); $("#devMin").
   OPT.cold = q.get("cold") === "1"; $("#optCold").checked = OPT.cold;
   OPT.base = q.get("base") === "1";
   OPT.luPre = q.get("lupre") !== "0"; $("#optLuPre").checked = OPT.luPre;
+  OPT.luAnim = q.get("luanim") !== "0"; $("#optLuAnim").checked = OPT.luAnim;
   const pfq = q.get("prefetch"); OPT.prefetch = pfq === "1" || pfq === "full" ? "full" : pfq === "light" ? "light" : "";
   if (q.get("tiles") === "maptiler") OPT.tiles = "maptiler";
   if (["off", "street", "select"].includes(q.get("poi"))) OPT.poi = q.get("poi");
