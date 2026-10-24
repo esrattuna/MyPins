@@ -8,7 +8,7 @@
 -- For LOOKING at only: no Google login and no password, nobody can sign in as
 -- them. E-mails use the reserved .test domain (never delivered).
 --
---   sample1  public   · Latin America + Iberia     · Esra follows them
+--   sample1  public   · Latin America              · Esra follows them
 --   sample2  public   · Asia + Italy/Greece        · Esra follows them
 --   sample3  public   · Africa, Middle East, France · follows Esra
 --   sample4  private  · Nordics + Balkans          · sample1's request pending
@@ -42,22 +42,22 @@ begin
   insert into public.pins (user_id, kind, title, city, country, iso, lat, lon, note)
   select p.id, v.kind, v.title, v.city, v.country, v.iso, v.lat, v.lon, v.note
   from (values
-    -- sample1 · Latin America + Iberia
-    ('sample1','yer',  'Sintra',                  'Sintra',          'Portekiz',  'PT', 38.7979,  -9.3878, 'Pena Sarayı sabah erken.'),
-    ('sample1','yemek','Time Out Market',         'Lizbon',          'Portekiz',  'PT', 38.7071,  -9.1458, ''),
-    ('sample1','yer',  'Ronda',                   'Ronda',           'İspanya',   'ES', 36.7423,  -5.1666, 'Köprüden gün batımı.'),
-    ('sample1','yemek','Bodega La Ardosa',        'Madrid',          'İspanya',   'ES', 40.4268,  -3.7013, ''),
-    ('sample1','yer',  'Havana Vieja',            'Havana',          'Küba',      'CU', 23.1367, -82.3500, 'Akşamüstü Malecón boyunca yürüyüş.'),
-    ('sample1','yer',  'Trinidad',                'Trinidad',        'Küba',      'CU', 21.8019, -79.9847, 'Arnavut kaldırımlı sokaklar, canlı müzik.'),
-    ('sample1','yemek','La Bodeguita del Medio',  'Havana',          'Küba',      'CU', 23.1408, -82.3510, ''),
-    ('sample1','yer',  'Viñales',                 'Viñales',         'Küba',      'CU', 22.6167, -83.7064, 'Tütün tarlaları, at turu.'),
-    ('sample1','yer',  'San Telmo',               'Buenos Aires',    'Arjantin',  'AR',-34.6212, -58.3731, 'Pazar günü antika pazarı.'),
-    ('sample1','yemek','Don Julio',               'Buenos Aires',    'Arjantin',  'AR',-34.5866, -58.4243, 'Parrilla.'),
-    ('sample1','yer',  'El Chaltén',              'El Chaltén',      'Arjantin',  'AR',-49.3315, -72.8863, 'Laguna de los Tres yürüyüşü.'),
-    ('sample1','yer',  'Mendoza bağları',         'Mendoza',         'Arjantin',  'AR',-33.0094, -68.8667, ''),
-    ('sample1','yer',  'Oaxaca',                  'Oaxaca',          'Meksika',   'MX', 17.0732, -96.7266, ''),
-    ('sample1','yemek','Mercado 20 de Noviembre', 'Oaxaca',          'Meksika',   'MX', 17.0587, -96.7253, 'Tlayuda ve mole.'),
-    ('sample1','yer',  'Cusco',                   'Cusco',           'Peru',      'PE',-13.5320, -71.9675, ''),
+    -- sample1 · Latin America
+    ('sample1','yer',  'Havana Vieja',            'Havana',        'Küba',     'CU',  23.1367, -82.3500, 'Akşamüstü Malecón boyunca yürüyüş.'),
+    ('sample1','yemek','La Bodeguita del Medio',  'Havana',        'Küba',     'CU',  23.1408, -82.3510, ''),
+    ('sample1','yer',  'Trinidad',                'Trinidad',      'Küba',     'CU',  21.8019, -79.9847, 'Arnavut kaldırımlı sokaklar, canlı müzik.'),
+    ('sample1','yer',  'Viñales',                 'Viñales',       'Küba',     'CU',  22.6167, -83.7064, 'Tütün tarlaları, at turu.'),
+    ('sample1','yer',  'San Telmo',               'Buenos Aires',  'Arjantin', 'AR', -34.6212, -58.3731, 'Pazar günü antika pazarı.'),
+    ('sample1','yemek','Don Julio',               'Buenos Aires',  'Arjantin', 'AR', -34.5866, -58.4243, 'Parrilla.'),
+    ('sample1','yer',  'El Chaltén',              'El Chaltén',    'Arjantin', 'AR', -49.3315, -72.8863, 'Laguna de los Tres yürüyüşü.'),
+    ('sample1','yer',  'Mendoza bağları',         'Mendoza',       'Arjantin', 'AR', -33.0094, -68.8667, ''),
+    ('sample1','yer',  'Oaxaca',                  'Oaxaca',        'Meksika',  'MX',  17.0732, -96.7266, ''),
+    ('sample1','yemek','Mercado 20 de Noviembre', 'Oaxaca',        'Meksika',  'MX',  17.0587, -96.7253, 'Tlayuda ve mole.'),
+    ('sample1','yer',  'Cusco',                   'Cusco',         'Peru',     'PE', -13.5320, -71.9675, ''),
+    ('sample1','yer',  'Machu Picchu',            'Aguas Calientes','Peru',    'PE', -13.1631, -72.5450, 'İlk otobüsle, gün doğumunda.'),
+    ('sample1','yer',  'Cartagena eski şehir',    'Cartagena',     'Kolombiya','CO',  10.4236, -75.5478, ''),
+    ('sample1','yer',  'Santa Teresa',            'Rio de Janeiro','Brezilya', 'BR', -22.9166, -43.1866, 'Tramvayla yokuş yukarı.'),
+    ('sample1','yer',  'Valparaíso',              'Valparaíso',    'Şili',     'CL', -33.0472, -71.6127, 'Renkli tepeler, funiküler.'),
     -- sample2 · Asia + Italy/Greece
     ('sample2','yer',  'Matera',                  'Matera',          'İtalya',    'IT', 40.6664,  16.6043, 'Sassi mahallesi.'),
     ('sample2','yemek','Pizzeria Starita',        'Napoli',          'İtalya',    'IT', 40.8576,  14.2490, ''),
@@ -110,10 +110,10 @@ begin
   insert into public.wishlist (user_id, title, country, iso, lat, lon)
   select p.id, v.title, v.country, v.iso, v.lat, v.lon
   from (values
-    ('sample1','Azorlar',       'Portekiz',       'PT', 37.7412, -25.6756),
-    ('sample1','Granada',       'İspanya',        'ES', 37.1773,  -3.5986),
-    ('sample1','Salar de Uyuni','Bolivya',        'BO',-20.1338, -67.4891),
-    ('sample1','Patagonya',     'Şili',           'CL',-50.9423, -73.4068),
+    ('sample1','Salar de Uyuni',   'Bolivya',  'BO', -20.1338, -67.4891),
+    ('sample1','Torres del Paine', 'Şili',     'CL', -50.9423, -73.4068),
+    ('sample1','Galápagos',        'Ekvador',  'EC',  -0.9538, -90.9656),
+    ('sample1','Tulum',            'Meksika',  'MX',  20.2114, -87.4654),
     ('sample2','Sicilya',       'İtalya',         'IT', 37.6000,  14.0154),
     ('sample2','Girit',         'Yunanistan',     'GR', 35.2401,  24.8093),
     ('sample2','Dolomitler',    'İtalya',         'IT', 46.4102,  11.8440),
