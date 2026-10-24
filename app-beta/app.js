@@ -955,8 +955,19 @@ async function signPhotos(paths) {
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 const YEAR = "31536000";   // file names never change, so browsers may keep them
+// decode an image blob; some browsers (older iOS WebKit) reject createImageBitmap options, so fall back step by step
+async function decodeImage(src) {
+  try { return await createImageBitmap(src, { imageOrientation: "from-image" }); } catch (e) {}
+  try { return await createImageBitmap(src); } catch (e) {}
+  const url = URL.createObjectURL(src);
+  try {
+    const im = new Image(); im.decoding = "async"; im.src = url;
+    await (im.decode ? im.decode() : new Promise((res, rej) => { im.onload = res; im.onerror = rej; }));
+    return im;   // drawImage accepts it like a bitmap; width/height are the natural size
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
 async function makeThumb(src) {
-  const bmp = await createImageBitmap(src, { imageOrientation: "from-image" });
+  const bmp = await decodeImage(src);
   const s = Math.min(1, 480 / Math.min(bmp.width, bmp.height));
   const c = document.createElement("canvas");
   c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
