@@ -588,7 +588,10 @@ async function prefetchView(center, zoom, key = "bytes") {
     if (ty < 0 || ty >= n) continue;
     urls.push(tpl.replace("{z}", tz).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty));
   }
-  return Promise.all(urls.slice(0, 24).map(u => fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).then(b => { LU[key] += b.byteLength; }).catch(() => {})));
+  // a URL already downloaded this session is in the browser cache: skip it, so the KB counters show real downloads
+  // (before 24 Oct 18:55 they also counted re-reads from the cache, e.g. "hazırla" then the press itself)
+  return Promise.all(urls.slice(0, 24).filter(u => !LU.seen.has(u)).map(u => { LU.seen.add(u);
+    return fetch(u, { mode: "cors", credentials: "same-origin" }).then(r => r.arrayBuffer()).then(b => { LU[key] += b.byteLength; }).catch(() => { LU.seen.delete(u); }); }));
 }
 /* ---------- "Üst seviye": jump out by one level instead of pinching through every zoom ----------
    Measured on iPhone: a pinch zoom-out requests every intermediate level and about half the tiles arrive too late
@@ -598,7 +601,7 @@ async function prefetchView(center, zoom, key = "bytes") {
    With "önce indir" it first downloads exactly the target view's tiles (the ones the jump would need anyway, so no
    extra data), waits up to 1.5 s, then jumps: the new view should appear already filled. */
 const LEVELS = [13, 10.5, 8, 5.5, 3.5], LU_MAX = 1000, LU_ANIM = 450, LU_SHORT = 350;
-const LU = { busy: false, bytes: 0, readyBytes: 0, timer: 0 };
+const LU = { busy: false, bytes: 0, readyBytes: 0, timer: 0, seen: new Set() };
 const nextLevel = z => LEVELS.find(l => l < z - 0.25);
 /* Transition modes (24 Oct, iPhone):
    - "zıplama" (jump): download the target view, then cut. No squares, but the cut + wait felt choppy.
