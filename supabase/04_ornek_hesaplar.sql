@@ -31,9 +31,12 @@ begin
             'sample' || u.n || '@mypins.test', '', now(),
             '{"provider":"email","providers":["email"]}', jsonb_build_object('full_name', 'Sample ' || u.n),
             now(), now(), '', '', '', '');
-    -- the profile is created by the existing trigger (username = sample<n>)
-    update public.profiles set visibility = u.vis, bio = 'Test hesabı · test account' where id = uid;
   end loop;
+  -- profile settings: also applied to accounts added by hand (Supabase → Authentication → Add user)
+  update public.profiles p set visibility = v.vis, bio = 'Test hesabı · test account',
+         display_name = case when p.display_name in ('', p.username::text) then 'Sample ' || v.n else p.display_name end
+    from (values (1, 'public'), (2, 'public'), (3, 'public'), (4, 'private'), (5, 'ghost')) as v(n, vis)
+   where p.username = 'sample' || v.n;
 
   -- 2) pins (added only if that account doesn't already have a pin with the same title)
   insert into public.pins (user_id, kind, title, city, country, iso, lat, lon, note)
