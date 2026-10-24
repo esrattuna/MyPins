@@ -1,8 +1,9 @@
 -- =================================================================
 -- MyPins · short bio on the profile card (like an Instagram bio)
--- Adds profiles.tagline (Turkish) and profiles.tagline_en (English).
+-- Adds profiles.tagline (shown exactly as written, in any language; not translated).
+-- profiles.tagline_en is kept unused for now.
 -- The app limits it to 150 characters; the database allows a little more
--- because a translation can come out longer. Visibility and editing rules are
+-- as a safety margin. Visibility and editing rules are
 -- the existing ones for profiles (everyone who can see the profile sees it;
 -- only the owner edits it). Safe to run again; changes no existing data.
 -- =================================================================

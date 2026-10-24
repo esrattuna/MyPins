@@ -1778,7 +1778,7 @@ function profileCard() {
             el("a", { href: "#/people/followers" }, t("followers", S.counts.followers)), " · ",
             el("a", { href: "#/people/following" }, t("following", S.counts.following)))
         : el("span", { class: "pcx-counts", text: t("followers", S.counts.followers) + " · " + t("following", S.counts.following) })));
-  const bio = ((LANG === "en" && o.tagline_en) || o.tagline || "").trim();
+  const bio = (o.tagline || "").trim();   // shown exactly as written, in any language (never translated)
   if (bio) card.append(el("p", { class: "pcx-bio", text: bio }));
   const acts = el("div", { class: "pcx-acts" });
   if (S.canEdit) {
@@ -1822,7 +1822,7 @@ let SETMODE = "account";   // "profile" = Profili düzenle (photo, name, about) 
 function renderSettings() {
   if (!S.me) { body.append(el("div", { class: "empty" }, el("strong", { text: t("settings") }), t("needSignIn"), el("div", { style: "margin-top:12px" }, el("button", { class: "acct-signin", type: "button", onclick: signIn }, googleMark(), t("signIn"))))); return; }
   const prof = SETMODE === "profile";
-  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "", tag = (LANG === "en" && S.me.tagline_en) || S.me.tagline || "";
+  if (!SET) { const about = (LANG === "en" && S.me.bio_en) || S.me.bio || "", tag = S.me.tagline || "";
     SET = { d: { display_name: S.me.display_name, username: S.me.username, about, about0: about, tag, tag0: tag, visibility: S.me.visibility }, busy: false, err: "", msg: "", del: null }; }
   const d = SET.d;
   body.append(el("a", { class: "back", href: "#/u/" + S.me.username }, "← " + t("myMap")));
@@ -1927,15 +1927,7 @@ async function saveSettings() {
   let transFailed = false;
   const about = (d.about || "").trim();
   const tag = (d.tag || "").trim();
-  if (prof && tag !== (d.tag0 || "").trim()) {
-    if (!tag) { upd.tagline = ""; upd.tagline_en = ""; }
-    else {
-      SET.busy = "tr"; render();
-      const pair = await translatePair(tag);
-      if (pair) { upd.tagline = pair.tr; upd.tagline_en = pair.en; } else { upd.tagline = tag; upd.tagline_en = ""; transFailed = true; }
-      SET.busy = true; render();
-    }
-  }
+  if (prof && tag !== (d.tag0 || "").trim()) upd.tagline = tag;   // bio: saved as written, not translated
   if (prof && about !== (d.about0 || "").trim()) {
     if (!about) { upd.bio = ""; upd.bio_en = ""; }
     else {
