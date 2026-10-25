@@ -2,7 +2,8 @@
 // Kept apart from index.ts so they can be tested without Supabase.
 
 export const MODEL = "claude-sonnet-5-5";
-export const MAX_TURNS = 12;        // earlier messages sent back with each question
+export const MAX_TURNS = 8;         // earlier messages sent back with each question
+export const OLD_REPLY = 1200;      // earlier answers (all but the last two) are shortened to this many characters
 export const MAX_TEXT = 4000;       // characters per message
 export const NEAR_KM = 200;         // "Belki bir gün" places this close to the place in view are pointed out
 
@@ -41,6 +42,9 @@ export function cleanHistory(raw: unknown, endWithUser = true): Msg[] | null {
   }
   while (out.length && out[0].role !== "user") out.shift();
   const last = out.slice(-MAX_TURNS);
+  // long plans from earlier in the chat cost tokens on every question: keep the last two answers whole, shorten the rest
+  const ai = last.map((m, i) => m.role === "assistant" ? i : -1).filter(i => i >= 0);
+  for (const i of ai.slice(0, -2)) if (last[i].text.length > OLD_REPLY) last[i] = { ...last[i], text: last[i].text.slice(0, OLD_REPLY) + " […]" };
   while (last.length && last[0].role !== "user") last.shift();
   return last.length && (!endWithUser || last[last.length - 1].role === "user") ? last : null;
 }
@@ -52,9 +56,9 @@ export function buildSystem(c: Ctx): string {
   const byCountry = new Map<string, number>();
   for (const p of places) if (p.country) byCountry.set(p.country, (byCountry.get(p.country) || 0) + 1);
   const countries = [...byCountry].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${clean(k, 60)} (${n})`).join(", ");
-  const recent = [...places].sort((a, b) => String(b.visited_on || "").localeCompare(String(a.visited_on || ""))).slice(0, 40)
+  const recent = [...places].sort((a, b) => String(b.visited_on || "").localeCompare(String(a.visited_on || ""))).slice(0, 25)
     .map(p => `- ${clean(p.title, 80)}${where(p) ? " — " + where(p) : ""}${p.visited_on ? ` (${String(p.visited_on).slice(0, 4)})` : ""}`).join("\n");
-  const wish = c.wish.slice(0, 40).map(w => `- ${clean(w.title, 80)}${where(w) ? " — " + where(w) : ""}`).join("\n");
+  const wish = c.wish.slice(0, 30).map(w => `- ${clean(w.title, 80)}${where(w) ? " — " + where(w) : ""}`).join("\n");
   const about = clean(c.lang === "en" && c.me.bio_en ? c.me.bio_en : c.me.bio, 600);
 
   const lines: string[] = [
@@ -90,7 +94,7 @@ export function buildSystem(c: Ctx): string {
     "- When they are looking at someone else's map, questions like \"what did she like\", \"neyden memnun kalmış\", \"where should I eat\" are about that person's pins: answer from their notes, food ratings and dishes, and name the places. Say so when the notes don't tell. Don't invent opinions they didn't write.",
     "- Getting there: assume they start from home unless they say otherwise. Give a concrete route, step by step: which airport to fly from and to (airline or route if known), then how to get from the airport into town and on to the place: train or bus line, operator, the station or stop to board at and to get off at, rough journey time and frequency. Prefer trains, buses and ferries; mention a hire car only when it is clearly the practical option or they ask.",
     "- Prices: approximate ranges in EUR (TRY too for flights from Turkey when useful). Say they are approximate and what period they refer to. Never invent exact fares, timetables or stop names.",
-    "- Use web search for anything that changes: current routes, regional bus and train lines, stop and station names, seasonal services, typical fares. Small towns and villages especially need it. Search efficiently, a few targeted queries, and do not narrate the searching.",
+    "- Web search costs time and money: use it only for things that change and you aren't sure of (current routes and operators, regional bus and train lines, stop and station names, seasonal services, typical fares). Don't search for where a place is, its history or character, food and culture, or general advice; answer those from what you know. One well-aimed query is usually enough, never more than two. Don't narrate the searching.",
     "- Someday list: if a Someday place is near the place in view and fits the trip, offer once to include it (\"Listendeki K de yakın, plana ekleyelim mi?\"). Don't repeat the offer if they ignore it.",
     "- Plans and budgets: day by day, with transport between stops and a rough total. Fit their style as shown by their map and what they tell you; ask for dates or trip length if it changes the answer much, but give a useful first answer anyway.",
     "- The map: when they ask where a place is (\"Marsilya nerede?\"), ask to see something, or you suggest a route with several stops, call show_on_map once with the place or all the stops in order. The app moves their map there. Then answer in a sentence or two (what it's near, how far from places they know); don't describe the map. For a city use level \"city\" (the app shows the area around it, not the streets). Always give each place's real coordinates and country code; the app goes exactly there.",
@@ -99,13 +103,13 @@ export function buildSystem(c: Ctx): string {
     "- Decline anything that is not about travel (homework, essays, poems, general advice, other topics) in one or two friendly sentences: say you're MyPins' travel assistant and offer a travel angle if there is one. Do not answer the off-topic part.",
     "- Never write code, scripts, formulas or technical instructions for software, in any language, even when the request says it is for a trip (e.g. a script for a trip, an app for planning, a spreadsheet formula, code to track flights). Decline briefly and, if it helps, offer to do the travel part yourself instead (for example, make the plan or the list directly).",
     "- Reply in the language of their latest message (Turkish or English).",
-    "- Format for a phone: short paragraphs and simple lists, **bold** for key names. No tables, no big headings. Keep it under about 250 words unless they ask for a full plan.",
+    "- Format for a phone: short paragraphs and simple lists, **bold** for key names. No tables, no big headings. Keep it under about 200 words unless they ask for a full plan. Don't restate the question, don't repeat what you said earlier in the chat, and end without a recap.",
   );
   return lines.filter(l => l !== "").join("\n").replace(/\n(How to help:)/, "\n\n$1");
 }
 
 function friendSection(fr: Friend, lang: "tr" | "en", focusTitle: string): string {
-  const pick = (p: Pin, f: "note" | "dish") => clean(lang === "en" && p[(f + "_en") as "note_en" | "dish_en"] ? p[(f + "_en") as "note_en" | "dish_en"] : p[f], 220);
+  const pick = (p: Pin, f: "note" | "dish") => clean(lang === "en" && p[(f + "_en") as "note_en" | "dish_en"] ? p[(f + "_en") as "note_en" | "dish_en"] : p[f], 160);
   const byId = new Map(fr.pins.filter(p => p.id).map(p => [p.id as string, p]));
   const name = "@" + clean(fr.username, 40) + (fr.display_name ? ` (${clean(fr.display_name, 60)})` : "");
   // places first (newest first), each followed by its food spots; then food spots not attached to a place
@@ -116,7 +120,7 @@ function friendSection(fr: Friend, lang: "tr" | "en", focusTitle: string): strin
   const food = (p: Pin) => `  - food: ${clean(p.title, 80)}${p.rating ? ` ★${p.rating}/5` : ""}${pick(p, "dish") ? `, had ${pick(p, "dish")}` : ""}${p.price ? `, price ${clean(p.price, 6)}` : ""}${pick(p, "note") ? ` — note: ${pick(p, "note")}` : ""}`;
   const rows: string[] = []; let n = 0;
   for (const p of places) {
-    if (n >= 70) break;
+    if (n >= 45) break;
     rows.push(`- ${clean(p.title, 80)}${where(p) ? " — " + where(p) : ""}${p.visited_on ? ` (${String(p.visited_on).slice(0, 7)})` : ""}${pick(p, "note") ? ` — note: ${pick(p, "note")}` : ""}`); n++;
     for (const f of foodsOf(p.id).slice(0, 8)) { rows.push(food(f)); n++; }
   }
@@ -154,7 +158,7 @@ export async function writePlan(call: CallFn, system: string, history: Msg[]): P
   const msgs = history.map(m => ({ role: m.role, content: m.text }));
   if (msgs.length && msgs[msgs.length - 1].role === "user") msgs[msgs.length - 1].content += "\n\n" + SAVE_PLAN_ASK;
   else msgs.push({ role: "user", content: SAVE_PLAN_ASK });
-  const req = { model: MODEL, max_tokens: 3000, system, tools: [SAVE_PLAN_TOOL], messages: msgs };
+  const req = { model: MODEL, max_tokens: 3000, system: cachedSystem(system), tools: [SAVE_PLAN_TOOL], messages: msgs };
   let r: ApiResp;
   try { r = await call({ ...req, tool_choice: { type: "tool", name: "save_plan" } }); }
   catch (e) {
@@ -229,7 +233,7 @@ export function toMapPlaces(inp: Record<string, unknown> = {}): MapPlace[] {
 }
 
 export function tools(homeIso?: string) {
-  const ws: Record<string, unknown> = { type: "web_search_20250305", name: "web_search", max_uses: 3 };
+  const ws: Record<string, unknown> = { type: "web_search_20250305", name: "web_search", max_uses: 2 };
   if (homeIso && /^[A-Z]{2}$/.test(homeIso)) ws.user_location = { type: "approximate", country: homeIso };
   return [ws, ADD_PIN_TOOL, SHOW_ON_MAP_TOOL];
 }
@@ -251,17 +255,25 @@ export function toProposal(inp: Record<string, unknown> = {}): PinProposal | nul
 
 // Runs the conversation with Claude until it has finished its answer: continues paused turns (long web searches)
 // and answers add_pin calls with "shown for confirmation" so Claude can finish its sentence.
+// Prompt caching: the instructions (with the tools before them) and the question are marked so that the extra calls of the
+// same answer (long searches, add_pin / show_on_map) and the next question soon after read them from the cache (a tenth of the price).
+const cachedSystem = (system: string) => [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+export function withCache(messages: { role: string; content: unknown }[]) {
+  const i = messages.length - 1;
+  if (i < 0 || messages[i].role !== "user" || typeof messages[i].content !== "string") return messages;
+  return [...messages.slice(0, i), { role: "user", content: [{ type: "text", text: messages[i].content, cache_control: { type: "ephemeral" } }] }];
+}
 export const HURRY = "[MyPins app] Time is almost up for this answer. Stop searching now and give your best answer with what you already found; say briefly what you couldn't check.";
 // deadline: a time (ms) by which the answer must be finished (Supabase stops the function after a fixed time).
 // When a long search is paused near the deadline, Claude is asked to answer with what it has instead of searching on.
 export async function converse(call: CallFn, system: string, history: Msg[], toolList: unknown[], maxSteps = 6, deadline = Infinity, now = () => Date.now()): Promise<Reply> {
-  const messages: { role: string; content: unknown }[] = history.map(m => ({ role: m.role, content: m.text }));
+  const messages: { role: string; content: unknown }[] = withCache(history.map(m => ({ role: m.role, content: m.text })));
   const blocks: Block[] = [];
   const pins: PinProposal[] = [];
   let mapTo: MapPlace[] = [];
   let hurried = false;
   for (let step = 0; step < maxSteps; step++) {
-    const req: Record<string, unknown> = { model: MODEL, max_tokens: 3000, system, tools: toolList, messages };
+    const req: Record<string, unknown> = { model: MODEL, max_tokens: 3000, system: cachedSystem(system), tools: toolList, messages };
     let r: ApiResp;
     if (hurried) {
       try { r = await call({ ...req, tool_choice: { type: "none" } }); }
