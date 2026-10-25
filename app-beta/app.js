@@ -59,10 +59,10 @@ const I18N = {
     chatSuggMap: ["En çok nereyi sevmiş?", "Nerede ne yemiş, neyi beğenmiş?", "Haritasından bana uyan yerler hangileri?"],
     pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
     pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
-    pcPlan: "✦ Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
+    pcPlan: "Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
     f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
     planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
-    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "✦ Yeni plan", planNewT: "Yeni plan",
+    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "Yeni plan", planNewT: "Yeni plan",
     chatSuggNew: ["Sicilya'da 7 günlük bir tur planla", "Belki bir gün listemden bir rota çıkar", "İstanbul'dan uzun bir hafta sonu kaçamağı öner"], planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
     planDelQ: "Bu plan silinsin mi?", planDelYes: "Evet, sil", planDeleted: "Plan silindi", planWishQ: t => `${t} Belki bir gün listene de eklensin mi?`,
     planWishAdd: "Listeye ekle", planWishNo: "Hayır", planWishDone: "Belki bir gün listene eklendi", planOfferQ: "Bu yer için yaptığın planı da kaydedelim mi?", planHas: "Planın var",
@@ -128,10 +128,10 @@ const I18N = {
     chatSuggMap: ["Which places did they love most?", "Where did they eat and what did they like?", "Which of their places suit me?"],
     pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
     pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
-    pcPlan: "✦ Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
+    pcPlan: "Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
     f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
     planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
-    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "✦ New plan", planNewT: "New plan",
+    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "New plan", planNewT: "New plan",
     chatSuggNew: ["Plan a 7-day tour of Sicily", "Make a route from my Someday List", "Suggest a long weekend away from Istanbul"], planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
     planDelQ: "Delete this plan?", planDelYes: "Yes, delete", planDeleted: "Plan deleted", planWishQ: t => `Add ${t} to your Someday List too?`,
     planWishAdd: "Add to list", planWishNo: "No", planWishDone: "Added to your Someday List", planOfferQ: "Save the plan you made for this place too?", planHas: "You have a plan",
@@ -1644,7 +1644,7 @@ function paintPlaceCard() {
     return;
   }
   box.append(el("div", { class: "pcm-acts" },
-    el("button", { class: "btn small", type: "button", onclick: () => { if (!c.title.trim()) return; const f = placeFocus({ ...c, title: c.title.trim() }); hidePlaceCard(); openChat(f); } }, t("pcPlan")),
+    el("button", { class: "btn small", type: "button", onclick: () => { if (!c.title.trim()) return; const f = placeFocus({ ...c, title: c.title.trim() }); hidePlaceCard(); openChat(f); } }, spark(), t("pcPlan")),
     on ? el("span", { class: "btn small wish-on pcm-on", text: t("pcWishOn") })
       : el("button", { class: "btn ghost small", type: "button", disabled: c.busy ? "" : null, onclick: () => cardToWish(c) }, t("pcWish"))));
 }
@@ -1806,13 +1806,15 @@ async function openPlan(id) {
   const pl = planById(id), pts = pl ? pl.places.filter(x => typeof x.lat === "number") : [];
   if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: 11 }); else if (pts.length) fitPoints(pts);
 }
+// the Planla spark in the logo's yellow, on the deep-sea buttons
+const spark = () => el("span", { class: "spark", "aria-hidden": "true", text: "✦ " });
 // "Yeni plan": a fresh conversation not tied to a place; each one is its own chat
 function newPlan() { openChat({ kind: "new", id: uid(), label: t("planNewT") }); }
 function renderPlans() {
   if (PLANS.state === "missing") { body.append(el("div", { class: "notice", text: t("planMissing") })); return; }
   if (PLANS.state === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
   if (PLANS.state === "idle") { loadPlans().then(() => { if (S.filter === "plan") render(); }); return; }
-  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small", type: "button", onclick: newPlan }, t("planNew"))));
+  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small", type: "button", onclick: newPlan }, spark(), t("planNew"))));
   if (!PLANS.list.length) { body.append(el("div", { class: "empty", text: t("planEmpty") })); return; }
   const ul = el("ul", { class: "plist" });
   for (const p of PLANS.list) ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openPlan(p.id) },
