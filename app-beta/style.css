@@ -617,3 +617,18 @@ body{font-size:15px;line-height:1.5}
 .plan-places .chip{cursor:pointer;font-size:13px}
 .plan-places .chip:disabled{cursor:default;opacity:.6}
 .plan-body{max-width:100%;margin-bottom:10px}
+
+/* place card: a tapped town / village / island with no pin */
+.pcard-map{position:absolute;z-index:3;top:calc(76px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 32px));background:var(--paper);border-radius:18px;box-shadow:0 6px 22px var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:4px;animation:pcmIn .28s var(--ease)}
+@keyframes pcmIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.pcard-map{animation:none}}
+.pcm-head{display:flex;align-items:center;gap:8px}
+.pcm-name{flex:1;min-width:0;font-family:var(--f-display);font-weight:600;font-size:18px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input.pcm-name{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:5px 9px;font-size:16px}
+input.pcm-name:focus{outline:none;border-color:var(--deep)}
+.pcm-x{border:0;background:none;width:30px;height:30px;border-radius:50%;cursor:pointer;color:var(--muted);flex:none}
+.pcm-x:hover{background:var(--tint)}
+.pcm-where{font-size:13px;color:var(--muted)}
+.pcm-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.pcm-on{cursor:default}
+.pcm-offer{display:flex;flex-direction:column;gap:2px;margin-top:4px;color:var(--deep);font-weight:600;font-size:14px}

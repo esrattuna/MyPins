@@ -10,7 +10,7 @@ export type Msg = { role: "user" | "assistant"; text: string };
 export type Pin = { id?: string; title: string; title_en?: string; city?: string; country?: string; iso?: string; kind?: string; home?: boolean; lat: number; lon: number; visited_on?: string | null; parent_id?: string | null; note?: string; note_en?: string; dish?: string; dish_en?: string; rating?: number; price?: string };
 export type Wish = { title: string; city?: string; country?: string; lat: number; lon: number };
 export type Profile = { username?: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string };
-export type Focus = { kind: "pin" | "wish" | "map" | "plan"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean; plan?: string };
+export type Focus = { kind: "pin" | "wish" | "map" | "plan" | "place"; title: string; city?: string; country?: string; lat: number; lon: number; note?: string; owner?: string; mine: boolean; plan?: string };
 // the map being looked at when it is someone else's: their profile and pins (only what the viewer may see)
 export type Friend = { username: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string; pins: Pin[] };
 export type Ctx = { lang: "tr" | "en"; today: string; me: Profile; pins: Pin[]; wish: Wish[]; focus: Focus | null; friend?: Friend | null };
@@ -77,7 +77,7 @@ export function buildSystem(c: Ctx): string {
   if (c.focus && c.focus.kind !== "map" && c.focus.kind !== "plan") {
     const f = c.focus;
     lines.push(`Place they are looking at now: ${clean(f.title, 100)}${where(f) ? " — " + where(f) : ""} (lat ${f.lat.toFixed(4)}, lon ${f.lon.toFixed(4)})` +
-      (f.kind === "wish" ? ", from their own Someday list." : f.mine ? ", a pin on their own map." : `, a pin on ${f.owner ? "@" + clean(f.owner, 40) + "'s" : "a friend's"} map.`));
+      (f.kind === "wish" ? ", from their own Someday list." : f.kind === "place" ? ", a place they tapped on the map (it isn't pinned on any map they're viewing)." : f.mine ? ", a pin on their own map." : `, a pin on ${f.owner ? "@" + clean(f.owner, 40) + "'s" : "a friend's"} map.`));
     if (f.note) lines.push(`Note on that pin: ${clean(f.note, 400)}`);
     const near = c.wish.filter(w => !(f.kind === "wish" && w.lat === f.lat && w.lon === f.lon))
       .map(w => ({ w, d: kmBetween(f, w) })).filter(x => x.d <= NEAR_KM).sort((a, b) => a.d - b.d).slice(0, 6);

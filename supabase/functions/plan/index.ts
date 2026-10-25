@@ -10,7 +10,8 @@
 //             "left": <questions left today> }
 //           With "mode": "save_plan" the conversation (which may end with the assistant) is turned into a plan instead:
 //           { "plan": { "title", "body", "places": [{ title, city, country }] }, "left": n }. Uses one question.
-//           focus may also be { "kind": "plan", "id": "<plans.id>" }: continuing a saved plan.
+//           focus may also be { "kind": "plan", "id": "<plans.id>" }: continuing a saved plan,
+//           or { "kind": "place", "id": "<lat,lon>", "title", "city", "country", "lat", "lon" }: a place tapped on the map (no pin).
 //           errors: { "error": "limit" | "no_key" | "no_limit_table" | "bad_request" | "upstream" | ... }
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildSystem, cleanHistory, converse, tools, writePlan, type Ctx, type Focus, type Friend } from "./lib.ts";
@@ -28,7 +29,7 @@ const FRIEND_COLS = "id,kind,home,title,city,country,lat,lon,visited_on,note,not
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  let body: { messages?: unknown; lang?: string; mode?: string; focus?: { kind?: string; id?: string } | null };
+  let body: { messages?: unknown; lang?: string; mode?: string; focus?: { kind?: string; id?: string; title?: string; city?: string; country?: string; lat?: number; lon?: number } | null };
   try { body = await req.json(); } catch (_) { return json({ error: "bad_json" }, 400); }
   const saving = body.mode === "save_plan";
   const history = cleanHistory(body.messages, !saving);
@@ -74,6 +75,8 @@ export async function handle(req: Request): Promise<Response> {
   } else if (f && typeof f.id === "string" && f.kind === "wish") {
     const w = (wish.data || []).find(x => x.id === f.id);
     if (w) focus = { kind: "wish", title: w.title, city: w.city, country: w.country, lat: w.lat, lon: w.lon, mine: true };
+  } else if (f && f.kind === "place" && Number.isFinite(f.lat) && Number.isFinite(f.lon) && Math.abs(f.lat!) <= 90 && Math.abs(f.lon!) <= 180) {
+    focus = { kind: "place", title: String(f.title ?? "").slice(0, 120), city: String(f.city ?? "").slice(0, 80), country: String(f.country ?? "").slice(0, 80), lat: f.lat!, lon: f.lon!, mine: true };
   } else if (f && typeof f.id === "string" && f.kind === "plan") {
     const { data: pl } = await sb.from("plans").select("title,body,places").eq("id", f.id).maybeSingle();
     if (pl) {
