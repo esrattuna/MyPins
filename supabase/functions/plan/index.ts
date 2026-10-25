@@ -7,6 +7,7 @@
 // Request:  POST { "messages": [{ "role": "user"|"assistant", "text": "..." }, ...],
 //                  "lang": "tr"|"en", "focus": { "kind": "pin"|"wish", "id": "..." } | { "kind": "map", "id": "<username>" } | null }
 // Response: { "text": "...", "sources": [{ "url", "title" }], "pins": [{ title, city, country, kind, date, note, search }],
+//             "map": [{ title, city, country, level }] (places to show on the map: "Marsilya nerede?", a route's stops),
 //             "left": <questions left today> }
 //           With "mode": "save_plan" the conversation (which may end with the assistant) is turned into a plan instead:
 //           { "plan": { "title", "body", "places": [{ title, city, country }] }, "left": n }. Uses one question.
@@ -128,7 +129,7 @@ export async function handle(req: Request): Promise<Response> {
       return plan ? json({ plan, left }) : json({ error: "empty" }, 502);
     }
     const reply = await converse(call, buildSystem(ctx), history, tools(home?.iso || undefined), 6, deadline);
-    if (!reply.text && !reply.pins.length) return json({ error: "empty" }, 502);
+    if (!reply.text && !reply.pins.length && !reply.map.length) return json({ error: "empty" }, 502);
     return json({ ...reply, left });
   } catch (e) {
     const err = e as { status?: number; detail?: string };

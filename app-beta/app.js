@@ -53,14 +53,14 @@ const I18N = {
     askPlace: "✦ Bu yerle ilgili sor", askWish: "✦ Planla", askTop: "Planla", chatT: "Planla", chatBack: "Haritaya dön", chatNew: "Yeni sohbet",
     chatPh: "Bir şey sor…", chatSend: "Gönder", chatThinking: "Bakıyorum…", chatCtxOff: "Bu yeri sohbetten çıkar",
     chatErr: "Cevap alınamadı. Tekrar dene.", chatTimeout: "Bu soru çok uzun sürdü. Daha küçük parçalar halinde sormayı dene (örneğin önce rota, sonra günler).", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
-    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
+    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, mapRoute: n => `Rotayı haritada göster (${n} durak)`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
     chatSuggPlace: ["Buraya nasıl giderim?", "Yakınında listemden neresi var?", "Burası için 3 günlük plan çıkar"],
     chatSuggFree: ["Belki bir gün listemden bir rota çıkar", "Gittiğim bir yeri haritama ekle", "Bütçe dostu bir hafta sonu öner"],
     chatSuggMap: ["En çok nereyi sevmiş?", "Nerede ne yemiş, neyi beğenmiş?", "Haritasından bana uyan yerler hangileri?"],
     pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
     pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
     pcPlan: "Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
-    f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
+    f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi · sadece sen görürsün", planPrivate: "Sadece sen görürsün", planUpdated: "Plan güncellendi",
     planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
     planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "Yeni plan", planNewT: "Yeni plan",
     chatSuggNew: ["Sicilya'da 7 günlük bir tur planla", "Belki bir gün listemden bir rota çıkar", "İstanbul'dan uzun bir hafta sonu kaçamağı öner"], planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
@@ -122,14 +122,14 @@ const I18N = {
     askPlace: "✦ Ask about this place", askWish: "✦ Plan", askTop: "Plan", chatT: "Plan", chatBack: "Back to the map", chatNew: "New chat",
     chatPh: "Ask something…", chatSend: "Send", chatThinking: "Looking into it…", chatCtxOff: "Remove this place from the chat",
     chatErr: "No answer came back. Try again.", chatTimeout: "This one took too long. Try asking in smaller steps (the route first, then the days).", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
-    chatLeft: n => `${n} questions left today.`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
+    chatLeft: n => `${n} questions left today.`, mapRoute: n => `Show the route on the map (${n} stops)`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
     chatSuggPlace: ["How do I get here?", "What's near here from my list?", "Plan 3 days around here"],
     chatSuggFree: ["Make a route from my Someday List", "Add a place I've been to my map", "Suggest a budget weekend"],
     chatSuggMap: ["Which places did they love most?", "Where did they eat and what did they like?", "Which of their places suit me?"],
     pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
     pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
     pcPlan: "Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
-    f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
+    f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans · only you can see it", planPrivate: "Only you can see this", planUpdated: "Plan updated",
     planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
     planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "New plan", planNewT: "New plan",
     chatSuggNew: ["Plan a 7-day tour of Sicily", "Make a route from my Someday List", "Suggest a long weekend away from Istanbul"], planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
@@ -655,7 +655,8 @@ function renderList() {
   for (const [k, lab] of [["yer", t("f_yer")], ["wish", t("f_wish")], S.canEdit && S.me ? ["plan", t("f_plan")] : null].filter(Boolean)) {
     const ic = el("span", { class: "tab-ic", "aria-hidden": "true" });
     ic.innerHTML = TAB_ICON[k];
-    tabs.append(el("button", { class: "tab", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
+    if (k === "plan") ic.append(el("span", { class: "tab-lock", text: "🔒" }));
+    tabs.append(el("button", { class: "tab", type: "button", title: k === "plan" ? t("planPrivate") : null, "aria-label": k === "plan" ? lab + " · " + t("planPrivate") : null, "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
       ic, el("span", { class: "tab-t", text: lab })));
   }
   body.append(tabs);
@@ -1480,6 +1481,8 @@ function paintChat() {
     if (m.role === "user") { log.append(el("div", { class: "msg me", text: m.text })); return; }
     if (m.role === "note") { log.append(planNote(m)); return; }
     const b = el("div", { class: "msg ai" }, mdNodes(m.text || ""));
+    if (m.map && m.map.length) b.append(el("div", { class: "map-chips" }, el("button", { class: "chip", type: "button", onclick: () => showMapPlaces(m.map) },
+      "◎ " + (m.map.length === 1 ? m.map[0].title : t("mapRoute", m.map.length)))));
     (m.pins || []).forEach((p, pi) => b.append(pinCard(p, mi, pi)));
     if (m.sources && m.sources.length) b.append(el("details", { class: "chat-src" }, el("summary", { text: t("chatSources") + " (" + m.sources.length + ")" }),
       el("ul", {}, m.sources.map(x => el("li", {}, el("a", { href: x.url, target: "_blank", rel: "noopener noreferrer", text: x.title }))))));
@@ -1538,8 +1541,10 @@ async function chatAsk() {
   CHAT.busy = false;
   const here = key === chatKey(CHAT.focus);
   if (data && (data.text || (data.pins && data.pins.length))) {
-    thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
+    const mapTo = (data.map || []).map(x => ({ ...x }));
+    thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })), map: mapTo });
     if (typeof data.left === "number") CHAT.left = data.left;
+    if (mapTo.length && here) showMapPlaces(mapTo);       // "Marsilya nerede?": the map goes there
   } else if (here) {
     CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady")
       : code === "timeout" ? t("chatTimeout") : t("chatErr");
@@ -1548,6 +1553,20 @@ async function chatAsk() {
   }
   chatSave(); paintChat();
   if (!here && data) toast(t("chatAnswered", (CHAT.threads[key] && CHAT.threads[key].focus && CHAT.threads[key].focus.label) || t("chatT")));
+}
+
+// The assistant's show_on_map: places are found with Photon (once; kept in the chat) and the map flies there.
+// A city is shown with the area around it, not its streets; several places are framed together.
+const LEVEL_ZOOM = { country: 5, region: 7, city: 8.5, town: 10.5, spot: 13 };
+async function showMapPlaces(list) {
+  for (const p of list) if (!p.at && !p.nf) { const at = await geocode([p.title, p.city, p.country].filter(Boolean).join(", ")); if (at) p.at = at; else p.nf = true; }
+  chatSave();
+  const pts = list.filter(p => p.at).map(p => ({ lon: p.at.lon, lat: p.at.lat, level: p.level }));
+  if (!pts.length) { toast(t("pinCardNF")); return; }
+  if (narrowView() && panel.classList.contains("tall")) setSheet("");    // let the map show above the sheet
+  if (!mapReady) return;
+  if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: LEVEL_ZOOM[pts[0].level] || 8.5 });
+  else fitPoints(pts);
 }
 
 // a place the assistant prepared: found on the map with Photon, then added through the usual form (so it can be checked)
