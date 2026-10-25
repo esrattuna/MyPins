@@ -62,7 +62,7 @@ const I18N = {
     pcPlan: "✦ Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
     f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
     planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
-    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "+ Yeni plan", planNewT: "Yeni plan",
+    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "Yeni plan", planNewT: "Yeni plan",
     chatSuggNew: ["Sicilya'da 7 günlük bir tur planla", "Belki bir gün listemden bir rota çıkar", "İstanbul'dan uzun bir hafta sonu kaçamağı öner"], planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
     planDelQ: "Bu plan silinsin mi?", planDelYes: "Evet, sil", planDeleted: "Plan silindi", planWishQ: t => `${t} Belki bir gün listene de eklensin mi?`,
     planWishAdd: "Listeye ekle", planWishNo: "Hayır", planWishDone: "Belki bir gün listene eklendi", planOfferQ: "Bu yer için yaptığın planı da kaydedelim mi?", planHas: "Planın var",
@@ -131,7 +131,7 @@ const I18N = {
     pcPlan: "✦ Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
     f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
     planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
-    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "+ New plan", planNewT: "New plan",
+    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "New plan", planNewT: "New plan",
     chatSuggNew: ["Plan a 7-day tour of Sicily", "Make a route from my Someday List", "Suggest a long weekend away from Istanbul"], planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
     planDelQ: "Delete this plan?", planDelYes: "Yes, delete", planDeleted: "Plan deleted", planWishQ: t => `Add ${t} to your Someday List too?`,
     planWishAdd: "Add to list", planWishNo: "No", planWishDone: "Added to your Someday List", planOfferQ: "Save the plan you made for this place too?", planHas: "You have a plan",
@@ -1806,13 +1806,16 @@ async function openPlan(id) {
   const pl = planById(id), pts = pl ? pl.places.filter(x => typeof x.lat === "number") : [];
   if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: 11 }); else if (pts.length) fitPoints(pts);
 }
-// "+ Yeni plan": a fresh conversation not tied to a place; each one is its own chat
+// the Planla mark (same as the top button): a chat bubble with a yellow spark
+const AI_LOGO = '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16h.5A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 6.8l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z" fill="#f4e08c"/></svg>';
+// "Yeni plan": a fresh conversation not tied to a place; each one is its own chat
 function newPlan() { openChat({ kind: "new", id: uid(), label: t("planNewT") }); }
 function renderPlans() {
   if (PLANS.state === "missing") { body.append(el("div", { class: "notice", text: t("planMissing") })); return; }
   if (PLANS.state === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
   if (PLANS.state === "idle") { loadPlans().then(() => { if (S.filter === "plan") render(); }); return; }
-  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small", type: "button", onclick: newPlan }, t("planNew"))));
+  const logo = el("span", { class: "ai-logo", "aria-hidden": "true" }); logo.innerHTML = AI_LOGO;
+  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small btn-ai", type: "button", onclick: newPlan }, logo, t("planNew"))));
   if (!PLANS.list.length) { body.append(el("div", { class: "empty", text: t("planEmpty") })); return; }
   const ul = el("ul", { class: "plist" });
   for (const p of PLANS.list) ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openPlan(p.id) },

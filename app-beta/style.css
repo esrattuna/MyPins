@@ -632,3 +632,5 @@ input.pcm-name:focus{outline:none;border-color:var(--deep)}
 .pcm-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .pcm-on{cursor:default}
 .pcm-offer{display:flex;flex-direction:column;gap:2px;margin-top:4px;color:var(--deep);font-weight:600;font-size:14px}
+.btn-ai{display:inline-flex;align-items:center;gap:7px}
+.ai-logo{display:inline-flex;line-height:0}
