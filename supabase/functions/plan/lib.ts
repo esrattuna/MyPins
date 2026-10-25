@@ -15,7 +15,7 @@ export type Focus = { kind: "pin" | "wish" | "map" | "plan" | "place"; title: st
 export type Friend = { username: string; display_name?: string; tagline?: string; bio?: string; bio_en?: string; pins: Pin[] };
 export type Ctx = { lang: "tr" | "en"; today: string; me: Profile; pins: Pin[]; wish: Wish[]; focus: Focus | null; friend?: Friend | null };
 export type PinProposal = { title: string; city?: string; country?: string; kind: "yer" | "yemek"; date?: string; note?: string; search: string };
-export type MapPlace = { title: string; city?: string; country?: string; level: "country" | "region" | "city" | "town" | "spot" };
+export type MapPlace = { title: string; city?: string; country?: string; level: "country" | "region" | "city" | "town" | "spot"; lat?: number; lon?: number; cc?: string };
 export type Reply = { text: string; sources: { url: string; title: string }[]; pins: PinProposal[]; map: MapPlace[] };
 
 export const kmBetween = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => {
@@ -93,7 +93,7 @@ export function buildSystem(c: Ctx): string {
     "- Use web search for anything that changes: current routes, regional bus and train lines, stop and station names, seasonal services, typical fares. Small towns and villages especially need it. Search efficiently, a few targeted queries, and do not narrate the searching.",
     "- Someday list: if a Someday place is near the place in view and fits the trip, offer once to include it (\"Listendeki K de yakın, plana ekleyelim mi?\"). Don't repeat the offer if they ignore it.",
     "- Plans and budgets: day by day, with transport between stops and a rough total. Fit their style as shown by their map and what they tell you; ask for dates or trip length if it changes the answer much, but give a useful first answer anyway.",
-    "- The map: when they ask where a place is (\"Marsilya nerede?\"), ask to see something, or you suggest a route with several stops, call show_on_map once with the place or all the stops in order. The app moves their map there. Then answer in a sentence or two (what it's near, how far from places they know); don't describe the map. For a city use level \"city\" (the app shows the area around it, not the streets).",
+    "- The map: when they ask where a place is (\"Marsilya nerede?\"), ask to see something, or you suggest a route with several stops, call show_on_map once with the place or all the stops in order. The app moves their map there. Then answer in a sentence or two (what it's near, how far from places they know); don't describe the map. For a city use level \"city\" (the app shows the area around it, not the streets). Always give each place's real coordinates and country code; the app goes exactly there.",
     "- Adding to their map: when they say they've been somewhere or ask you to add a place, call add_pin once per place. The app shows them a card to confirm; nothing is added until they confirm. Never say it has been added; say it is ready for them to confirm. Use the place's real name; you don't need coordinates.",
     "- Scope: you only help with travel. That is generous: getting there and around, where to stay, food and drink, shopping (vintage shops, markets, crafts), what to see and do, weather and seasons, visas and documents, budgets and money, packing and what to wear, safety, local customs, language phrases, the history and culture of a place, books or films about it, and their own map, list and plans. When a question could be read either way, read it as travel and answer it that way.",
     "- Decline anything that is not about travel (homework, essays, poems, general advice, other topics) in one or two friendly sentences: say you're MyPins' travel assistant and offer a travel angle if there is one. Do not answer the off-topic part.",
@@ -200,11 +200,14 @@ export const SHOW_ON_MAP_TOOL = {
         items: {
           type: "object",
           properties: {
-            title: { type: "string", description: "Name of the place, e.g. 'Marseille' or 'Calanques National Park'." },
+            title: { type: "string", description: "Name of the place in the user's language, e.g. 'Marsilya' or 'Calanques Ulusal Parkı'." },
             city: { type: "string" }, country: { type: "string" },
+            lat: { type: "number", description: "Latitude of the place's centre (decimal degrees), e.g. 43.2965 for Marseille." },
+            lon: { type: "number", description: "Longitude of the place's centre (decimal degrees), e.g. 5.3698 for Marseille." },
+            country_code: { type: "string", description: "Two-letter ISO country code, e.g. 'FR'." },
             level: { type: "string", enum: ["country", "region", "city", "town", "spot"], description: "What it is: a country, a region or island, a city, a town or village, or a single spot (sight, beach, restaurant)." },
           },
-          required: ["title", "level"],
+          required: ["title", "level", "lat", "lon", "country_code"],
         },
       },
     },
@@ -213,10 +216,16 @@ export const SHOW_ON_MAP_TOOL = {
 };
 const LEVELS = new Set(["country", "region", "city", "town", "spot"]);
 export function toMapPlaces(inp: Record<string, unknown> = {}): MapPlace[] {
-  return (Array.isArray(inp.places) ? inp.places : []).slice(0, 12).map((p: Record<string, unknown>) => ({
-    title: clean(p && p.title, 120), city: clean(p && p.city, 80) || undefined, country: clean(p && p.country, 80) || undefined,
-    level: (LEVELS.has(String(p && p.level)) ? String(p.level) : "city") as MapPlace["level"],
-  })).filter(p => p.title);
+  const num = (v: unknown, max: number) => { const n = Number(v); return v !== null && v !== "" && Number.isFinite(n) && Math.abs(n) <= max ? n : undefined; };
+  return (Array.isArray(inp.places) ? inp.places : []).slice(0, 12).map((p: Record<string, unknown>) => {
+    const lat = num(p && p.lat, 90), lon = num(p && p.lon, 180), cc = String((p && p.country_code) ?? "").toUpperCase();
+    return {
+      title: clean(p && p.title, 120), city: clean(p && p.city, 80) || undefined, country: clean(p && p.country, 80) || undefined,
+      level: (LEVELS.has(String(p && p.level)) ? String(p.level) : "city") as MapPlace["level"],
+      ...(lat !== undefined && lon !== undefined && !(lat === 0 && lon === 0) ? { lat, lon } : {}),
+      ...(/^[A-Z]{2}$/.test(cc) ? { cc } : {}),
+    };
+  }).filter(p => p.title);
 }
 
 export function tools(homeIso?: string) {

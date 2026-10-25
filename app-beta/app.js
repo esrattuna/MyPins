@@ -1559,14 +1559,45 @@ async function chatAsk() {
 // A city is shown with the area around it, not its streets; several places are framed together.
 const LEVEL_ZOOM = { country: 5, region: 7, city: 8.5, town: 10.5, spot: 13 };
 async function showMapPlaces(list) {
-  for (const p of list) if (!p.at && !p.nf) { const at = await geocode([p.title, p.city, p.country].filter(Boolean).join(", ")); if (at) p.at = at; else p.nf = true; }
+  for (const p of list) {
+    if (p.at || p.nf) continue;
+    if (typeof p.lat === "number" && typeof p.lon === "number") { p.at = { lon: p.lon, lat: p.lat }; continue; }   // the assistant's coordinates: exact
+    const at = await geocodeIn([p.title, p.city, p.country].filter(Boolean).join(", "), p.cc);
+    if (at) p.at = at; else p.nf = true;
+  }
   chatSave();
   const pts = list.filter(p => p.at).map(p => ({ lon: p.at.lon, lat: p.at.lat, level: p.level }));
   if (!pts.length) { toast(t("pinCardNF")); return; }
   if (narrowView() && panel.classList.contains("tall")) setSheet("");    // let the map show above the sheet
   if (!mapReady) return;
-  if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: LEVEL_ZOOM[pts[0].level] || 8.5 });
-  else fitPoints(pts);
+  if (pts.length === 1) softFly([pts[0].lon, pts[0].lat], LEVEL_ZOOM[pts[0].level] || 8.5);
+  else softFit(pts);
+}
+// search by name, keeping only results in the given country (a Turkish name like "Marsilya" can match a town elsewhere)
+async function geocodeIn(q, cc) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=${LANG === "en" ? "en" : "default"}`, { signal: ctl.signal });
+    const f = ((await r.json()).features || []).find(f => !cc || String((f.properties || {}).countrycode || "").toUpperCase() === cc);
+    return f ? { lon: +f.geometry.coordinates[0].toFixed(5), lat: +f.geometry.coordinates[1].toFixed(5) } : null;
+  } catch (e) { return null; } finally { clearTimeout(tm); }
+}
+// slow, soft flights for the chat: longer the farther it goes (about 3 s from Istanbul to Marseille)
+const easeInOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+function flightMs(lon, lat) {
+  const c = map.getCenter ? map.getCenter() : null;
+  const km = c ? d3.geoDistance([c.lng, c.lat], [lon, lat]) * 6371 : 1500;
+  return Math.round(Math.min(5000, Math.max(2200, 1800 + km * 0.6)));
+}
+function softFly(center, zoom) {
+  if (reducedMotion()) { map.jumpTo({ center, zoom, padding: mapPadding() }); return; }
+  prefetchView(center, zoom);
+  map.flyTo({ center, zoom, padding: mapPadding(), duration: flightMs(center[0], center[1]), curve: 1.2, easing: easeInOut, essential: true });
+}
+function softFit(pts) {
+  const b = new maplibregl.LngLatBounds(); pts.forEach(r => b.extend([r.lon, r.lat]));
+  const mid = pts.reduce((a, r) => [a[0] + r.lon / pts.length, a[1] + r.lat / pts.length], [0, 0]);
+  map.fitBounds(b, { padding: mapPadding(), maxZoom: 10, duration: reducedMotion() ? 0 : flightMs(mid[0], mid[1]), easing: easeInOut, essential: true });
 }
 
 // a place the assistant prepared: found on the map with Photon, then added through the usual form (so it can be checked)
