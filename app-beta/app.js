@@ -62,7 +62,8 @@ const I18N = {
     pcPlan: "✦ Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
     f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
     planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
-    planEmpty: "Henüz plan yok. Planla sohbetlerinden kaydedebilirsin.", planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
+    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "+ Yeni plan", planNewT: "Yeni plan",
+    chatSuggNew: ["Sicilya'da 7 günlük bir tur planla", "Belki bir gün listemden bir rota çıkar", "İstanbul'dan uzun bir hafta sonu kaçamağı öner"], planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
     planDelQ: "Bu plan silinsin mi?", planDelYes: "Evet, sil", planDeleted: "Plan silindi", planWishQ: t => `${t} Belki bir gün listene de eklensin mi?`,
     planWishAdd: "Listeye ekle", planWishNo: "Hayır", planWishDone: "Belki bir gün listene eklendi", planOfferQ: "Bu yer için yaptığın planı da kaydedelim mi?", planHas: "Planın var",
     wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
@@ -130,7 +131,8 @@ const I18N = {
     pcPlan: "✦ Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
     f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
     planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
-    planEmpty: "No plans yet. Save one from a Plan chat.", planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
+    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "+ New plan", planNewT: "New plan",
+    chatSuggNew: ["Plan a 7-day tour of Sicily", "Make a route from my Someday List", "Suggest a long weekend away from Istanbul"], planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
     planDelQ: "Delete this plan?", planDelYes: "Yes, delete", planDeleted: "Plan deleted", planWishQ: t => `Add ${t} to your Someday List too?`,
     planWishAdd: "Add to list", planWishNo: "No", planWishDone: "Added to your Someday List", planOfferQ: "Save the plan you made for this place too?", planHas: "You have a plan",
     wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
@@ -1451,7 +1453,7 @@ function renderChat() {
     el("button", { class: "back", type: "button", onclick: closeChat }, "← " + t("chatBack")),
     CHAT.msgs.length ? el("button", { class: "linkbtn", type: "button", onclick: () => { CHAT.msgs = []; CHAT.err = ""; chatSave(); render(); } }, t("chatNew")) : null);
   body.append(top, el("h2", { class: "d-title chat-h" }, el("span", { class: "chat-spark", "aria-hidden": "true", text: "✦" }), t("chatT")));
-  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: (CHAT.focus.kind === "map" ? "🗺️ " : CHAT.focus.kind === "wish" ? "☆ " : CHAT.focus.kind === "plan" ? "📝 " : CHAT.focus.kind === "place" ? "◎ " : "📍 ") + CHAT.focus.label }),
+  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: (CHAT.focus.kind === "map" ? "🗺️ " : CHAT.focus.kind === "wish" ? "☆ " : CHAT.focus.kind === "plan" || CHAT.focus.kind === "new" ? "📝 " : CHAT.focus.kind === "place" ? "◎ " : "📍 ") + CHAT.focus.label }),
     el("button", { type: "button", class: "chat-ctx-x", "aria-label": t("chatCtxOff"), title: t("chatCtxOff"), onclick: () => { chatSwitch(null); chatSave(); render(); } }, "✕")));
   body.append(el("div", { class: "chat-log", id: "chat-log", "aria-live": "polite" }));
   const ta = el("textarea", { id: "chat-in", rows: "1", maxlength: "2000", placeholder: t("chatPh"), enterkeyhint: "send",
@@ -1469,7 +1471,7 @@ function paintChat() {
   const log = $("#chat-log"); if (!log) return;
   log.replaceChildren();
   if (!CHAT.msgs.length && CHAT.busy !== chatKey(CHAT.focus)) {
-    const sugg = !CHAT.focus ? t("chatSuggFree") : CHAT.focus.kind === "map" ? t("chatSuggMap") : t("chatSuggPlace");
+    const sugg = !CHAT.focus ? t("chatSuggFree") : CHAT.focus.kind === "map" ? t("chatSuggMap") : CHAT.focus.kind === "new" ? t("chatSuggNew") : t("chatSuggPlace");
     log.append(el("div", { class: "chat-sugg" }, sugg.map(q => el("button", { class: "chip", type: "button", onclick: () => chatSend(q) }, q))));
   }
   const key = chatKey(CHAT.focus);
@@ -1607,6 +1609,7 @@ const placeFocus = c => ({ kind: "place", id: c.lat.toFixed(4) + "," + c.lon.toF
 function focusPayload(f) {
   if (!f) return null;
   if (f.kind === "place") return { kind: "place", id: f.id, title: f.label, city: f.city || "", country: f.country || "", lat: f.lat, lon: f.lon };
+  if (f.kind === "new") return null;                    // a new plan: no place, the conversation says it all
   return { kind: f.kind, id: f.id };
 }
 function showPlaceCard(coords, title, edit) {
@@ -1803,10 +1806,13 @@ async function openPlan(id) {
   const pl = planById(id), pts = pl ? pl.places.filter(x => typeof x.lat === "number") : [];
   if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: 11 }); else if (pts.length) fitPoints(pts);
 }
+// "+ Yeni plan": a fresh conversation not tied to a place; each one is its own chat
+function newPlan() { openChat({ kind: "new", id: uid(), label: t("planNewT") }); }
 function renderPlans() {
   if (PLANS.state === "missing") { body.append(el("div", { class: "notice", text: t("planMissing") })); return; }
   if (PLANS.state === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
   if (PLANS.state === "idle") { loadPlans().then(() => { if (S.filter === "plan") render(); }); return; }
+  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small", type: "button", onclick: newPlan }, t("planNew"))));
   if (!PLANS.list.length) { body.append(el("div", { class: "empty", text: t("planEmpty") })); return; }
   const ul = el("ul", { class: "plist" });
   for (const p of PLANS.list) ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openPlan(p.id) },
