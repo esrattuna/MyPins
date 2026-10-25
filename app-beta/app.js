@@ -60,7 +60,7 @@ const I18N = {
     pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
     pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
     f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
-    planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
+    planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
     planEmpty: "Henüz plan yok. Planla sohbetlerinden kaydedebilirsin.", planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
     planDelQ: "Bu plan silinsin mi?", planDelYes: "Evet, sil", planDeleted: "Plan silindi", planWishQ: t => `${t} Belki bir gün listene de eklensin mi?`,
     planWishAdd: "Listeye ekle", planWishNo: "Hayır", planWishDone: "Belki bir gün listene eklendi", planOfferQ: "Bu yer için yaptığın planı da kaydedelim mi?", planHas: "Planın var",
@@ -127,7 +127,7 @@ const I18N = {
     pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
     pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
     f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
-    planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planMissing: "My Plans isn't set up yet (database update pending).",
+    planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
     planEmpty: "No plans yet. Save one from a Plan chat.", planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
     planDelQ: "Delete this plan?", planDelYes: "Yes, delete", planDeleted: "Plan deleted", planWishQ: t => `Add ${t} to your Someday List too?`,
     planWishAdd: "Add to list", planWishNo: "No", planWishDone: "Added to your Someday List", planOfferQ: "Save the plan you made for this place too?", planHas: "You have a plan",
@@ -1610,7 +1610,8 @@ async function savePlanFromThread(key) {
     let code = "";
     if (r.error) { try { code = (await r.error.context.json()).error || ""; } catch (e) {} }
     const plan = !r.error && r.data && r.data.plan;
-    if (!plan) { if (code === "limit") CHAT.left = 0; throw new Error(code || "plan"); }
+    // the older function (before "Planlarım") answers a save request with a normal reply or bad_request
+    if (!plan) { if (code === "limit") CHAT.left = 0; throw new Error(code || (r.data && r.data.text ? "old_function" : "plan")); }
     if (typeof r.data.left === "number") CHAT.left = r.data.left;
     const places = [];
     for (const x of plan.places || []) places.push({ ...x, ...(await geocode([x.title, x.city, x.country].filter(Boolean).join(", ")) || {}) });
@@ -1620,7 +1621,7 @@ async function savePlanFromThread(key) {
     const existing = focus && focus.kind === "plan" && planById(focus.id) ? focus.id : planIdOf(msgs);
     const q = existing ? sb.from("plans").update(row).eq("id", existing).select("*").single() : sb.from("plans").insert(row).select("*").single();
     const { data, error } = await q;
-    if (error) throw error;
+    if (error) throw new Error(planTableMissing(error) ? "no_table" : "db");
     PLANS.list = [data, ...PLANS.list.filter(p => p.id !== data.id)]; PLANS.state = "ok";
     const note = { role: "note", planId: data.id, text: existing ? t("planUpdated") : t("planSaved") };
     // a place on someone's map that isn't on my list yet: offer to add it too
@@ -1628,7 +1629,9 @@ async function savePlanFromThread(key) {
     msgs.push(note); ok = true;
   } catch (e) {
     console.error(e);
-    msgs.push({ role: "note", text: e && e.message === "limit" ? t("chatLimit") : t("planErr"), failed: true });
+    const why = e && e.message;
+    msgs.push({ role: "note", failed: true, text: why === "limit" ? t("chatLimit") : why === "no_table" ? t("planMissing")
+      : why === "bad_request" || why === "old_function" ? t("planOldFn") : t("planErr") + (why && why !== "plan" ? ` (${why})` : "") });
   } finally {
     PLANSAVE.delete(key); chatSave();
     if (S.panelMode === "chat") paintChat(); else if (S.filter === "plan" || S.view === "plan") render();
