@@ -52,16 +52,18 @@ const I18N = {
     wishAddedT: "Belki bir gün listene eklendi", wishRemovedT: "Listeden çıkarıldı", wishWentT: "Haritana eklendi",
     askPlace: "✦ Bu yerle ilgili sor", askWish: "✦ Planla", askTop: "Planla", chatT: "Planla", chatBack: "Haritaya dön", chatNew: "Yeni sohbet",
     chatPh: "Bir şey sor…", chatSend: "Gönder", chatThinking: "Bakıyorum…", chatCtxOff: "Bu yeri sohbetten çıkar",
-    chatErr: "Cevap alınamadı. Tekrar dene.", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
-    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
+    chatErr: "Cevap alınamadı. Tekrar dene.", chatTimeout: "Bu soru çok uzun sürdü. Daha küçük parçalar halinde sormayı dene (örneğin önce rota, sonra günler).", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
+    chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, mapRoute: n => `Rotayı haritada göster (${n} durak)`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
     chatSuggPlace: ["Buraya nasıl giderim?", "Yakınında listemden neresi var?", "Burası için 3 günlük plan çıkar"],
     chatSuggFree: ["Belki bir gün listemden bir rota çıkar", "Gittiğim bir yeri haritama ekle", "Bütçe dostu bir hafta sonu öner"],
     chatSuggMap: ["En çok nereyi sevmiş?", "Nerede ne yemiş, neyi beğenmiş?", "Haritasından bana uyan yerler hangileri?"],
     pinCardT: "Haritana eklensin mi?", pinCardAdd: "Ekle", pinCardSee: "Haritada gör", pinCardSkip: "Vazgeç", pinCardFinding: "Haritada aranıyor…",
     pinCardNF: "Haritada bulunamadı.", pinCardPick: "Yeri kendim seçeyim", pinCardSkipped: "Eklenmedi", pinCardOpened: "Ekleme formu açıldı",
-    f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi", planUpdated: "Plan güncellendi",
+    pcPlan: "Planla", pcWish: "☆ Belki bir gün", pcWishOn: "Belki bir gün ✓", pcClose: "Kapat", pcName: "Yerin adı", pcPlanQ: "Bu yer için yaptığın planı da kaydedelim mi?",
+    f_plan: "Planlarım", planSave: "Planı kaydet", planUpdate: "Planı güncelle", planSaving: "Plan hazırlanıyor…", planSaved: "Planlarım'a kaydedildi · sadece sen görürsün", planPrivate: "Sadece sen görürsün", planUpdated: "Plan güncellendi",
     planOpen: "Planı aç", planErr: "Plan kaydedilemedi. Tekrar dene.", planOldFn: "Asistan fonksiyonu eski sürümde: Supabase'de plan fonksiyonunu yeni dosyayla güncellemek gerekiyor.", planMissing: "Planlarım henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
-    planEmpty: "Henüz plan yok. Planla sohbetlerinden kaydedebilirsin.", planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
+    planEmpty: "Henüz plan yok. Yeni bir plan başlat ya da bir yerin sohbetinden kaydet.", planNew: "Yeni plan", planNewT: "Yeni plan",
+    chatSuggNew: ["Sicilya'da 7 günlük bir tur planla", "Belki bir gün listemden bir rota çıkar", "İstanbul'dan uzun bir hafta sonu kaçamağı öner"], planBack: "Planlarım", planContinue: "✦ Sohbete devam et", planDel: "Sil",
     planDelQ: "Bu plan silinsin mi?", planDelYes: "Evet, sil", planDeleted: "Plan silindi", planWishQ: t => `${t} Belki bir gün listene de eklensin mi?`,
     planWishAdd: "Listeye ekle", planWishNo: "Hayır", planWishDone: "Belki bir gün listene eklendi", planOfferQ: "Bu yer için yaptığın planı da kaydedelim mi?", planHas: "Planın var",
     wishErr: "Kaydedilemedi, tekrar dene.", wishMissing: "Bu liste henüz kurulmadı (veritabanı güncellemesi bekleniyor).",
@@ -119,16 +121,18 @@ const I18N = {
     wishAddedT: "Added to your Someday List", wishRemovedT: "Removed from the list", wishWentT: "Added to your map",
     askPlace: "✦ Ask about this place", askWish: "✦ Plan", askTop: "Plan", chatT: "Plan", chatBack: "Back to the map", chatNew: "New chat",
     chatPh: "Ask something…", chatSend: "Send", chatThinking: "Looking into it…", chatCtxOff: "Remove this place from the chat",
-    chatErr: "No answer came back. Try again.", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
-    chatLeft: n => `${n} questions left today.`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
+    chatErr: "No answer came back. Try again.", chatTimeout: "This one took too long. Try asking in smaller steps (the route first, then the days).", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
+    chatLeft: n => `${n} questions left today.`, mapRoute: n => `Show the route on the map (${n} stops)`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
     chatSuggPlace: ["How do I get here?", "What's near here from my list?", "Plan 3 days around here"],
     chatSuggFree: ["Make a route from my Someday List", "Add a place I've been to my map", "Suggest a budget weekend"],
     chatSuggMap: ["Which places did they love most?", "Where did they eat and what did they like?", "Which of their places suit me?"],
     pinCardT: "Add to your map?", pinCardAdd: "Add", pinCardSee: "Show on map", pinCardSkip: "Not now", pinCardFinding: "Finding it on the map…",
     pinCardNF: "Couldn't find it on the map.", pinCardPick: "I'll choose the spot", pinCardSkipped: "Not added", pinCardOpened: "Add form opened",
-    f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans", planUpdated: "Plan updated",
+    pcPlan: "Plan", pcWish: "☆ Someday", pcWishOn: "Someday ✓", pcClose: "Close", pcName: "Place name", pcPlanQ: "Save the plan you made for this place too?",
+    f_plan: "My Plans", planSave: "Save plan", planUpdate: "Update plan", planSaving: "Putting the plan together…", planSaved: "Saved to My Plans · only you can see it", planPrivate: "Only you can see this", planUpdated: "Plan updated",
     planOpen: "Open plan", planErr: "The plan couldn't be saved. Try again.", planOldFn: "The assistant function is an older version: update the plan function in Supabase with the new file.", planMissing: "My Plans isn't set up yet (database update pending).",
-    planEmpty: "No plans yet. Save one from a Plan chat.", planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
+    planEmpty: "No plans yet. Start a new plan or save one from a place's chat.", planNew: "New plan", planNewT: "New plan",
+    chatSuggNew: ["Plan a 7-day tour of Sicily", "Make a route from my Someday List", "Suggest a long weekend away from Istanbul"], planBack: "My Plans", planContinue: "✦ Continue the chat", planDel: "Delete",
     planDelQ: "Delete this plan?", planDelYes: "Yes, delete", planDeleted: "Plan deleted", planWishQ: t => `Add ${t} to your Someday List too?`,
     planWishAdd: "Add to list", planWishNo: "No", planWishDone: "Added to your Someday List", planOfferQ: "Save the plan you made for this place too?", planHas: "You have a plan",
     wishErr: "Couldn't save, try again.", wishMissing: "This list isn't set up yet (database update pending).",
@@ -435,7 +439,8 @@ function visibleCenterPoint() {
   return [pad.left + (w - pad.left - pad.right) / 2, pad.top + (h - pad.top - pad.bottom) / 2];
 }
 function onMapTap(e) {
-  if (e.originalEvent._pin) return;
+  if (e.originalEvent._pin) { hidePlaceCard(); return; }
+  if (Date.now() < LONGPRESS_UNTIL) return;              // the click that ends a long press
   if (S.picking) {
     const mode = S.pickMode; setPicking(false); S.temp = { lon: +e.lngLat.lng.toFixed(5), lat: +e.lngLat.lat.toFixed(5) };
     if (mode === "wish") startWishForm(e.point, S.temp); else startForm(null, S.temp);
@@ -457,8 +462,11 @@ function onMapTap(e) {
   if (place) {
     const tz = PLACE_ZOOM[place.properties.class];
     camera({ center: place.geometry.coordinates, zoom: z < tz ? tz : Math.min(z + 2, 17) });
+    if (CARD_CLASSES.has(place.properties.class) || place.layer.id === "label_island" || place.layer.id === "label_islet") showPlaceCard(place.geometry.coordinates, placeLabel(place.properties), false);
+    else hidePlaceCard();
     return;
   }
+  hidePlaceCard();
   if (z < 5.5 && tapped) zoomToCountry(tapped);
 }
 
@@ -597,6 +605,7 @@ $("#handle").onclick = () => {
 };
 
 function render() {
+  if (PCARD && (S.panelMode !== "map" || !["list", "detail"].includes(S.view))) hidePlaceCard();   // chat, forms, plans: the card steps away
   body.replaceChildren();
   body.dataset.view = S.panelMode === "map" ? S.view : S.panelMode;
   if (S.panelMode === "onboard") renderOnboard();
@@ -646,7 +655,8 @@ function renderList() {
   for (const [k, lab] of [["yer", t("f_yer")], ["wish", t("f_wish")], S.canEdit && S.me ? ["plan", t("f_plan")] : null].filter(Boolean)) {
     const ic = el("span", { class: "tab-ic", "aria-hidden": "true" });
     ic.innerHTML = TAB_ICON[k];
-    tabs.append(el("button", { class: "tab", type: "button", "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
+    if (k === "plan") ic.append(el("span", { class: "tab-lock", text: "🔒" }));
+    tabs.append(el("button", { class: "tab", type: "button", title: k === "plan" ? t("planPrivate") : null, "aria-label": k === "plan" ? lab + " · " + t("planPrivate") : null, "aria-pressed": String(S.filter === k), onclick: () => { S.filter = k; ls("ad-filter", k); if (S.picking) setPicking(false); render(); } },
       ic, el("span", { class: "tab-t", text: lab })));
   }
   body.append(tabs);
@@ -1258,13 +1268,13 @@ async function toggleWishFromPin(p) {
   if (have) {
     const { error } = await sb.from("wishlist").delete().eq("id", have);
     if (error) { toast(t("wishErr")); return; }
-    S.mineSrc.delete(p.id); toast(t("wishRemovedT")); render(); return;
+    S.mineSrc.delete(p.id); MYWISH = MYWISH.filter(x => x.id !== have); toast(t("wishRemovedT")); render(); return;
   }
   const row = { user_id: S.me.id, kind: p.kind, title: p.title, title_en: p.title_en || "", city: p.city || "", country: p.country || "", iso: p.iso || "",
     lat: p.lat, lon: p.lon, source_pin: p.id, source_user: p.user_id || (S.owner && S.owner.id) || null };
   const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
   if (error) { toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); return; }
-  S.mineSrc.set(p.id, data.id); toast(t("wishAddedT"));
+  S.mineSrc.set(p.id, data.id); MYWISH.push({ id: data.id, title: data.title, lat: data.lat, lon: data.lon }); toast(t("wishAddedT"));
   const th = threadOf("pin:" + p.id);
   if (th && th.msgs.some(m => m.role === "assistant" && m.text) && !planIdOf(th.msgs)) S.offerPlan = { pinId: p.id, busy: false };
   render();
@@ -1300,12 +1310,13 @@ async function saveWishForm() {
   const row = { user_id: S.me.id, kind: "yer", title, city: F.city || "", country: F.country || "", iso: F.iso || "", lat: F.lat, lon: F.lon };
   const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
   if (error) { F.busy = false; toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); render(); return; }
-  S.wish.unshift(data); S.wishForm = null; S.temp = null; S.wishSel = data.id; toast(t("wishAddedT")); render();
+  S.wish.unshift(data); MYWISH.push({ id: data.id, title: data.title, lat: data.lat, lon: data.lon }); S.wishForm = null; S.temp = null; S.wishSel = data.id; toast(t("wishAddedT")); render();
 }
 async function removeWish(w) {
   const { error } = await sb.from("wishlist").delete().eq("id", w.id);
   if (error) { toast(t("wishErr")); return; }
   S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  MYWISH = MYWISH.filter(x => x.id !== w.id);
   if (S.wishSel === w.id) S.wishSel = null; toast(t("wishRemovedT")); render();
 }
 // "Gittim": becomes a pin on my map (note and photos can be added later), and leaves the list
@@ -1315,7 +1326,7 @@ async function wentWish(w) {
   const { data, error } = await sb.from("pins").insert(row).select(pinCols()).single();
   if (error) { toast(t("wishErr")); return; }
   await sb.from("wishlist").delete().eq("id", w.id);
-  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin);
+  S.wish = S.wish.filter(x => x.id !== w.id); if (w.source_pin) S.mineSrc.delete(w.source_pin); MYWISH = MYWISH.filter(x => x.id !== w.id);
   upsertLocal(fromRow(data)); S.wishSel = null; S.filter = "yer"; ls("ad-filter", "yer");
   toast(t("wishWentT")); openDetail(data.id, false);
 }
@@ -1381,6 +1392,7 @@ function chatSwitch(focus) {
 }
 function currentFocus() {
   if (S.panelMode !== "map" || S.view === "form" || S.view === "addpin") return CHAT.focus;   // mid-edit (e.g. adding a place the chat prepared): back to that chat
+  if (PCARD && S.view === "list") return placeFocus(PCARD);
   if (S.view === "plan" && planById(S.planSel)) { const pl = planById(S.planSel); return { kind: "plan", id: pl.id, label: pl.title }; }
   if (S.view === "detail" && S.selId) { const p = S.places.find(x => x.id === S.selId); if (p) return { kind: "pin", id: p.id, label: L(p, "title") }; }
   if (S.filter === "wish" && S.wishSel && S.canEdit) { const w = S.wish.find(x => x.id === S.wishSel); if (w) return { kind: "wish", id: w.id, label: L(w, "title") }; }
@@ -1442,7 +1454,7 @@ function renderChat() {
     el("button", { class: "back", type: "button", onclick: closeChat }, "← " + t("chatBack")),
     CHAT.msgs.length ? el("button", { class: "linkbtn", type: "button", onclick: () => { CHAT.msgs = []; CHAT.err = ""; chatSave(); render(); } }, t("chatNew")) : null);
   body.append(top, el("h2", { class: "d-title chat-h" }, el("span", { class: "chat-spark", "aria-hidden": "true", text: "✦" }), t("chatT")));
-  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: (CHAT.focus.kind === "map" ? "🗺️ " : CHAT.focus.kind === "wish" ? "☆ " : CHAT.focus.kind === "plan" ? "📝 " : "📍 ") + CHAT.focus.label }),
+  if (CHAT.focus) body.append(el("div", { class: "chat-ctx" }, el("span", { text: (CHAT.focus.kind === "map" ? "🗺️ " : CHAT.focus.kind === "wish" ? "☆ " : CHAT.focus.kind === "plan" || CHAT.focus.kind === "new" ? "📝 " : CHAT.focus.kind === "place" ? "◎ " : "📍 ") + CHAT.focus.label }),
     el("button", { type: "button", class: "chat-ctx-x", "aria-label": t("chatCtxOff"), title: t("chatCtxOff"), onclick: () => { chatSwitch(null); chatSave(); render(); } }, "✕")));
   body.append(el("div", { class: "chat-log", id: "chat-log", "aria-live": "polite" }));
   const ta = el("textarea", { id: "chat-in", rows: "1", maxlength: "2000", placeholder: t("chatPh"), enterkeyhint: "send",
@@ -1460,7 +1472,7 @@ function paintChat() {
   const log = $("#chat-log"); if (!log) return;
   log.replaceChildren();
   if (!CHAT.msgs.length && CHAT.busy !== chatKey(CHAT.focus)) {
-    const sugg = !CHAT.focus ? t("chatSuggFree") : CHAT.focus.kind === "map" ? t("chatSuggMap") : t("chatSuggPlace");
+    const sugg = !CHAT.focus ? t("chatSuggFree") : CHAT.focus.kind === "map" ? t("chatSuggMap") : CHAT.focus.kind === "new" ? t("chatSuggNew") : t("chatSuggPlace");
     log.append(el("div", { class: "chat-sugg" }, sugg.map(q => el("button", { class: "chip", type: "button", onclick: () => chatSend(q) }, q))));
   }
   const key = chatKey(CHAT.focus);
@@ -1469,6 +1481,8 @@ function paintChat() {
     if (m.role === "user") { log.append(el("div", { class: "msg me", text: m.text })); return; }
     if (m.role === "note") { log.append(planNote(m)); return; }
     const b = el("div", { class: "msg ai" }, mdNodes(m.text || ""));
+    if (m.map && m.map.length) b.append(el("div", { class: "map-chips" }, el("button", { class: "chip", type: "button", onclick: () => showMapPlaces(m.map) },
+      "◎ " + (m.map.length === 1 ? m.map[0].title : t("mapRoute", m.map.length)))));
     (m.pins || []).forEach((p, pi) => b.append(pinCard(p, mi, pi)));
     if (m.sources && m.sources.length) b.append(el("details", { class: "chat-src" }, el("summary", { text: t("chatSources") + " (" + m.sources.length + ")" }),
       el("ul", {}, m.sources.map(x => el("li", {}, el("a", { href: x.url, target: "_blank", rel: "noopener noreferrer", text: x.title }))))));
@@ -1480,8 +1494,8 @@ function paintChat() {
     }
   });
   if (CHAT.busy === chatKey(CHAT.focus)) log.append(el("div", { class: "msg ai typing" }, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")), t("chatThinking")));
-  if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err,
-    CHAT.err === t("chatErr") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
+  if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err + (CHAT.err === t("chatErr") && CHAT.errCode ? ` (${CHAT.errCode})` : ""),
+    CHAT.err === t("chatErr") || CHAT.err === t("chatTimeout") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
   if (CHAT.left != null && CHAT.left <= 3 && !CHAT.err) log.append(el("p", { class: "chat-left", text: t("chatLeft", CHAT.left) }));
   const go = $("#chat-go"); if (go) go.disabled = !!CHAT.busy;
   const sc = $("#panelBody"); if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
@@ -1510,28 +1524,80 @@ async function chatAsk() {
   // the answer goes to the conversation it was asked in, even if another one is open by the time it arrives
   const key = chatKey(CHAT.focus), thread = CHAT.msgs, history = chatHistory();
   CHAT.busy = key; CHAT.err = ""; chatSave(); paintChat();
-  const focus = CHAT.focus ? { kind: CHAT.focus.kind, id: CHAT.focus.id } : null;
+  const focus = focusPayload(CHAT.focus);
   let data = null, code = "";
   try {
     const r = await sb.functions.invoke("plan", { body: { messages: history, lang: LANG, focus } });
     if (r.error) {
       const ctx = r.error.context;
-      try { code = (await ctx.json()).error || ""; } catch (e) {}
+      let extra = "";
+      try { const j = await ctx.json(); code = j.error || ""; if (j.status) extra = " " + j.status; } catch (e) {}
       if (!code && ctx && ctx.status === 404) code = "not_deployed";
-      if (!code) code = "network";
+      if (!code && ctx && (ctx.status === 546 || ctx.status === 504)) code = "timeout";   // Supabase stopped the function (time limit)
+      if (!code) code = ctx && ctx.status ? "http " + ctx.status : "network";
+      else if (code === "upstream") code += extra;
     } else data = r.data;
   } catch (e) { code = "network"; }
   CHAT.busy = false;
   const here = key === chatKey(CHAT.focus);
   if (data && (data.text || (data.pins && data.pins.length))) {
-    thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
+    const mapTo = (data.map || []).map(x => ({ ...x }));
+    thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })), map: mapTo });
     if (typeof data.left === "number") CHAT.left = data.left;
+    if (mapTo.length && here) showMapPlaces(mapTo);       // "Marsilya nerede?": the map goes there
   } else if (here) {
-    CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady") : t("chatErr");
+    CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady")
+      : code === "timeout" ? t("chatTimeout") : t("chatErr");
+    CHAT.errCode = code === "limit" || code === "timeout" ? "" : code;
     if (code === "limit") CHAT.left = 0;
   }
   chatSave(); paintChat();
   if (!here && data) toast(t("chatAnswered", (CHAT.threads[key] && CHAT.threads[key].focus && CHAT.threads[key].focus.label) || t("chatT")));
+}
+
+// The assistant's show_on_map: places are found with Photon (once; kept in the chat) and the map flies there.
+// A city is shown with the area around it, not its streets; several places are framed together.
+const LEVEL_ZOOM = { country: 5, region: 7, city: 8.5, town: 10.5, spot: 13 };
+async function showMapPlaces(list) {
+  for (const p of list) {
+    if (p.at || p.nf) continue;
+    if (typeof p.lat === "number" && typeof p.lon === "number") { p.at = { lon: p.lon, lat: p.lat }; continue; }   // the assistant's coordinates: exact
+    const at = await geocodeIn([p.title, p.city, p.country].filter(Boolean).join(", "), p.cc);
+    if (at) p.at = at; else p.nf = true;
+  }
+  chatSave();
+  const pts = list.filter(p => p.at).map(p => ({ lon: p.at.lon, lat: p.at.lat, level: p.level }));
+  if (!pts.length) { toast(t("pinCardNF")); return; }
+  if (narrowView() && panel.classList.contains("tall")) setSheet("");    // let the map show above the sheet
+  if (!mapReady) return;
+  if (pts.length === 1) softFly([pts[0].lon, pts[0].lat], LEVEL_ZOOM[pts[0].level] || 8.5);
+  else softFit(pts);
+}
+// search by name, keeping only results in the given country (a Turkish name like "Marsilya" can match a town elsewhere)
+async function geocodeIn(q, cc) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=${LANG === "en" ? "en" : "default"}`, { signal: ctl.signal });
+    const f = ((await r.json()).features || []).find(f => !cc || String((f.properties || {}).countrycode || "").toUpperCase() === cc);
+    return f ? { lon: +f.geometry.coordinates[0].toFixed(5), lat: +f.geometry.coordinates[1].toFixed(5) } : null;
+  } catch (e) { return null; } finally { clearTimeout(tm); }
+}
+// slow, soft flights for the chat: longer the farther it goes (about 3 s from Istanbul to Marseille)
+const easeInOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+function flightMs(lon, lat) {
+  const c = map.getCenter ? map.getCenter() : null;
+  const km = c ? d3.geoDistance([c.lng, c.lat], [lon, lat]) * 6371 : 1500;
+  return Math.round(Math.min(5000, Math.max(2200, 1800 + km * 0.6)));
+}
+function softFly(center, zoom) {
+  if (reducedMotion()) { map.jumpTo({ center, zoom, padding: mapPadding() }); return; }
+  prefetchView(center, zoom);
+  map.flyTo({ center, zoom, padding: mapPadding(), duration: flightMs(center[0], center[1]), curve: 1.2, easing: easeInOut, essential: true });
+}
+function softFit(pts) {
+  const b = new maplibregl.LngLatBounds(); pts.forEach(r => b.extend([r.lon, r.lat]));
+  const mid = pts.reduce((a, r) => [a[0] + r.lon / pts.length, a[1] + r.lat / pts.length], [0, 0]);
+  map.fitBounds(b, { padding: mapPadding(), maxZoom: 10, duration: reducedMotion() ? 0 : flightMs(mid[0], mid[1]), easing: easeInOut, essential: true });
 }
 
 // a place the assistant prepared: found on the map with Photon, then added through the usual form (so it can be checked)
@@ -1575,6 +1641,113 @@ async function addFromChat(p) {
   else { openAddPin("pin"); ADDPIN.q = p.search || p.title; const i = $("#addpin-q"); if (i) i.value = ADDPIN.q; searchAddress(); }
 }
 
+/* ---------------- place card: tap a town, city, village or island name (or long-press any spot) with no pin ----------------
+   Shows "Name, Country · ✦ Planla · ☆ Belki bir gün" at the top of the map. Neighbourhood names only zoom.
+   "Belki bir gün" always goes to MY list, whichever map is on screen. */
+const CARD_CLASSES = new Set(["city", "town", "village", "hamlet", "island", "islet"]);
+let PCARD = null, LONGPRESS_UNTIL = 0;
+let MYWISH = [];                                       // my own list (id, title, lat, lon), also while looking at someone else's map
+async function loadMyWish() {
+  if (!S.me) { MYWISH = []; return; }
+  const { data } = await sb.from("wishlist").select("id,title,lat,lon").eq("user_id", S.me.id);
+  MYWISH = data || [];
+}
+const myWishRows = () => S.canEdit && S.owner && S.me && S.owner.id === S.me.id ? S.wish : MYWISH;
+function placeOnMyList(x) { const r = x.edit ? 0.15 : 1.5; return myWishRows().some(w => distKm(w, x) < r); }   // a named spot (long press) must be much closer than a town
+const placeLabel = pr => (LANG === "en" ? pr["name:en"] || pr.name_en : pr["name:tr"]) || pr["name:latin"] || pr.name || "";
+const placeFocus = c => ({ kind: "place", id: c.lat.toFixed(4) + "," + c.lon.toFixed(4), label: c.title, lat: c.lat, lon: c.lon, city: c.city, country: c.country });
+function focusPayload(f) {
+  if (!f) return null;
+  if (f.kind === "place") return { kind: "place", id: f.id, title: f.label, city: f.city || "", country: f.country || "", lat: f.lat, lon: f.lon };
+  if (f.kind === "new") return null;                    // a new plan: no place, the conversation says it all
+  return { kind: f.kind, id: f.id };
+}
+function showPlaceCard(coords, title, edit) {
+  if (S.panelMode !== "map" || S.picking || S.view === "form") return;
+  const [lon, lat] = coords, w = whereIs(lon, lat);
+  // the nearest big city would mislead for a village 40 km away: a town card names only the country;
+  // a long-pressed spot keeps the nearby place name as its "city" in case the name is changed
+  const near = (title || "").trim();
+  PCARD = { lon: +lon.toFixed(5), lat: +lat.toFixed(5), title: near || (edit ? w.city || "" : ""), city: edit ? near : "", country: w.country || "", iso: w.iso || "", edit, busy: false, offer: false };
+  paintPlaceCard();
+  if (narrowView() && panel.classList.contains("tall")) setSheet("");   // a tall sheet would cover the card
+}
+function hidePlaceCard() { if (!PCARD) return; PCARD = null; paintPlaceCard(); }
+function paintPlaceCard() {
+  let box = $("#placeCard");
+  if (!box) { box = el("div", { id: "placeCard", class: "pcard-map", role: "region", "aria-label": t("pcName") }); $("#map").append(box); }
+  box.replaceChildren(); box.hidden = !PCARD;
+  if (!PCARD) return;
+  const c = PCARD, where = c.country || "";
+  const head = el("div", { class: "pcm-head" },
+    c.edit ? el("input", { class: "pcm-name", type: "text", value: c.title, maxlength: "120", "aria-label": t("pcName"), oninput: e => { c.title = e.target.value; } })
+      : el("b", { class: "pcm-name", text: c.title || where }),
+    el("button", { class: "pcm-x", type: "button", "aria-label": t("pcClose"), onclick: hidePlaceCard }, "✕"));
+  box.append(head);
+  if (where && (c.title || c.edit)) box.append(el("span", { class: "pcm-where", text: where }));
+  const on = placeOnMyList(c);
+  if (c.offer) {
+    box.append(el("div", { class: "pcm-offer" }, el("span", { text: c.busy ? t("planSaving") : t("pcPlanQ") }),
+      c.busy ? null : el("div", { class: "pcm-acts" },
+        el("button", { class: "btn small", type: "button", onclick: async () => { c.busy = true; paintPlaceCard(); const ok = await savePlanFromThread(chatKey(placeFocus(c))); c.busy = false; c.offer = false; paintPlaceCard(); toast(ok ? t("planSaved") : t("planErr")); } }, t("planSave")),
+        el("button", { class: "btn ghost small", type: "button", onclick: () => { c.offer = false; paintPlaceCard(); } }, t("planWishNo")))));
+    return;
+  }
+  box.append(el("div", { class: "pcm-acts" },
+    el("button", { class: "btn small", type: "button", onclick: () => { if (!c.title.trim()) return; const f = placeFocus({ ...c, title: c.title.trim() }); hidePlaceCard(); openChat(f); } }, spark(), t("pcPlan")),
+    on ? el("span", { class: "btn small wish-on pcm-on", text: t("pcWishOn") })
+      : el("button", { class: "btn ghost small", type: "button", disabled: c.busy ? "" : null, onclick: () => cardToWish(c) }, t("pcWish"))));
+}
+async function addPlaceToMyList(x) {
+  const title = String(x.title || x.label || "").trim(); if (!title || !S.me) return false;
+  const w = whereIs(x.lon, x.lat);
+  const row = { user_id: S.me.id, kind: "yer", title, title_en: "", city: x.city || w.city || "", country: x.country || w.country || "", iso: w.iso || "", lat: x.lat, lon: x.lon };
+  const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
+  if (error) { toast(wishTableMissing(error) ? t("wishMissing") : t("wishErr")); return false; }
+  MYWISH.push({ id: data.id, title: data.title, lat: data.lat, lon: data.lon });
+  if (S.canEdit && S.owner && S.owner.id === S.me.id) S.wish.unshift(data);
+  return true;
+}
+async function cardToWish(c) {
+  if (!S.me) return signIn();
+  if (!c.title.trim()) { const i = $("#placeCard .pcm-name"); if (i && i.focus) i.focus(); return; }
+  c.busy = true; paintPlaceCard();
+  const ok = await addPlaceToMyList(c);
+  c.busy = false;
+  if (ok) {
+    toast(t("wishAddedT"));
+    const th = threadOf(chatKey(placeFocus(c)));          // a chat about this place with an answer and no saved plan: offer it
+    if (th && th.msgs.some(m => m.role === "assistant" && m.text) && !planIdOf(th.msgs)) c.offer = true;
+    if (S.filter === "wish") render();
+  }
+  if (PCARD === c) paintPlaceCard();
+}
+// long press (phone) or right click (computer) on a spot with no name under it
+(() => {
+  const host = $("#mapgl"); let tm = 0, start = null, fired = false;
+  const fire = (x, y) => {
+    if (!mapReady || S.panelMode !== "map" || S.picking) return;
+    const r = host.getBoundingClientRect(), pt = { x: x - r.left, y: y - r.top };
+    const box = [[pt.x - 10, pt.y - 10], [pt.x + 10, pt.y + 10]];
+    if (map.queryRenderedFeatures(box, { layers: PIN_LAYERS.filter(id => map.getLayer(id)) }).length) return;
+    const ll = map.unproject([pt.x, pt.y]);
+    fired = true;
+    showPlaceCard([ll.lng, ll.lat], labelNear(pt), true);
+  };
+  host.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1) { clearTimeout(tm); return; }
+    const t0 = e.touches[0]; start = { x: t0.clientX, y: t0.clientY };
+    clearTimeout(tm); tm = setTimeout(() => fire(start.x, start.y), 550);
+  }, { passive: true });
+  host.addEventListener("touchmove", e => { const t0 = e.touches[0]; if (start && t0 && Math.hypot(t0.clientX - start.x, t0.clientY - start.y) > 10) clearTimeout(tm); }, { passive: true });
+  // the tap that ends a long press (when the finger lifts, however long it was held) must not count as a map tap
+  ["touchend", "touchcancel"].forEach(ev => host.addEventListener(ev, () => { clearTimeout(tm); if (fired) { LONGPRESS_UNTIL = Date.now() + 450; fired = false; } }, { passive: true }));
+  host.addEventListener("contextmenu", e => { e.preventDefault(); fire(e.clientX, e.clientY); fired = false; });
+})();
+// moving the map by hand puts the card away (flights started by a tap don't)
+const pcardDragOff = () => { if (map) map.on("dragstart", () => { if (PCARD && !PCARD.edit) hidePlaceCard(); }); else setTimeout(pcardDragOff, 500); };
+pcardDragOff();
+
 /* ---------------- "Planlarım": plans saved from the Planla chat (table plans, supabase/12_planlar.sql; private) ---------------- */
 let PLANS = { list: [], state: "idle" };              // the signed-in person's own plans
 const PLANSAVE = new Set();                            // chats whose plan is being written right now
@@ -1606,7 +1779,7 @@ async function savePlanFromThread(key) {
   PLANSAVE.add(key); if (S.panelMode === "chat") paintChat();
   let ok = false;
   try {
-    const r = await sb.functions.invoke("plan", { body: { mode: "save_plan", messages: chatHistoryOf(msgs), lang: LANG, focus: focus ? { kind: focus.kind, id: focus.id } : null } });
+    const r = await sb.functions.invoke("plan", { body: { mode: "save_plan", messages: chatHistoryOf(msgs), lang: LANG, focus: focusPayload(focus) } });
     let code = "";
     let extra = "";
     if (r.error) { try { const j = await r.error.context.json(); code = j.error || ""; if (j.status) extra = ` ${j.status}${j.detail ? " " + j.detail : ""}`; } catch (e) {} }
@@ -1627,6 +1800,7 @@ async function savePlanFromThread(key) {
     const note = { role: "note", planId: data.id, text: existing ? t("planUpdated") : t("planSaved") };
     // a place on someone's map that isn't on my list yet: offer to add it too
     if (!existing && focus && focus.kind === "pin" && !(await onMyList(focus.id))) note.offerWish = { pinId: focus.id, title: focus.label, st: "ask" };
+    if (!existing && focus && focus.kind === "place" && !placeOnMyList(focus)) note.offerWish = { place: focus, title: focus.label, st: "ask" };
     msgs.push(note); ok = true;
   } catch (e) {
     console.error(e);
@@ -1652,7 +1826,7 @@ async function addPinToMyList(pinId) {
     lat: p.lat, lon: p.lon, source_pin: p.id, source_user: p.user_id || null };
   const { data, error } = await sb.from("wishlist").insert(row).select(WISH_COLS).single();
   if (error) return false;
-  S.mineSrc.set(p.id, data.id); if (S.canEdit) S.wish.unshift(data);
+  S.mineSrc.set(p.id, data.id); if (S.canEdit) S.wish.unshift(data); MYWISH.push({ id: data.id, title: data.title, lat: data.lat, lon: data.lon });
   return true;
 }
 function planNote(m) {
@@ -1660,13 +1834,14 @@ function planNote(m) {
   if (m.planId && planById(m.planId)) box.append(el("button", { class: "linkbtn", type: "button", onclick: () => openPlan(m.planId) }, t("planOpen")));
   const o = m.offerWish;
   if (o && o.st === "ask") box.append(el("div", { class: "plan-offer-acts" }, el("span", { class: "chat-note-q", text: t("planWishQ", o.title) }),
-    el("button", { class: "btn small", type: "button", onclick: async () => { o.st = "busy"; paintChat(); o.st = (await addPinToMyList(o.pinId)) ? "done" : "ask"; if (o.st === "ask") toast(t("wishErr")); chatSave(); paintChat(); } }, t("planWishAdd")),
+    el("button", { class: "btn small", type: "button", onclick: async () => { o.st = "busy"; paintChat(); o.st = (await (o.place ? addPlaceToMyList(o.place) : addPinToMyList(o.pinId))) ? "done" : "ask"; if (o.st === "ask") toast(t("wishErr")); chatSave(); paintChat(); } }, t("planWishAdd")),
     el("button", { class: "btn ghost small", type: "button", onclick: () => { o.st = "no"; chatSave(); paintChat(); } }, t("planWishNo"))));
   if (o && o.st === "done") box.append(el("span", { class: "chat-note-q", text: "☆ " + t("planWishDone") }));
   return box;
 }
 function planForWish(w) {
-  return PLANS.list.find(p => p.focus && ((p.focus.kind === "wish" && p.focus.id === w.id) || (p.focus.kind === "pin" && w.source_pin && p.focus.id === w.source_pin)))
+  return PLANS.list.find(p => p.focus && ((p.focus.kind === "wish" && p.focus.id === w.id) || (p.focus.kind === "pin" && w.source_pin && p.focus.id === w.source_pin)
+      || (p.focus.kind === "place" && typeof p.focus.lat === "number" && distKm(p.focus, w) < 1.5)))
     || PLANS.list.find(p => (p.places || []).some(x => typeof x.lat === "number" && distKm(x, w) < 3)) || null;
 }
 // opens a plan on my own map (going there first if I'm looking at someone else's)
@@ -1681,10 +1856,15 @@ async function openPlan(id) {
   const pl = planById(id), pts = pl ? pl.places.filter(x => typeof x.lat === "number") : [];
   if (pts.length === 1) camera({ center: [pts[0].lon, pts[0].lat], zoom: 11 }); else if (pts.length) fitPoints(pts);
 }
+// the Planla spark in the logo's yellow, on the deep-sea buttons
+const spark = () => el("span", { class: "spark", "aria-hidden": "true", text: "✦ " });
+// "Yeni plan": a fresh conversation not tied to a place; each one is its own chat
+function newPlan() { openChat({ kind: "new", id: uid(), label: t("planNewT") }); }
 function renderPlans() {
   if (PLANS.state === "missing") { body.append(el("div", { class: "notice", text: t("planMissing") })); return; }
   if (PLANS.state === "error") { body.append(el("div", { class: "notice", text: t("dbErr") })); return; }
   if (PLANS.state === "idle") { loadPlans().then(() => { if (S.filter === "plan") render(); }); return; }
+  body.append(el("div", { class: "wish-head" }, el("button", { class: "btn small", type: "button", onclick: newPlan }, spark(), t("planNew"))));
   if (!PLANS.list.length) { body.append(el("div", { class: "empty", text: t("planEmpty") })); return; }
   const ul = el("ul", { class: "plist" });
   for (const p of PLANS.list) ul.append(el("li", {}, el("button", { class: "pcard", type: "button", onclick: () => openPlan(p.id) },
@@ -2509,7 +2689,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#intro
 async function route() {
   const h = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
   const [a, b] = h.split("/");
-  S.form = null; S.temp = null; S.wishForm = null; setPicking(false);
+  S.form = null; S.temp = null; S.wishForm = null; setPicking(false); hidePlaceCard();
   if (a === "start") { S.panelMode = "onboard"; if (!S.me) { render(); return; } if (!S.owner || S.owner.id !== S.me.id) await loadOwner(S.me.username, true); if (!ONB) onbReset(); S.panelMode = "onboard"; onbPaint(); render(); return; }
   if (typeof onbPaint === "function") { S.panelMode = "map"; onbPaint(); }
   if (a === "settings" || a === "profile") { S.panelMode = "settings"; SET = null; SETMODE = a === "profile" ? "profile" : "account"; if (!S.owner && S.me) await loadOwner(S.me.username); render(); return; }
@@ -2530,6 +2710,7 @@ initMap(); applyLang(); renderChrome(); render();
   const after = ls("mp-after");
   if (S.me && after) { try { localStorage.removeItem("mp-after"); } catch (e) {} if (after !== location.hash) { location.replace(after); } }
   if (S.me) loadPeople().then(renderChrome);
+  if (S.me) loadMyWish();
   if (S.me) loadPlans().then(() => { if (S.canEdit && (S.filter === "plan" || S.filter === "wish")) render(); });
   renderChrome();
   await route();
