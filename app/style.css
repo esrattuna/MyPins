@@ -538,3 +538,82 @@ body{font-size:15px;line-height:1.5}
 .pcx-bio{grid-column:1/-1;margin:6px 0 0;font-size:14px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
 .tag-box{resize:none;min-height:0}
 .char-count{align-self:flex-end;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* =====================================================================
+   "Planla": the Claude trip-planning assistant (chat in the panel)
+   ===================================================================== */
+.ask-top{width:42px;height:42px;border:2px solid var(--paper);border-radius:50%;background:var(--deep);color:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px var(--shadow);padding:0}
+.ask-top:hover{background:var(--deep-hover)}
+.d-ask{margin:10px 0 4px}
+.ask-btn{background:var(--sea-tint);color:var(--deep)}
+.ask-btn:hover{background:#c4e6e6}
+.chat-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.chat-top .linkbtn{border:0;background:none;padding:6px 0;cursor:pointer;font-size:13.5px}
+.chat-h{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
+.chat-spark{color:var(--saffron);font-size:.8em}
+.chat-ctx{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;max-width:100%;background:var(--sea-tint);color:var(--deep);border-radius:999px;padding:5px 6px 5px 12px;font-weight:600;font-size:13.5px;margin-bottom:12px}
+.chat-ctx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-ctx-x{border:0;background:none;color:var(--deep);width:26px;height:26px;border-radius:50%;cursor:pointer;flex:none;font-size:12px}
+.chat-ctx-x:hover{background:#c4e6e6}
+.panel-scroll[data-view="chat"]>.chat-log{flex:1 0 auto}
+.chat-log{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+.chat-sugg{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
+.chat-sugg .chip{cursor:pointer;text-align:left;font-size:13.5px}
+.msg{max-width:92%;border-radius:18px;padding:10px 14px;font-size:14.5px;line-height:1.5;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--deep);color:#fff;border-bottom-right-radius:6px;white-space:pre-wrap}
+.msg.ai{align-self:flex-start;background:var(--card);border:1px solid var(--rule);border-bottom-left-radius:6px;max-width:100%}
+.msg.ai p{margin:0 0 8px}
+.msg.ai p:last-child,.msg.ai ul:last-child,.msg.ai ol:last-child{margin-bottom:0}
+.msg.ai ul,.msg.ai ol{margin:0 0 8px;padding-left:20px}
+.msg.ai li{margin:2px 0}
+.msg.ai .md-h{margin-top:10px}
+.msg.ai a{color:var(--deep);font-weight:600}
+.msg.typing{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.dots{display:inline-flex;gap:4px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--deep);opacity:.35;animation:mpDot 1.2s infinite var(--ease)}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes mpDot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:.9;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.dots i{animation:none;opacity:.6}}
+.chat-src{margin-top:8px;font-size:13px;color:var(--muted)}
+.chat-src summary{cursor:pointer;font-weight:600;color:var(--deep)}
+.chat-src ul{margin:6px 0 0;padding-left:18px}
+.chat-src a{color:var(--deep);font-weight:500}
+.chat-err{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chat-err .linkbtn{border:0;background:none;padding:0;cursor:pointer;text-decoration:underline}
+.chat-left{margin:0;font-size:12.5px;color:var(--muted)}
+.panel-scroll[data-view="chat"]{padding-bottom:0;display:flex;flex-direction:column}
+.panel-scroll[data-view="chat"]>*{flex:none}
+.chat-form{position:sticky;bottom:0;display:flex;gap:8px;align-items:flex-end;background:var(--paper);padding:10px 0 12px;margin-top:6px;border-top:1px solid var(--rule)}
+@media (max-width:760px){.chat-form{padding-bottom:max(12px,env(safe-area-inset-bottom,0px))}}
+.chat-form textarea{flex:1;min-width:0;resize:none;border:1px solid var(--rule);background:#fff;border-radius:20px;padding:10px 14px;font-size:16px;line-height:1.35;max-height:140px}
+.chat-form textarea:focus{outline:none;border-color:var(--deep)}
+.chat-send{display:grid;place-items:center;width:44px;height:44px;padding:0;flex:none;font-size:20px;line-height:1;border-radius:50%}
+.chat-send:disabled{opacity:.45}
+.pin-card{margin-top:10px;background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.pin-card.off{opacity:.6}
+.pin-card-t{font-family:var(--f-display);font-weight:600;font-size:16px}
+.pin-card-sub{font-size:13px;color:var(--muted)}
+.pin-card-st{font-size:13px;color:var(--muted);margin-top:4px}
+.pin-card-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+
+/* "Planlarım": saved plans */
+.msg-acts{align-self:flex-start;margin:-4px 0 2px 4px}
+.msg-acts .linkbtn{border:0;background:none;padding:4px 0;cursor:pointer;font-size:13.5px}
+.chat-note{align-self:stretch;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;background:var(--sea-tint);color:var(--deep);border-radius:14px;padding:9px 12px;font-size:13.5px;font-weight:600}
+.chat-note.bad{background:var(--tint);color:var(--ink)}
+.chat-note .linkbtn{border:0;background:none;padding:0;cursor:pointer;text-decoration:underline;font-size:13.5px}
+.chat-note-q{font-weight:500;color:var(--ink)}
+.plan-offer{margin:14px 0 4px;background:var(--sea-tint);color:var(--deep);border-radius:14px;padding:11px 13px;font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:8px}
+.plan-offer-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
+.wrow .wplan{margin-left:auto;font-size:15px;padding:2px 4px;border-radius:8px;cursor:pointer}
+.wrow .wplan:hover,.wrow .wplan:focus-visible{background:var(--sea-tint)}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pcard{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:12px 14px;cursor:pointer;font:inherit;color:var(--ink)}
+.pcard:hover{border-color:var(--deep)}
+.pcard-t{font-family:var(--f-display);font-weight:600;font-size:17px}
+.pcard-places{font-size:13.5px;color:var(--deep);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard-date{font-size:12.5px;color:var(--muted)}
+.plan-places{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.plan-places .chip{cursor:pointer;font-size:13px}
+.plan-places .chip:disabled{cursor:default;opacity:.6}
+.plan-body{max-width:100%;margin-bottom:10px}
