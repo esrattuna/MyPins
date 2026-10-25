@@ -542,8 +542,8 @@ body{font-size:15px;line-height:1.5}
 /* =====================================================================
    "Planla": the Claude trip-planning assistant (chat in the panel)
    ===================================================================== */
-.ask-top{width:42px;height:42px;border:0;border-radius:50%;background:var(--paper);color:var(--deep);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px var(--shadow);padding:0}
-.ask-top:hover{background:#fff}
+.ask-top{width:42px;height:42px;border:2px solid var(--paper);border-radius:50%;background:var(--deep);color:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px var(--shadow);padding:0}
+.ask-top:hover{background:var(--deep-hover)}
 .d-ask{margin:10px 0 4px}
 .ask-btn{background:var(--sea-tint);color:var(--deep)}
 .ask-btn:hover{background:#c4e6e6}
