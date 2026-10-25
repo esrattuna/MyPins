@@ -149,7 +149,14 @@ export async function writePlan(call: CallFn, system: string, history: Msg[]): P
   const msgs = history.map(m => ({ role: m.role, content: m.text }));
   if (msgs.length && msgs[msgs.length - 1].role === "user") msgs[msgs.length - 1].content += "\n\n" + SAVE_PLAN_ASK;
   else msgs.push({ role: "user", content: SAVE_PLAN_ASK });
-  const r = await call({ model: MODEL, max_tokens: 3000, system, tools: [SAVE_PLAN_TOOL], tool_choice: { type: "tool", name: "save_plan" }, messages: msgs });
+  const req = { model: MODEL, max_tokens: 3000, system, tools: [SAVE_PLAN_TOOL], messages: msgs };
+  let r: ApiResp;
+  try { r = await call({ ...req, tool_choice: { type: "tool", name: "save_plan" } }); }
+  catch (e) {
+    // some model settings refuse a forced tool (e.g. when thinking is on by default): ask again and let the model choose it
+    if ((e as { status?: number }).status !== 400) throw e;
+    r = await call({ ...req, tool_choice: { type: "auto" } });
+  }
   const u = (r.content || []).find(b => b.type === "tool_use" && b.name === "save_plan");
   const inp = (u && u.input) || {};
   const title = clean(inp.title, 120), body = String(inp.body ?? "").replace(/\r/g, "").trim().slice(0, 12000);

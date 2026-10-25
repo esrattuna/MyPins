@@ -117,7 +117,10 @@ export async function handle(req: Request): Promise<Response> {
   } catch (e) {
     const err = e as { status?: number; detail?: string };
     console.error("plan upstream", err.status, err.detail);
-    return json({ error: "upstream", status: err.status ?? 0 }, 502);
+    // Anthropic's own error text (never the key) helps tell what went wrong; the app shows the status and type
+    let type = "";
+    try { const d = JSON.parse(err.detail || "{}"); type = String(d?.error?.type || "") + (d?.error?.message ? ": " + String(d.error.message).slice(0, 160) : ""); } catch (_) { /* not JSON */ }
+    return json({ error: "upstream", status: err.status ?? 0, detail: type }, 502);
   }
 }
 

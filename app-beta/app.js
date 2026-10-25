@@ -1608,10 +1608,11 @@ async function savePlanFromThread(key) {
   try {
     const r = await sb.functions.invoke("plan", { body: { mode: "save_plan", messages: chatHistoryOf(msgs), lang: LANG, focus: focus ? { kind: focus.kind, id: focus.id } : null } });
     let code = "";
-    if (r.error) { try { code = (await r.error.context.json()).error || ""; } catch (e) {} }
+    let extra = "";
+    if (r.error) { try { const j = await r.error.context.json(); code = j.error || ""; if (j.status) extra = ` ${j.status}${j.detail ? " " + j.detail : ""}`; } catch (e) {} }
     const plan = !r.error && r.data && r.data.plan;
     // the older function (before "Planlarım") answers a save request with a normal reply or bad_request
-    if (!plan) { if (code === "limit") CHAT.left = 0; throw new Error(code || (r.data && r.data.text ? "old_function" : "plan")); }
+    if (!plan) { if (code === "limit") CHAT.left = 0; throw new Error(code ? code + extra : (r.data && r.data.text ? "old_function" : "plan")); }
     if (typeof r.data.left === "number") CHAT.left = r.data.left;
     const places = [];
     for (const x of plan.places || []) places.push({ ...x, ...(await geocode([x.title, x.city, x.country].filter(Boolean).join(", ")) || {}) });
