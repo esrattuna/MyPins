@@ -26,7 +26,11 @@ const json = (body: unknown, status = 200) =>
 const PIN_COLS = "id,user_id,kind,home,title,title_en,city,country,iso,lat,lon,visited_on,note,parent_id";
 const FRIEND_COLS = "id,kind,home,title,city,country,lat,lon,visited_on,note,note_en,dish,dish_en,rating,price,parent_id";
 
+// Supabase stops a function after about 150 s (free plan): finish well before that
+const BUDGET_MS = 130000;
+
 export async function handle(req: Request): Promise<Response> {
+  const deadline = Date.now() + BUDGET_MS;
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   let body: { messages?: unknown; lang?: string; mode?: string; focus?: { kind?: string; id?: string; title?: string; city?: string; country?: string; lat?: number; lon?: number } | null };
@@ -101,11 +105,20 @@ export async function handle(req: Request): Promise<Response> {
   const home = myPins.find(p => p.home);
 
   const call = async (payload: Record<string, unknown>) => {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const left = deadline - Date.now();
+    if (left < 3000) throw Object.assign(new Error("timeout"), { status: 0, detail: "timeout" });
+    let r: Response;
+    try {
+      r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(left),
+      });
+    } catch (e) {
+      const timedOut = (e as Error)?.name === "TimeoutError" || (e as Error)?.name === "AbortError";
+      throw Object.assign(new Error(timedOut ? "timeout" : "network"), { status: 0, detail: timedOut ? "timeout" : "network" });
+    }
     if (!r.ok) throw Object.assign(new Error("upstream"), { status: r.status, detail: (await r.text()).slice(0, 300) });
     return await r.json();
   };
@@ -114,12 +127,13 @@ export async function handle(req: Request): Promise<Response> {
       const plan = await writePlan(call, buildSystem(ctx), history);
       return plan ? json({ plan, left }) : json({ error: "empty" }, 502);
     }
-    const reply = await converse(call, buildSystem(ctx), history, tools(home?.iso || undefined));
+    const reply = await converse(call, buildSystem(ctx), history, tools(home?.iso || undefined), 6, deadline);
     if (!reply.text && !reply.pins.length) return json({ error: "empty" }, 502);
     return json({ ...reply, left });
   } catch (e) {
     const err = e as { status?: number; detail?: string };
     console.error("plan upstream", err.status, err.detail);
+    if (err.detail === "timeout") return json({ error: "timeout" }, 504);
     // Anthropic's own error text (never the key) helps tell what went wrong; the app shows the status and type
     let type = "";
     try { const d = JSON.parse(err.detail || "{}"); type = String(d?.error?.type || "") + (d?.error?.message ? ": " + String(d.error.message).slice(0, 160) : ""); } catch (_) { /* not JSON */ }

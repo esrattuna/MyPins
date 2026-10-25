@@ -185,7 +185,7 @@ export const ADD_PIN_TOOL = {
 };
 
 export function tools(homeIso?: string) {
-  const ws: Record<string, unknown> = { type: "web_search_20250305", name: "web_search", max_uses: 4 };
+  const ws: Record<string, unknown> = { type: "web_search_20250305", name: "web_search", max_uses: 3 };
   if (homeIso && /^[A-Z]{2}$/.test(homeIso)) ws.user_location = { type: "approximate", country: homeIso };
   return [ws, ADD_PIN_TOOL];
 }
@@ -207,15 +207,28 @@ export function toProposal(inp: Record<string, unknown> = {}): PinProposal | nul
 
 // Runs the conversation with Claude until it has finished its answer: continues paused turns (long web searches)
 // and answers add_pin calls with "shown for confirmation" so Claude can finish its sentence.
-export async function converse(call: CallFn, system: string, history: Msg[], toolList: unknown[], maxSteps = 6): Promise<Reply> {
+export const HURRY = "[MyPins app] Time is almost up for this answer. Stop searching now and give your best answer with what you already found; say briefly what you couldn't check.";
+// deadline: a time (ms) by which the answer must be finished (Supabase stops the function after a fixed time).
+// When a long search is paused near the deadline, Claude is asked to answer with what it has instead of searching on.
+export async function converse(call: CallFn, system: string, history: Msg[], toolList: unknown[], maxSteps = 6, deadline = Infinity, now = () => Date.now()): Promise<Reply> {
   const messages: { role: string; content: unknown }[] = history.map(m => ({ role: m.role, content: m.text }));
   const blocks: Block[] = [];
   const pins: PinProposal[] = [];
+  let hurried = false;
   for (let step = 0; step < maxSteps; step++) {
-    const r = await call({ model: MODEL, max_tokens: 2500, system, tools: toolList, messages });
+    const req: Record<string, unknown> = { model: MODEL, max_tokens: 3000, system, tools: toolList, messages };
+    let r: ApiResp;
+    if (hurried) {
+      try { r = await call({ ...req, tool_choice: { type: "none" } }); }
+      catch (e) { if ((e as { status?: number }).status !== 400) throw e; r = await call(req); }
+    } else r = await call(req);
     const content = r.content || [];
     blocks.push(...content);
-    if (r.stop_reason === "pause_turn") { messages.push({ role: "assistant", content }); continue; }
+    if (r.stop_reason === "pause_turn") {
+      messages.push({ role: "assistant", content });
+      if (!hurried && deadline - now() < 55000) { hurried = true; messages.push({ role: "user", content: HURRY }); }
+      continue;
+    }
     if (r.stop_reason === "tool_use") {
       const uses = content.filter(b => b.type === "tool_use");
       if (!uses.length) break;

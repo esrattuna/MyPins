@@ -52,7 +52,7 @@ const I18N = {
     wishAddedT: "Belki bir gün listene eklendi", wishRemovedT: "Listeden çıkarıldı", wishWentT: "Haritana eklendi",
     askPlace: "✦ Bu yerle ilgili sor", askWish: "✦ Planla", askTop: "Planla", chatT: "Planla", chatBack: "Haritaya dön", chatNew: "Yeni sohbet",
     chatPh: "Bir şey sor…", chatSend: "Gönder", chatThinking: "Bakıyorum…", chatCtxOff: "Bu yeri sohbetten çıkar",
-    chatErr: "Cevap alınamadı. Tekrar dene.", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
+    chatErr: "Cevap alınamadı. Tekrar dene.", chatTimeout: "Bu soru çok uzun sürdü. Daha küçük parçalar halinde sormayı dene (örneğin önce rota, sonra günler).", chatLimit: "Bugünlük soru hakkın doldu. Yarın devam edebilirsin.", chatNotReady: "Asistan henüz kurulmadı.",
     chatLeft: n => `Bugün ${n} soru hakkın kaldı.`, chatAnswered: l => `${l} sohbetine cevap geldi`, chatSources: "Kaynaklar", chatRetry: "Tekrar dene",
     chatSuggPlace: ["Buraya nasıl giderim?", "Yakınında listemden neresi var?", "Burası için 3 günlük plan çıkar"],
     chatSuggFree: ["Belki bir gün listemden bir rota çıkar", "Gittiğim bir yeri haritama ekle", "Bütçe dostu bir hafta sonu öner"],
@@ -120,7 +120,7 @@ const I18N = {
     wishAddedT: "Added to your Someday List", wishRemovedT: "Removed from the list", wishWentT: "Added to your map",
     askPlace: "✦ Ask about this place", askWish: "✦ Plan", askTop: "Plan", chatT: "Plan", chatBack: "Back to the map", chatNew: "New chat",
     chatPh: "Ask something…", chatSend: "Send", chatThinking: "Looking into it…", chatCtxOff: "Remove this place from the chat",
-    chatErr: "No answer came back. Try again.", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
+    chatErr: "No answer came back. Try again.", chatTimeout: "This one took too long. Try asking in smaller steps (the route first, then the days).", chatLimit: "You've used today's questions. You can continue tomorrow.", chatNotReady: "The assistant isn't set up yet.",
     chatLeft: n => `${n} questions left today.`, chatAnswered: l => `Answer arrived in the ${l} chat`, chatSources: "Sources", chatRetry: "Try again",
     chatSuggPlace: ["How do I get here?", "What's near here from my list?", "Plan 3 days around here"],
     chatSuggFree: ["Make a route from my Someday List", "Add a place I've been to my map", "Suggest a budget weekend"],
@@ -1489,8 +1489,8 @@ function paintChat() {
     }
   });
   if (CHAT.busy === chatKey(CHAT.focus)) log.append(el("div", { class: "msg ai typing" }, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")), t("chatThinking")));
-  if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err,
-    CHAT.err === t("chatErr") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
+  if (CHAT.err) log.append(el("div", { class: "notice chat-err" }, CHAT.err + (CHAT.err === t("chatErr") && CHAT.errCode ? ` (${CHAT.errCode})` : ""),
+    CHAT.err === t("chatErr") || CHAT.err === t("chatTimeout") ? el("button", { class: "linkbtn", type: "button", onclick: chatRetry }, t("chatRetry")) : null));
   if (CHAT.left != null && CHAT.left <= 3 && !CHAT.err) log.append(el("p", { class: "chat-left", text: t("chatLeft", CHAT.left) }));
   const go = $("#chat-go"); if (go) go.disabled = !!CHAT.busy;
   const sc = $("#panelBody"); if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
@@ -1525,9 +1525,12 @@ async function chatAsk() {
     const r = await sb.functions.invoke("plan", { body: { messages: history, lang: LANG, focus } });
     if (r.error) {
       const ctx = r.error.context;
-      try { code = (await ctx.json()).error || ""; } catch (e) {}
+      let extra = "";
+      try { const j = await ctx.json(); code = j.error || ""; if (j.status) extra = " " + j.status; } catch (e) {}
       if (!code && ctx && ctx.status === 404) code = "not_deployed";
-      if (!code) code = "network";
+      if (!code && ctx && (ctx.status === 546 || ctx.status === 504)) code = "timeout";   // Supabase stopped the function (time limit)
+      if (!code) code = ctx && ctx.status ? "http " + ctx.status : "network";
+      else if (code === "upstream") code += extra;
     } else data = r.data;
   } catch (e) { code = "network"; }
   CHAT.busy = false;
@@ -1536,7 +1539,9 @@ async function chatAsk() {
     thread.push({ role: "assistant", text: data.text || "", sources: data.sources || [], pins: (data.pins || []).map(p => ({ ...p, st: "new" })) });
     if (typeof data.left === "number") CHAT.left = data.left;
   } else if (here) {
-    CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady") : t("chatErr");
+    CHAT.err = code === "limit" ? t("chatLimit") : code === "not_deployed" || code === "no_key" || code === "no_limit_table" ? t("chatNotReady")
+      : code === "timeout" ? t("chatTimeout") : t("chatErr");
+    CHAT.errCode = code === "limit" || code === "timeout" ? "" : code;
     if (code === "limit") CHAT.left = 0;
   }
   chatSave(); paintChat();
